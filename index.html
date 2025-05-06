@@ -4,43 +4,86 @@
   <meta charset="UTF-8">
   <title>批量图片压缩器</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; max-width: 700px; margin: auto; }
-    #dropZone {
-      border: 2px dashed #ccc; padding: 2em; text-align: center;
-      margin-bottom: 1em; border-radius: 10px; background: #f9f9f9;
-      cursor: pointer;
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      max-width: 700px;
+      margin: auto;
     }
-    .image-block { margin: 1em 0; padding: 1em; border: 1px solid #ccc; border-radius: 8px; }
-    .log { font-size: 14px; color: #555; margin-top: 0.5em; }
-    .download-link { display: inline-block; margin-top: 0.5em; color: blue; }
-    #downloadZipBtn { margin-top: 1em; display: none; padding: 0.5em 1em; font-size: 16px; }
-    .image-preview { max-width: 200px; max-height: 150px; margin-bottom: 1em; cursor: pointer; }
-    .image-preview-enlarged { max-width: 90%; max-height: 90%; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; border: 3px solid #fff; background: #f0f0f0; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-    .image-preview-enlarged-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 999; }
+    #dropZone {
+      border: 2px dashed #ccc;
+      padding: 2em;
+      text-align: center;
+      margin-bottom: 1em;
+      border-radius: 10px;
+      background: #f9f9f9;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    #dropZone.dragover {
+      background-color: #e0f7ff;
+      border-color: #007bff;
+    }
+    .image-block {
+      margin: 1em 0;
+      padding: 1em;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .download-link {
+      display: inline-block;
+      margin-top: 0.5em;
+      color: blue;
+    }
+    .image-preview {
+      max-width: 200px;
+      max-height: 150px;
+      margin: 0.5em;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    .image-preview-enlarged {
+      max-width: 90%;
+      max-height: 90%;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      border: 3px solid #fff;
+      background: #f0f0f0;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .image-preview-enlarged-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
-  <h2>📦 图片压缩器（拖拽上传 + 保留原文件名）</h2>
-  <div id="dropZone">📂 将图片拖拽到此区域</div>
+  <h2>📦 图片压缩器（拖拽或点击上传）</h2>
+  <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
   <div id="output"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
     const output = document.getElementById('output');
     const zip = new JSZip();
 
+    // 获取文件名中的目标大小（例如：name-200KB.jpg）
     function getTargetSizeFromName(name) {
       const match = name.match(/-(\d+)KB\.jpg$/i);
       return match ? parseInt(match[1]) * 1024 : null;
-    }
-
-    function log(text, parent) {
-      const p = document.createElement('p');
-      p.className = 'log';
-      p.textContent = text;
-      parent.appendChild(p);
     }
 
     function dataURLToBlob(dataURL) {
@@ -51,6 +94,7 @@
       return new Blob([array], { type: mime });
     }
 
+    // 使用二分法压缩图片到指定大小
     async function compressImageToTarget(file, targetSize) {
       const img = new Image();
       const reader = new FileReader();
@@ -88,10 +132,20 @@
       return resultBlob;
     }
 
+    function createDownloadLink(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.textContent = '📥 下载图像';
+      link.className = 'download-link';
+      return link;
+    }
+
     async function handleFiles(files) {
       output.innerHTML = '';
       zip.files = {};
-      let anyCompressed = false;
+      let anyProcessed = false;
 
       for (const file of files) {
         const block = document.createElement('div');
@@ -104,101 +158,132 @@
 
         const targetSize = getTargetSizeFromName(file.name);
         if (!targetSize) {
-          log('❌ 文件名中未找到目标大小（例如：xxx-160KB.jpg）', block);
+          const warn = document.createElement('p');
+          warn.textContent = '❌ 文件名中未找到目标大小（例如：xxx-160KB.jpg）';
+          block.appendChild(warn);
           continue;
         }
 
-        log(`🎯 目标最大大小：${(targetSize / 1024).toFixed(1)} KB`, block);
-
-        // 显示原始图片预览
-        const originalPreview = document.createElement('img');
-        originalPreview.className = 'image-preview';
-        originalPreview.src = URL.createObjectURL(file);
-        block.appendChild(originalPreview);
-
         if (file.size <= targetSize) {
-          log(`✅ 原始图片 ${(file.size / 1024).toFixed(1)}KB 小于目标，跳过压缩`, block);
+          const info = document.createElement('p');
+          info.textContent = `✅ 原始图片 ${(file.size / 1024).toFixed(1)}KB 小于目标，跳过压缩`;
+          block.appendChild(info);
 
-          const url = URL.createObjectURL(file);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = file.name;
-          link.textContent = '📥 下载原图';
-          link.className = 'download-link';
-          block.appendChild(link);
+          const preview = document.createElement('img');
+          preview.className = 'image-preview';
+          preview.src = URL.createObjectURL(file);
+          preview.dataset.previewType = 'original';
+          preview.dataset.original = preview.src;
+          block.appendChild(preview);
 
           const arrayBuffer = await file.arrayBuffer();
           zip.file(file.name, arrayBuffer);
+          block.appendChild(createDownloadLink(file, file.name));
           continue;
         }
 
         const compressed = await compressImageToTarget(file, targetSize);
         if (compressed) {
-          anyCompressed = true;
+          anyProcessed = true;
 
-          // 显示压缩后的图片预览
-          const compressedPreview = document.createElement('img');
-          compressedPreview.className = 'image-preview';
-          compressedPreview.src = URL.createObjectURL(compressed);
-          block.appendChild(compressedPreview);
+          // 原图预览
+          const previewOriginal = document.createElement('img');
+          previewOriginal.className = 'image-preview';
+          previewOriginal.src = URL.createObjectURL(file);
+          previewOriginal.dataset.previewType = 'original';
+          previewOriginal.dataset.original = previewOriginal.src;
+          previewOriginal.dataset.compressed = URL.createObjectURL(compressed);
+          block.appendChild(previewOriginal);
 
-          const url = URL.createObjectURL(compressed);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = file.name;
-          link.textContent = '📥 下载压缩图';
-          link.className = 'download-link';
-          block.appendChild(link);
+          // 压缩图预览
+          const previewCompressed = document.createElement('img');
+          previewCompressed.className = 'image-preview';
+          previewCompressed.src = previewOriginal.dataset.compressed;
+          previewCompressed.dataset.previewType = 'compressed';
+          previewCompressed.dataset.original = previewOriginal.src;
+          previewCompressed.dataset.compressed = previewCompressed.src;
+          block.appendChild(previewCompressed);
+
+          block.appendChild(createDownloadLink(compressed, file.name));
 
           const arrayBuffer = await compressed.arrayBuffer();
           zip.file(file.name, arrayBuffer);
-          log(`✅ 已压缩至 ${(compressed.size / 1024).toFixed(1)} KB`, block);
         } else {
-          log('❌ 压缩失败', block);
+          const fail = document.createElement('p');
+          fail.textContent = '❌ 压缩失败';
+          block.appendChild(fail);
         }
       }
 
-      if (anyCompressed) {
-        // 自动下载 ZIP 文件
+      if (anyProcessed) {
         const now = new Date();
         const dateStr = now.toISOString().split('T')[0];
         const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-        const count = Object.keys(zip.files).length;
-        const zipName = `compressed_${dateStr}_${timeStr}_${count}.zip`;
+        const zipName = `compressed_${dateStr}_${timeStr}.zip`;
 
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, zipName);
       }
     }
 
-    // 监听拖拽上传
-    document.getElementById('dropZone').addEventListener('dragover', e => {
+    // 拖放上传处理
+    dropZone.addEventListener('dragover', e => {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
+      dropZone.classList.add('dragover');
     });
-
-    document.getElementById('dropZone').addEventListener('drop', e => {
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', e => {
       e.preventDefault();
+      dropZone.classList.remove('dragover');
       handleFiles(Array.from(e.dataTransfer.files));
     });
 
-    // 点击预览图片时放大显示
+    // 点击 dropZone 打开文件选择框
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', () => {
+      handleFiles(Array.from(fileInput.files));
+    });
+
+    // 放大图点击切换原图和压缩图
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('image-preview')) {
-        let enlargedImage = document.createElement('img');
-        enlargedImage.src = e.target.src;
-        enlargedImage.className = 'image-preview-enlarged';
-        
-        let overlay = document.createElement('div');
+        const original = e.target.dataset.original;
+        const compressed = e.target.dataset.compressed;
+
+        const overlay = document.createElement('div');
         overlay.className = 'image-preview-enlarged-overlay';
+
+        const enlarged = document.createElement('img');
+        enlarged.src = e.target.src;
+        enlarged.className = 'image-preview-enlarged';
+        enlarged.dataset.original = original;
+        enlarged.dataset.compressed = compressed;
+        enlarged.dataset.state = e.target.dataset.previewType;
+
+        // 切换压缩图/原图
+        enlarged.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const state = enlarged.dataset.state;
+          if (state === 'original') {
+            enlarged.src = compressed;
+            enlarged.dataset.state = 'compressed';
+          } else {
+            enlarged.src = original;
+            enlarged.dataset.state = 'original';
+          }
+        });
 
         overlay.addEventListener('click', () => {
           overlay.remove();
-          enlargedImage.remove();
+          enlarged.remove();
         });
 
         document.body.appendChild(overlay);
-        document.body.appendChild(enlargedImage);
+        document.body.appendChild(enlarged);
       }
     });
   </script>
