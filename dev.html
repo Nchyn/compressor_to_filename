@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
+  <title>批量图片压缩器</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      max-width: 700px;
+      margin: auto;
+    }
+    #dropZone {
+      border: 2px dashed #ccc;
+      padding: 2em;
+      text-align: center;
+      margin-bottom: 1em;
+      border-radius: 10px;
+      background: #f9f9f9;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    #dropZone.dragover,
+    #dropZone:hover {
+      background-color: #e0f7ff;
+      border-color: #007bff;
+    }
+    .image-block {
+      margin: 1em 0;
+      padding: 1em;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    .download-link {
+      display: inline-block;
+      margin-top: 0.5em;
+      color: blue;
+    }
+    .image-preview {
+      max-width: 200px;
+      max-height: 150px;
+      margin: 0.5em;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    .image-preview-enlarged {
+      max-width: 90%;
+      max-height: 90%;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      border: 3px solid #fff;
+      background: #f0f0f0;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .image-preview-enlarged-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+    }
+    .input-group {
+      margin-bottom: 1em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+    .input-group label {
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1em;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 3px rgba(0,123,255,0.5);
+    }
+  </style>
+</head>
+<body>
+  <h2>📦 图片压缩器</h2>
+  <p>请拖入例如：xxx-160KB.jpg的图片文件，或手动设置目标大小</p>
+
+  <div class="input-group">
+    <label for="defaultSizeInput">默认压缩目标大小（KB）：</label>
+    <input type="number" id="defaultSizeInput" value="160" min="1" />
+    <label for="forceUseDefault">
+      <input type="checkbox" id="forceUseDefault" />
+      强制使用输入大小（忽略文件名）
+    </label>
+  </div>
+
+  <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
+  <div id="output"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const output = document.getElementById('output');
+    const defaultSizeInput = document.getElementById('defaultSizeInput');
+    const zip = new JSZip();
+
+    function getTargetSizeFromName(name) {
+      const fallback = parseInt(defaultSizeInput.value);
+      const force = document.getElementById('forceUseDefault').checked;
+      if (force) return fallback > 0 ? fallback * 1024 : null;
+    
+      const match = name.match(/-(\d+)KB\.jpg$/i);
+      if (match) return parseInt(match[1]) * 1024;
+      return fallback > 0 ? fallback * 1024 : null;
+    }
+
+
+    function dataURLToBlob(dataURL) {
+      const [header, base64] = dataURL.split(',');
+      const mime = header.match(/:(.*?);/)[1];
+      const binary = atob(base64);
+      const array = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return new Blob([array], { type: mime });
+    }
+
+    async function compressImageToTarget(file, targetSize) {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      await new Promise(resolve => {
+        reader.onload = () => {
+          img.src = reader.result;
+          img.onload = resolve;
+        };
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      let low = 0.1, high = 1.0;
+      let resultBlob = null;
+
+      for (let i = 0; i < 10; i++) {
+        const mid = (low + high) / 2;
+        const dataUrl = canvas.toDataURL('image/jpeg', mid);
+        const blob = dataURLToBlob(dataUrl);
+        if (blob.size <= targetSize) {
+          resultBlob = blob;
+          low = mid;
+        } else {
+          high = mid;
+        }
+      }
+
+      return resultBlob;
+    }
+
+    function createDownloadLink(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.textContent = '📥 下载图像';
+      link.className = 'download-link';
+      return link;
+    }
+
+    async function handleFiles(files) {
+      output.innerHTML = '';
+      zip.files = {};
+      let anyProcessed = false;
+
+      for (const file of files) {
+        const block = document.createElement('div');
+        block.className = 'image-block';
+        output.appendChild(block);
+
+        const title = document.createElement('h4');
+        title.textContent = `🖼️ 处理文件：${file.name}`;
+        block.appendChild(title);
+
+        const targetSize = getTargetSizeFromName(file.name);
+        if (!targetSize || isNaN(targetSize)) {
+          const warn = document.createElement('p');
+          warn.textContent = '❌ 未能确定目标大小（请检查文件名或输入框）';
+          block.appendChild(warn);
+          continue;
+        }
+
+        if (file.size <= targetSize) {
+          const info = document.createElement('p');
+          info.textContent = `✅ 原始图片 ${(file.size / 1024).toFixed(1)}KB 小于目标，跳过压缩`;
+          block.appendChild(info);
+
+          const preview = document.createElement('img');
+          preview.className = 'image-preview';
+          preview.src = URL.createObjectURL(file);
+          preview.dataset.previewType = 'original';
+          preview.dataset.original = preview.src;
+          block.appendChild(preview);
+
+          const arrayBuffer = await file.arrayBuffer();
+          zip.file(file.name, arrayBuffer);
+          block.appendChild(createDownloadLink(file, file.name));
+          continue;
+        }
+
+        const compressed = await compressImageToTarget(file, targetSize);
+        if (compressed) {
+          anyProcessed = true;
+
+          const previewOriginal = document.createElement('img');
+          previewOriginal.className = 'image-preview';
+          previewOriginal.src = URL.createObjectURL(file);
+          previewOriginal.dataset.previewType = 'original';
+          previewOriginal.dataset.original = previewOriginal.src;
+          previewOriginal.dataset.compressed = URL.createObjectURL(compressed);
+          block.appendChild(previewOriginal);
+
+          const previewCompressed = document.createElement('img');
+          previewCompressed.className = 'image-preview';
+          previewCompressed.src = previewOriginal.dataset.compressed;
+          previewCompressed.dataset.previewType = 'compressed';
+          previewCompressed.dataset.original = previewOriginal.src;
+          previewCompressed.dataset.compressed = previewCompressed.src;
+          block.appendChild(previewCompressed);
+
+          block.appendChild(createDownloadLink(compressed, file.name));
+          const arrayBuffer = await compressed.arrayBuffer();
+          zip.file(file.name, arrayBuffer);
+        } else {
+          const fail = document.createElement('p');
+          fail.textContent = '❌ 压缩失败';
+          block.appendChild(fail);
+        }
+      }
+
+      if (anyProcessed) {
+        const now = new Date();
+        const zipName = `compressed_${now.toISOString().slice(0,19).replace(/[:T]/g,'-')}.zip`;
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, zipName);
+      }
+    }
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(Array.from(e.dataTransfer.files));
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      handleFiles(Array.from(fileInput.files));
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('image-preview')) {
+        const original = e.target.dataset.original;
+        const compressed = e.target.dataset.compressed;
+        const overlay = document.createElement('div');
+        overlay.className = 'image-preview-enlarged-overlay';
+
+        const enlarged = document.createElement('img');
+        enlarged.src = e.target.src;
+        enlarged.className = 'image-preview-enlarged';
+        enlarged.dataset.original = original;
+        enlarged.dataset.compressed = compressed;
+        enlarged.dataset.state = e.target.dataset.previewType;
+
+        enlarged.addEventListener('click', ev => {
+          ev.stopPropagation();
+          enlarged.src = enlarged.dataset.state === 'original' ? compressed : original;
+          enlarged.dataset.state = enlarged.dataset.state === 'original' ? 'compressed' : 'original';
+        });
+
+        overlay.addEventListener('click', () => {
+          overlay.remove();
+          enlarged.remove();
+        });
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(enlarged);
+      }
+    });
+  </script>
+</body>
+</html>
