@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
   <title>批量图片压缩器</title>
@@ -13,6 +16,8 @@
       --text-light: #000;
       --bg-dark: #121212;
       --text-dark: #f0f0f0;
+      --primary-color: #007bff;
+      --primary-hover: #0069d9;
     }
 
     html[data-theme='dark'] {
@@ -28,7 +33,7 @@
     body {
       font-family: sans-serif;
       padding: 2em;
-      max-width: 700px;
+      max-width: 900px;
       margin: auto;
       transition: background 0.3s, color 0.3s;
     }
@@ -52,28 +57,74 @@
     #dropZone.dragover,
     #dropZone:hover {
       background-color: #e0f7ff;
-      border-color: #007bff;
+      border-color: var(--primary-color);
     }
 
-    .image-block {
-      margin: 1em 0;
+    html[data-theme='dark'] #dropZone.dragover,
+    html[data-theme='dark'] #dropZone:hover {
+      background-color: #2a3a4a;
+      border-color: var(--primary-color);
+    }
+
+    .output-container {
+      margin-top: 1em;
+    }
+
+    .image-row {
+      display: flex;
+      align-items: center;
+      gap: 1em;
       padding: 1em;
+      margin-bottom: 1em;
       border: 1px solid #ccc;
       border-radius: 8px;
     }
 
-    .download-link {
-      display: inline-block;
-      margin-top: 0.5em;
-      color: blue;
+    html[data-theme='dark'] .image-row {
+      border-color: #444;
+      background-color: #1f1f1f;
+    }
+
+    .image-col {
+      flex: 1;
+      min-width: 0;
     }
 
     .image-preview {
-      max-width: 200px;
-      max-height: 150px;
-      margin: 0.5em;
+      max-width: 150px;
+      max-height: 120px;
+      display: block;
       cursor: pointer;
-      vertical-align: middle;
+    }
+
+    .info-col {
+      flex: 2;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-weight: bold;
+      word-break: break-all;
+      margin-bottom: 0.5em;
+    }
+
+    .size-info {
+      margin-bottom: 0.5em;
+      line-height: 1.5;
+    }
+
+    .download-link {
+      display: inline-block;
+      padding: 0.5em 1em;
+      background-color: var(--primary-color);
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .download-link:hover {
+      background-color: var(--primary-hover);
     }
 
     .image-preview-enlarged {
@@ -121,32 +172,146 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    html[data-theme='dark'] .input-group input[type="number"] {
+      background-color: #2a2a2a;
+      border-color: #444;
+      color: var(--text-dark);
+    }
+
     .input-group input:focus {
       outline: none;
-      border-color: #007bff;
+      border-color: var(--primary-color);
       box-shadow: 0 0 3px rgba(0,123,255,0.5);
     }
 
     #themeToggle {
       float: right;
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      color: inherit;
     }
 
-    #installContainer {
+    /* 通知提示样式 */
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      z-index: 1000;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .notification.show {
+      display: block;
+      animation: fadeInUp 0.3s;
+    }
+
+    .notification.hide {
+      animation: fadeOutDown 0.3s;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes fadeOutDown {
+      from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+    }
+
+    /* 安装提示样式 */
+    .pwa-install-prompt {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 1em;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    }
+
+    .pwa-install-content {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .pwa-install-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1em;
+      margin-top: 1em;
+    }
+
+    .pwa-install-buttons button {
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #installConfirm {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    #installCancel {
+      background: #666;
+      color: white;
+    }
+
+    /* 更新提示样式 */
+    .pwa-update-prompt {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: #007bff;
+      background: var(--primary-color);
       color: white;
       padding: 10px 15px;
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: none;
       z-index: 1000;
+      display: none;
     }
 
-    #installContainer:hover {
-      background: #0069d9;
+    .pwa-update-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #updateRefresh {
+      margin-top: 0.5em;
+      background: white;
+      color: var(--primary-color);
+      border: none;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
     #removeParamCheckbox {
@@ -159,10 +324,6 @@
   <p>请拖入包含大小参数的图片文件，如 xxx-160KB.jpg</p>
 
   <div class="input-group" style="display: flex; align-items: center; gap: 1em;">
-    <label for="removeParamCheckbox" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
-      <input type="checkbox" id="removeParamCheckbox" />
-      删除文件名中的参数
-    </label>
     <label for="forceUseDefault" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
       <input type="checkbox" id="forceUseDefault" />
       手动设置
@@ -172,16 +333,51 @@
       <label for="defaultSizeInput">目标（KB）：</label>
       <input type="number" id="defaultSizeInput" value="160" min="1" style="width: 6em;" />
     </div>
+
+    <label for="removeParamCheckbox" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
+      <input type="checkbox" id="removeParamCheckbox" />
+      删除文件名中的参数
+    </label>
   </div>
 
   <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
   <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
-  <div id="output"></div>
-  <div id="installContainer">⬇️ 安装应用</div>
+  
+  <div class="output-container" id="output">
+    <!-- 输出将在这里动态生成 -->
+  </div>
+
+  <!-- 参数未识别提示 -->
+  <div id="paramNotification" class="notification">
+    <div id="notificationContent">未识别到文件名中的大小参数，将使用默认值 <span id="defaultSizeValue">160</span>KB 进行压缩</div>
+    <button id="closeNotification" style="margin-top: 10px; background: #555; color: white; border: none; border-radius: 3px; padding: 5px 15px; cursor: pointer;">知道了</button>
+  </div>
+
+  <!-- PWA 安装提示 -->
+  <div id="installContainer" class="pwa-install-prompt">
+    <div class="pwa-install-content">
+      <h4>安装图片压缩器</h4>
+      <p>添加到主屏幕以便离线使用</p>
+      <div class="pwa-install-buttons">
+        <button id="installCancel">稍后</button>
+        <button id="installConfirm">安装</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA 更新提示 -->
+  <div id="updateContainer" class="pwa-update-prompt">
+    <div class="pwa-update-content">
+      <h4>新版本可用</h4>
+      <p>有新版本可用，请刷新以获取更新</p>
+      <button id="updateRefresh">刷新</button>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
   <script>
+    const APP_VERSION = '1.0.4'; // 每次更新时修改版本号
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const output = document.getElementById('output');
@@ -191,8 +387,19 @@
     const themeToggle = document.getElementById('themeToggle');
     const removeParamCheckbox = document.getElementById('removeParamCheckbox');
     const installContainer = document.getElementById('installContainer');
+    const installConfirm = document.getElementById('installConfirm');
+    const installCancel = document.getElementById('installCancel');
+    const updateContainer = document.getElementById('updateContainer');
+    const updateRefresh = document.getElementById('updateRefresh');
+    const paramNotification = document.getElementById('paramNotification');
+    const defaultSizeValue = document.getElementById('defaultSizeValue');
+    const notificationContent = document.getElementById('notificationContent');
+    const closeNotification = document.getElementById('closeNotification');
     const zip = new JSZip();
     let deferredPrompt = null;
+    let hasShownNotification = false;
+    let currentOverlay = null;
+    let currentEnlarged = null;
 
     function updateDefaultSizeVisibility() {
       defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none';
@@ -209,8 +416,34 @@
       // 改进后的正则表达式，匹配文件名中任意位置的 -160KB 模式
       const match = name.match(/-(\d+)KB/i);
       if (match) return parseInt(match[1]) * 1024;
+      
       return fallback > 0 ? fallback * 1024 : null;
     }
+
+    function showNotification(message) {
+      notificationContent.innerHTML = message;
+      paramNotification.classList.add('show');
+      paramNotification.style.display = 'block';
+      hasShownNotification = true;
+      
+      setTimeout(() => {
+        paramNotification.classList.remove('show');
+        paramNotification.classList.add('hide');
+        setTimeout(() => {
+          paramNotification.classList.remove('hide');
+          paramNotification.style.display = 'none';
+        }, 300);
+      }, 5000);
+    }
+
+    closeNotification.addEventListener('click', () => {
+      paramNotification.classList.remove('show');
+      paramNotification.classList.add('hide');
+      setTimeout(() => {
+        paramNotification.classList.remove('hide');
+        paramNotification.style.display = 'none';
+      }, 300);
+    });
 
     function getCleanFileName(name) {
       // 删除文件名中的 -160KB 参数
@@ -266,78 +499,192 @@
       const link = document.createElement('a');
       link.href = url;
       link.download = removeParamCheckbox.checked ? getCleanFileName(name) : name;
-      link.textContent = '📥 下载图像';
+      link.textContent = '下载图像';
       link.className = 'download-link';
       return link;
+    }
+
+    function createPreviewImage(src, type, originalSrc, compressedSrc) {
+      const img = document.createElement('img');
+      img.className = 'image-preview';
+      img.src = src;
+      img.dataset.previewType = type;
+      img.dataset.original = originalSrc;
+      img.dataset.compressed = compressedSrc;
+      return img;
+    }
+
+    function showEnlargedPreview(src, originalSrc, compressedSrc, type) {
+      // 移除现有的预览
+      if (currentOverlay) currentOverlay.remove();
+      if (currentEnlarged) currentEnlarged.remove();
+
+      const overlay = document.createElement('div');
+      overlay.className = 'image-preview-enlarged-overlay';
+      currentOverlay = overlay;
+
+      const enlarged = document.createElement('img');
+      enlarged.src = src;
+      enlarged.className = 'image-preview-enlarged';
+      enlarged.dataset.original = originalSrc;
+      enlarged.dataset.compressed = compressedSrc;
+      enlarged.dataset.state = type;
+      currentEnlarged = enlarged;
+
+      // 点击切换图片
+      enlarged.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const newState = enlarged.dataset.state === 'original' ? 'compressed' : 'original';
+        enlarged.src = newState === 'original' ? originalSrc : compressedSrc;
+        enlarged.dataset.state = newState;
+      });
+
+      // 点击关闭
+      overlay.addEventListener('click', () => {
+        overlay.remove();
+        enlarged.remove();
+        currentOverlay = null;
+        currentEnlarged = null;
+      });
+
+      // ESC键关闭
+      document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') {
+          overlay.remove();
+          enlarged.remove();
+          currentOverlay = null;
+          currentEnlarged = null;
+          document.removeEventListener('keydown', escHandler);
+        }
+      });
+
+      document.body.appendChild(overlay);
+      document.body.appendChild(enlarged);
     }
 
     async function handleFiles(files) {
       output.innerHTML = '';
       zip.files = {};
+      hasShownNotification = false;
       let anyProcessed = false;
+      let filesWithoutParam = 0;
+
+      // 检查是否有文件没有参数
+      for (const file of files) {
+        const targetSize = getTargetSizeFromName(file.name);
+        if (!targetSize || isNaN(targetSize)) {
+          filesWithoutParam++;
+        }
+      }
+
+      // 如果有文件没有参数，显示通知
+      if (filesWithoutParam > 0) {
+        const defaultSize = parseInt(defaultSizeInput.value);
+        const message = filesWithoutParam === 1 
+          ? `1个文件未识别到大小参数，将使用默认值 ${defaultSize}KB 进行压缩`
+          : `${filesWithoutParam}个文件未识别到大小参数，将使用默认值 ${defaultSize}KB 进行压缩`;
+        showNotification(message);
+      }
 
       for (const file of files) {
-        const block = document.createElement('div');
-        block.className = 'image-block';
-        output.appendChild(block);
+        const row = document.createElement('div');
+        row.className = 'image-row';
+        output.appendChild(row);
 
-        const title = document.createElement('h4');
-        title.textContent = `🖼️ 处理文件：${file.name}`;
-        block.appendChild(title);
+        // 原始图片列
+        const originalCol = document.createElement('div');
+        originalCol.className = 'image-col';
+        row.appendChild(originalCol);
+
+        // 压缩图片列
+        const compressedCol = document.createElement('div');
+        compressedCol.className = 'image-col';
+        row.appendChild(compressedCol);
+
+        // 信息列
+        const infoCol = document.createElement('div');
+        infoCol.className = 'info-col';
+        row.appendChild(infoCol);
+
+        // 文件名
+        const fileName = document.createElement('div');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name;
+        infoCol.appendChild(fileName);
 
         const targetSize = getTargetSizeFromName(file.name);
         if (!targetSize || isNaN(targetSize)) {
-          const warn = document.createElement('p');
-          warn.textContent = '❌ 未能确定目标大小（请检查文件名或输入框）';
-          block.appendChild(warn);
+          const warn = document.createElement('div');
+          warn.className = 'size-info';
+          warn.textContent = '❌ 未能确定目标大小';
+          infoCol.appendChild(warn);
           continue;
         }
 
-        if (file.size <= targetSize) {
-          const info = document.createElement('p');
-          info.textContent = `✅ 原始图片 ${(file.size / 1024).toFixed(1)}KB 小于目标，跳过压缩`;
-          block.appendChild(info);
+        const originalSrc = URL.createObjectURL(file);
+        const originalPreview = createPreviewImage(originalSrc, 'original', originalSrc, originalSrc);
+        originalCol.appendChild(originalPreview);
 
-          const preview = document.createElement('img');
-          preview.className = 'image-preview';
-          preview.src = URL.createObjectURL(file);
-          preview.dataset.previewType = 'original';
-          preview.dataset.original = preview.src;
-          block.appendChild(preview);
+        if (file.size <= targetSize) {
+          // 图片小于目标大小，不压缩
+          const info = document.createElement('div');
+          info.className = 'size-info';
+          info.textContent = `原始大小: ${(file.size / 1024).toFixed(1)}KB\n小于目标，跳过压缩`;
+          infoCol.appendChild(info);
+
+          // 压缩列显示原始图片
+          const compressedPreview = createPreviewImage(originalSrc, 'compressed', originalSrc, originalSrc);
+          compressedCol.appendChild(compressedPreview);
+
+          // 下载链接
+          infoCol.appendChild(createDownloadLink(file, file.name));
 
           const arrayBuffer = await file.arrayBuffer();
           zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
-          block.appendChild(createDownloadLink(file, file.name));
           continue;
         }
 
+        // 需要压缩的图片
         const compressed = await compressImageToTarget(file, targetSize);
         if (compressed) {
           anyProcessed = true;
+          const compressedSrc = URL.createObjectURL(compressed);
 
-          const previewOriginal = document.createElement('img');
-          previewOriginal.className = 'image-preview';
-          previewOriginal.src = URL.createObjectURL(file);
-          previewOriginal.dataset.previewType = 'original';
-          previewOriginal.dataset.original = previewOriginal.src;
-          previewOriginal.dataset.compressed = URL.createObjectURL(compressed);
-          block.appendChild(previewOriginal);
+          // 压缩后图片预览
+          const compressedPreview = createPreviewImage(compressedSrc, 'compressed', originalSrc, compressedSrc);
+          compressedCol.appendChild(compressedPreview);
 
-          const previewCompressed = document.createElement('img');
-          previewCompressed.className = 'image-preview';
-          previewCompressed.src = previewOriginal.dataset.compressed;
-          previewCompressed.dataset.previewType = 'compressed';
-          previewCompressed.dataset.original = previewOriginal.src;
-          previewCompressed.dataset.compressed = previewCompressed.src;
-          block.appendChild(previewCompressed);
+          // 大小信息
+          const originalSizeKB = (file.size / 1024).toFixed(1);
+          const compressedSizeKB = (compressed.size / 1024).toFixed(1);
+          const compressionRatio = ((1 - compressed.size / file.size) * 100).toFixed(1);
+          
+          const info = document.createElement('div');
+          info.className = 'size-info';
+          info.innerHTML = `原始大小: ${originalSizeKB}KB<br>
+                            压缩大小: ${compressedSizeKB}KB<br>
+                            压缩率: ${compressionRatio}%`;
+          infoCol.appendChild(info);
 
-          block.appendChild(createDownloadLink(compressed, file.name));
+          // 下载链接
+          infoCol.appendChild(createDownloadLink(compressed, file.name));
+
           const arrayBuffer = await compressed.arrayBuffer();
           zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
+
+          // 添加预览点击事件
+          originalPreview.addEventListener('click', () => {
+            showEnlargedPreview(originalSrc, originalSrc, compressedSrc, 'original');
+          });
+
+          compressedPreview.addEventListener('click', () => {
+            showEnlargedPreview(compressedSrc, originalSrc, compressedSrc, 'compressed');
+          });
         } else {
-          const fail = document.createElement('p');
+          const fail = document.createElement('div');
+          fail.className = 'size-info';
           fail.textContent = '❌ 压缩失败';
-          block.appendChild(fail);
+          infoCol.appendChild(fail);
         }
       }
 
@@ -349,6 +696,7 @@
       }
     }
 
+    // 文件拖放处理
     dropZone.addEventListener('dragover', e => {
       e.preventDefault();
       dropZone.classList.add('dragover');
@@ -364,36 +712,6 @@
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
       handleFiles(Array.from(fileInput.files));
-    });
-
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('image-preview')) {
-        const original = e.target.dataset.original;
-        const compressed = e.target.dataset.compressed;
-        const overlay = document.createElement('div');
-        overlay.className = 'image-preview-enlarged-overlay';
-
-        const enlarged = document.createElement('img');
-        enlarged.src = e.target.src;
-        enlarged.className = 'image-preview-enlarged';
-        enlarged.dataset.original = original;
-        enlarged.dataset.compressed = compressed;
-        enlarged.dataset.state = e.target.dataset.previewType;
-
-        enlarged.addEventListener('click', ev => {
-          ev.stopPropagation();
-          enlarged.src = enlarged.dataset.state === 'original' ? compressed : original;
-          enlarged.dataset.state = enlarged.dataset.state === 'original' ? 'compressed' : 'original';
-        });
-
-        overlay.addEventListener('click', () => {
-          overlay.remove();
-          enlarged.remove();
-        });
-
-        document.body.appendChild(overlay);
-        document.body.appendChild(enlarged);
-      }
     });
 
     // 主题切换逻辑
@@ -415,22 +733,79 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      
+      // 显示自定义安装提示
       installContainer.style.display = 'block';
-    });
-
-    installContainer.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      
+      // 24小时内不再显示
+      const lastPromptTime = localStorage.getItem('lastPromptTime');
+      if (lastPromptTime && Date.now() - lastPromptTime < 24 * 60 * 60 * 1000) {
         installContainer.style.display = 'none';
       }
-      deferredPrompt = null;
     });
 
-    // 注册 Service Worker
+    installConfirm.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('用户接受了安装提示');
+        localStorage.setItem('lastPromptTime', Date.now());
+      }
+      
+      deferredPrompt = null;
+      installContainer.style.display = 'none';
+    });
+
+    installCancel.addEventListener('click', () => {
+      installContainer.style.display = 'none';
+      localStorage.setItem('lastPromptTime', Date.now());
+    });
+
+    // 注册 Service Worker 并检查更新
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      navigator.serviceWorker.register('sw.js').then(registration => {
+        console.log('ServiceWorker 注册成功:', registration.scope);
+        
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('发现新版本 ServiceWorker');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('新版本已安装，显示更新提示');
+              updateContainer.style.display = 'block';
+            }
+          });
+        });
+        
+        // 定期检查更新
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000); // 每小时检查一次
+      }).catch(error => {
+        console.log('ServiceWorker 注册失败:', error);
+      });
+    }
+
+    updateRefresh.addEventListener('click', () => {
+      window.location.reload();
+    });
+
+    // 检查本地存储的版本
+    const savedVersion = localStorage.getItem('appVersion');
+    if (savedVersion !== APP_VERSION) {
+      // 新版本，清除缓存
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+      localStorage.setItem('appVersion', APP_VERSION);
     }
   </script>
 </body>
