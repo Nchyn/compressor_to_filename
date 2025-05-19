@@ -1,16 +1,38 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh" data-theme="light">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
   <title>批量图片压缩器</title>
   <style>
+    :root {
+      --bg-light: #fff;
+      --text-light: #000;
+      --bg-dark: #121212;
+      --text-dark: #f0f0f0;
+    }
+
+    html[data-theme='dark'] {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    html[data-theme='light'] {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
+
     body {
       font-family: sans-serif;
       padding: 2em;
       max-width: 700px;
       margin: auto;
+      transition: background 0.3s, color 0.3s;
     }
+
     #dropZone {
       border: 2px dashed #ccc;
       padding: 2em;
@@ -21,25 +43,31 @@
       cursor: pointer;
       transition: background-color 0.3s, border-color 0.3s;
     }
-    #dropZone.dragover {
-      background-color: #e0f7ff;
-      border-color: #007bff;
+
+    html[data-theme='dark'] #dropZone {
+      background: #1f1f1f;
+      border-color: #444;
     }
+
+    #dropZone.dragover,
     #dropZone:hover {
       background-color: #e0f7ff;
       border-color: #007bff;
     }
+
     .image-block {
       margin: 1em 0;
       padding: 1em;
       border: 1px solid #ccc;
       border-radius: 8px;
     }
+
     .download-link {
       display: inline-block;
       margin-top: 0.5em;
       color: blue;
     }
+
     .image-preview {
       max-width: 200px;
       max-height: 150px;
@@ -47,6 +75,7 @@
       cursor: pointer;
       vertical-align: middle;
     }
+
     .image-preview-enlarged {
       max-width: 90%;
       max-height: 90%;
@@ -59,6 +88,7 @@
       background: #f0f0f0;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
+
     .image-preview-enlarged-overlay {
       position: fixed;
       top: 0;
@@ -68,28 +98,88 @@
       background: rgba(0, 0, 0, 0.7);
       z-index: 999;
     }
+
+    .input-group {
+      margin-bottom: 1em;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+
+    .input-group label {
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .input-group input[type="number"] {
+      flex: 1;
+      padding: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1em;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 3px rgba(0,123,255,0.5);
+    }
+
+    #themeToggle {
+      float: right;
+    }
   </style>
 </head>
 <body>
-  <h2>📦 图片压缩器</h2>
-  <p>请拖入例如：xxx-160KB.jpg的图片文件</p>
+  <h2>📦 图片压缩器 <button id="themeToggle">🌓</button></h2>
+  <p>请拖入例如：xxx-160KB.jpg 的图片文件，或手动设置目标大小</p>
+
+  <div class="input-group" style="display: flex; align-items: center; gap: 1em;">
+    <label for="forceUseDefault" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
+      <input type="checkbox" id="forceUseDefault" />
+      手动设置
+    </label>
+  
+    <div id="defaultSizeGroup" style="display: none; display: flex; align-items: center; gap: 0.5em;">
+      <label for="defaultSizeInput">目标（KB）：</label>
+      <input type="number" id="defaultSizeInput" value="160" min="1" style="width: 6em;" />
+    </div>
+  </div>
+  
+
   <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
   <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
   <div id="output"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-
   <script>
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const output = document.getElementById('output');
+    const defaultSizeInput = document.getElementById('defaultSizeInput');
+    const forceUseDefault = document.getElementById('forceUseDefault');
+    const defaultSizeGroup = document.getElementById('defaultSizeGroup');
+    const themeToggle = document.getElementById('themeToggle');
     const zip = new JSZip();
 
-    // 获取文件名中的目标大小（例如：name-200KB.jpg）
+    function updateDefaultSizeVisibility() {
+      defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none';
+    }
+
+    forceUseDefault.addEventListener('change', updateDefaultSizeVisibility);
+    updateDefaultSizeVisibility();
+
     function getTargetSizeFromName(name) {
+      const fallback = parseInt(defaultSizeInput.value);
+      const force = forceUseDefault.checked;
+      if (force) return fallback > 0 ? fallback * 1024 : null;
+
       const match = name.match(/-(\d+)KB\.jpg$/i);
-      return match ? parseInt(match[1]) * 1024 : null;
+      if (match) return parseInt(match[1]) * 1024;
+      return fallback > 0 ? fallback * 1024 : null;
     }
 
     function dataURLToBlob(dataURL) {
@@ -100,7 +190,6 @@
       return new Blob([array], { type: mime });
     }
 
-    // 使用二分法压缩图片到指定大小
     async function compressImageToTarget(file, targetSize) {
       const img = new Image();
       const reader = new FileReader();
@@ -126,7 +215,6 @@
         const mid = (low + high) / 2;
         const dataUrl = canvas.toDataURL('image/jpeg', mid);
         const blob = dataURLToBlob(dataUrl);
-
         if (blob.size <= targetSize) {
           resultBlob = blob;
           low = mid;
@@ -163,9 +251,9 @@
         block.appendChild(title);
 
         const targetSize = getTargetSizeFromName(file.name);
-        if (!targetSize) {
+        if (!targetSize || isNaN(targetSize)) {
           const warn = document.createElement('p');
-          warn.textContent = '❌ 文件名中未找到目标大小（例如：xxx-160KB.jpg）';
+          warn.textContent = '❌ 未能确定目标大小（请检查文件名或输入框）';
           block.appendChild(warn);
           continue;
         }
@@ -192,7 +280,6 @@
         if (compressed) {
           anyProcessed = true;
 
-          // 原图预览
           const previewOriginal = document.createElement('img');
           previewOriginal.className = 'image-preview';
           previewOriginal.src = URL.createObjectURL(file);
@@ -201,7 +288,6 @@
           previewOriginal.dataset.compressed = URL.createObjectURL(compressed);
           block.appendChild(previewOriginal);
 
-          // 压缩图预览
           const previewCompressed = document.createElement('img');
           previewCompressed.className = 'image-preview';
           previewCompressed.src = previewOriginal.dataset.compressed;
@@ -211,7 +297,6 @@
           block.appendChild(previewCompressed);
 
           block.appendChild(createDownloadLink(compressed, file.name));
-
           const arrayBuffer = await compressed.arrayBuffer();
           zip.file(file.name, arrayBuffer);
         } else {
@@ -223,16 +308,12 @@
 
       if (anyProcessed) {
         const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-        const zipName = `compressed_${dateStr}_${timeStr}.zip`;
-
+        const zipName = `compressed_${now.toISOString().slice(0,19).replace(/[:T]/g,'-')}.zip`;
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, zipName);
       }
     }
 
-    // 拖放上传处理
     dropZone.addEventListener('dragover', e => {
       e.preventDefault();
       dropZone.classList.add('dragover');
@@ -245,21 +326,15 @@
       dropZone.classList.remove('dragover');
       handleFiles(Array.from(e.dataTransfer.files));
     });
-
-    // 点击 dropZone 打开文件选择框
-    dropZone.addEventListener('click', () => {
-      fileInput.click();
-    });
+    dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
       handleFiles(Array.from(fileInput.files));
     });
 
-    // 放大图点击切换原图和压缩图
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('image-preview')) {
         const original = e.target.dataset.original;
         const compressed = e.target.dataset.compressed;
-
         const overlay = document.createElement('div');
         overlay.className = 'image-preview-enlarged-overlay';
 
@@ -270,17 +345,10 @@
         enlarged.dataset.compressed = compressed;
         enlarged.dataset.state = e.target.dataset.previewType;
 
-        // 切换压缩图/原图
-        enlarged.addEventListener('click', (ev) => {
+        enlarged.addEventListener('click', ev => {
           ev.stopPropagation();
-          const state = enlarged.dataset.state;
-          if (state === 'original') {
-            enlarged.src = compressed;
-            enlarged.dataset.state = 'compressed';
-          } else {
-            enlarged.src = original;
-            enlarged.dataset.state = 'original';
-          }
+          enlarged.src = enlarged.dataset.state === 'original' ? compressed : original;
+          enlarged.dataset.state = enlarged.dataset.state === 'original' ? 'compressed' : 'original';
         });
 
         overlay.addEventListener('click', () => {
@@ -292,6 +360,26 @@
         document.body.appendChild(enlarged);
       }
     });
+
+    // 主题切换逻辑
+    themeToggle.addEventListener('click', () => {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', html.dataset.theme);
+    });
+
+    // 初始化主题
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.dataset.theme = savedTheme;
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.dataset.theme = 'dark';
+    }
+
+    // 注册 Service Worker（PWA 支持）
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
   </script>
 </body>
 </html>
