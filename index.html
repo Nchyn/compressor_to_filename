@@ -130,13 +130,39 @@
     #themeToggle {
       float: right;
     }
+
+    #installContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #007bff;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: none;
+      z-index: 1000;
+    }
+
+    #installContainer:hover {
+      background: #0069d9;
+    }
+
+    #removeParamCheckbox {
+      margin-left: 1em;
+    }
   </style>
 </head>
 <body>
   <h2>📦 图片压缩器 <button id="themeToggle">🌓</button></h2>
-  <p>请拖入例如：xxx-160KB.jpg 的图片文件，未定义则160KB</p>
+  <p>请拖入包含大小参数的图片文件，如 xxx-160KB.jpg</p>
 
   <div class="input-group" style="display: flex; align-items: center; gap: 1em;">
+    <label for="removeParamCheckbox" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
+      <input type="checkbox" id="removeParamCheckbox" />
+      删除文件名中的参数
+    </label>
     <label for="forceUseDefault" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
       <input type="checkbox" id="forceUseDefault" />
       手动设置
@@ -147,11 +173,11 @@
       <input type="number" id="defaultSizeInput" value="160" min="1" style="width: 6em;" />
     </div>
   </div>
-  
 
   <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
   <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
   <div id="output"></div>
+  <div id="installContainer">⬇️ 安装应用</div>
 
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -163,7 +189,10 @@
     const forceUseDefault = document.getElementById('forceUseDefault');
     const defaultSizeGroup = document.getElementById('defaultSizeGroup');
     const themeToggle = document.getElementById('themeToggle');
+    const removeParamCheckbox = document.getElementById('removeParamCheckbox');
+    const installContainer = document.getElementById('installContainer');
     const zip = new JSZip();
+    let deferredPrompt = null;
 
     function updateDefaultSizeVisibility() {
       defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none';
@@ -177,9 +206,15 @@
       const force = forceUseDefault.checked;
       if (force) return fallback > 0 ? fallback * 1024 : null;
 
-      const match = name.match(/-(\d+)KB\.jpg$/i);
+      // 改进后的正则表达式，匹配文件名中任意位置的 -160KB 模式
+      const match = name.match(/-(\d+)KB/i);
       if (match) return parseInt(match[1]) * 1024;
       return fallback > 0 ? fallback * 1024 : null;
+    }
+
+    function getCleanFileName(name) {
+      // 删除文件名中的 -160KB 参数
+      return name.replace(/-\d+KB/i, '');
     }
 
     function dataURLToBlob(dataURL) {
@@ -230,7 +265,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = name;
+      link.download = removeParamCheckbox.checked ? getCleanFileName(name) : name;
       link.textContent = '📥 下载图像';
       link.className = 'download-link';
       return link;
@@ -271,7 +306,7 @@
           block.appendChild(preview);
 
           const arrayBuffer = await file.arrayBuffer();
-          zip.file(file.name, arrayBuffer);
+          zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
           block.appendChild(createDownloadLink(file, file.name));
           continue;
         }
@@ -298,7 +333,7 @@
 
           block.appendChild(createDownloadLink(compressed, file.name));
           const arrayBuffer = await compressed.arrayBuffer();
-          zip.file(file.name, arrayBuffer);
+          zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
         } else {
           const fail = document.createElement('p');
           fail.textContent = '❌ 压缩失败';
@@ -376,7 +411,24 @@
       document.documentElement.dataset.theme = 'dark';
     }
 
-    // 注册 Service Worker（PWA 支持）
+    // PWA 安装提示
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installContainer.style.display = 'block';
+    });
+
+    installContainer.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installContainer.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+
+    // 注册 Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
