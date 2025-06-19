@@ -377,7 +377,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '1.0.5'; // 每次更新时修改版本号
+    const APP_VERSION = '1.0.6'; // 每次更新时修改版本号
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const output = document.getElementById('output');
@@ -411,13 +411,13 @@
     function getTargetSizeFromName(name) {
       const fallback = parseInt(defaultSizeInput.value);
       const force = forceUseDefault.checked;
-      if (force) return fallback > 0 ? fallback * 1024 : null;
+      if (force) return fallback > 0 ? fallback * 1000 : null;
 
       // 改进后的正则表达式，匹配文件名中任意位置的 -160KB 模式
       const match = name.match(/-(\d+)KB/i);
-      if (match) return parseInt(match[1]) * 1024;
+      if (match) return parseInt(match[1]) * 1000;
       
-      return fallback > 0 ? fallback * 1024 : null;
+      return fallback > 0 ? fallback * 1000 : null;
     }
 
     function showNotification(message) {
@@ -629,7 +629,7 @@
           // 图片小于目标大小，不压缩
           const info = document.createElement('div');
           info.className = 'size-info';
-          info.textContent = `原始大小: ${(file.size / 1024).toFixed(1)}KB\n小于目标，跳过压缩`;
+          info.textContent = `原始大小: ${(file.size / 1000).toFixed(1)}KB\n小于目标，跳过压缩`;
           infoCol.appendChild(info);
 
           // 压缩列显示原始图片
