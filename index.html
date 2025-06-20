@@ -640,7 +640,11 @@
           infoCol.appendChild(createDownloadLink(file, file.name));
 
           const arrayBuffer = await file.arrayBuffer();
-          zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
+          zip.file(
+            removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name,
+            arrayBuffer,
+            { date: new Date() }  // 设置为当前本地时间
+          );
           continue;
         }
 
@@ -670,7 +674,11 @@
           infoCol.appendChild(createDownloadLink(compressed, file.name));
 
           const arrayBuffer = await compressed.arrayBuffer();
-          zip.file(removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name, arrayBuffer);
+          zip.file(
+            removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name,
+            arrayBuffer,
+            { date: new Date() }  // 设置为当前本地时间
+          );
 
           // 添加预览点击事件
           originalPreview.addEventListener('click', () => {
@@ -690,7 +698,13 @@
 
       if (anyProcessed) {
         const now = new Date();
-        const zipName = `compressed_${now.toISOString().slice(0,19).replace(/[:T]/g,'-')}.zip`;
+        const localName = now.getFullYear() + '-' +
+          String(now.getMonth() + 1).padStart(2, '0') + '-' +
+          String(now.getDate()).padStart(2, '0') + '_' +
+          String(now.getHours()).padStart(2, '0') + '-' +
+          String(now.getMinutes()).padStart(2, '0') + '-' +
+          String(now.getSeconds()).padStart(2, '0');
+        const zipName = `compressed_${localName}.zip`;
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, zipName);
       }
