@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>图片压缩工具（File System Access API）</title>
+<title>图片压缩工具（拖拽 + 批量覆盖）</title>
 <style>
   :root {
     --bg-color: #ffffff;
@@ -61,6 +61,17 @@
     border: 1px solid #ffd700;
     margin-bottom: 1rem;
   }
+  #dropZone {
+    border: 2px dashed var(--input-border);
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    cursor: pointer;
+  }
+  #dropZone.dragover {
+    border-color: var(--button-bg);
+    background: rgba(0, 123, 255, 0.05);
+  }
 </style>
 </head>
 <body>
@@ -81,8 +92,9 @@
   </label>
 </div>
 
+<div id="dropZone">拖拽图片到这里或点击选择文件</div>
 <div class="input-group">
-  <button id="selectFilesBtn">选择图片并压缩覆盖</button>
+  <button id="selectFilesBtn">选择图片</button>
 </div>
 
 <button class="theme-toggle" id="themeToggle">切换深色模式</button>
@@ -106,13 +118,11 @@
   let deferredPrompt;
   const installPromptDiv = document.getElementById('installPrompt');
   const installBtn = document.getElementById('installBtn');
-
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     installPromptDiv.style.display = 'block';
   });
-
   installBtn.addEventListener('click', async () => {
     installPromptDiv.style.display = 'none';
     if (deferredPrompt) {
@@ -122,6 +132,39 @@
   });
 
   // 图片压缩逻辑
+  async function compressFiles(fileHandles) {
+    for (const fileHandle of fileHandles) {
+      const file = await fileHandle.getFile();
+      const img = new Image();
+      const arrayBuffer = await file.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: file.type });
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+
+      await new Promise(resolve => img.onload = resolve);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      let quality = 0.92; // 默认质量
+      if (forceCheckbox.checked) {
+        const targetKB = Number(document.getElementById('defaultSizeInput').value);
+        const factor = targetKB * 1024 / blob.size;
+        quality = Math.min(Math.max(factor, 0.1), 0.92);
+      }
+
+      const compressedBlob = await new Promise(res => canvas.toBlob(res, file.type, quality));
+      const writable = await fileHandle.createWritable();
+      await writable.write(compressedBlob);
+      await writable.close();
+      URL.revokeObjectURL(url);
+    }
+    alert(`批量压缩完成，共处理 ${fileHandles.length} 个文件`);
+  }
+
   const selectFilesBtn = document.getElementById('selectFilesBtn');
   selectFilesBtn.addEventListener('click', async () => {
     try {
@@ -129,41 +172,38 @@
         multiple: true,
         types: [{ description: '图片', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }]
       });
-
-      for (const fileHandle of fileHandles) {
-        const file = await fileHandle.getFile();
-        const img = new Image();
-        const arrayBuffer = await file.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: file.type });
-        const url = URL.createObjectURL(blob);
-        img.src = url;
-
-        await new Promise(resolve => img.onload = resolve);
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        let quality = 0.92; // 默认质量
-        if (forceCheckbox.checked) {
-          const targetKB = Number(document.getElementById('defaultSizeInput').value);
-          // 根据目标大小调整质量（粗略估算）
-          const factor = targetKB * 1024 / blob.size;
-          quality = Math.min(Math.max(factor, 0.1), 0.92);
-        }
-
-        const compressedBlob = await new Promise(res => canvas.toBlob(res, file.type, quality));
-        const writable = await fileHandle.createWritable();
-        await writable.write(compressedBlob);
-        await writable.close();
-        URL.revokeObjectURL(url);
-      }
-      alert('压缩完成，已覆盖原文件');
+      await compressFiles(fileHandles);
     } catch (err) {
       console.error(err);
       alert('操作取消或出错');
+    }
+  });
+
+  // 拖拽功能
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('click', () => selectFilesBtn.click());
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+  });
+  dropZone.addEventListener('drop', async e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const items = e.dataTransfer.items;
+    const fileHandles = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry();
+      if (entry.isFile) {
+        const handle = await items[i].getAsFileSystemHandle();
+        fileHandles.push(handle);
+      }
+    }
+    if (fileHandles.length > 0) {
+      await compressFiles(fileHandles);
     }
   });
 </script>
