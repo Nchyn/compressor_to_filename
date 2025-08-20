@@ -3,160 +3,310 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>图片压缩覆盖保存</title>
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
+  <title>批量图片压缩器</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; transition: background 0.3s, color 0.3s; }
-    [data-theme="light"] { background: #fff; color: #000; }
-    [data-theme="dark"] { background: #121212; color: #eee; }
-    #controls { margin-bottom: 1em; display: flex; gap: 1em; flex-wrap: wrap; }
-    button, input { padding: 0.5em 1em; border-radius: 6px; border: 1px solid #ccc; }
-    #dropZone {
-      border: 2px dashed #888; border-radius: 12px;
-      padding: 2em; text-align: center; margin-top: 1em;
+    :root {
+      --bg-light: #fff;
+      --text-light: #000;
+      --bg-dark: #121212;
+      --text-dark: #f0f0f0;
+      --primary-color: #007bff;
+      --primary-hover: #0069d9;
+      --border: #ccc;
+      --border-dark: #444;
     }
-    #dropZone.dragover { background: rgba(0,0,0,0.1); }
-    .log { margin: 0.3em 0; font-size: 0.9em; }
+
+    html[data-theme='dark'] { background-color: var(--bg-dark); color: var(--text-dark); }
+    html[data-theme='light'] { background-color: var(--bg-light); color: var(--text-light); }
+
+    body { font-family: sans-serif; padding: 2em; max-width: 980px; margin: auto; transition: background .3s, color .3s; }
+
+    #dropZone { border: 2px dashed var(--border); padding: 1.5em; text-align: center; margin: 1em 0; border-radius: 10px; background: #f9f9f9; cursor: pointer; transition: background-color .3s, border-color .3s; }
+    html[data-theme='dark'] #dropZone { background: #1f1f1f; border-color: var(--border-dark); }
+    #dropZone.dragover, #dropZone:hover { background-color: #e0f7ff; border-color: var(--primary-color); }
+    html[data-theme='dark'] #dropZone.dragover, html[data-theme='dark'] #dropZone:hover { background-color: #2a3a4a; border-color: var(--primary-color); }
+
+    .toolbar { display: flex; gap: .75em; align-items: center; flex-wrap: wrap; }
+    .toolbar button, .toolbar input[type="number"], .toolbar label { font-size: 14px; }
+    .btn { padding: .6em 1em; border: 1px solid var(--border); border-radius: 8px; background: transparent; cursor: pointer; }
+    .btn.primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+    .btn.primary:hover { background: var(--primary-hover); }
+
+    #themeToggle { background: none; border: none; font-size: 1.2em; cursor: pointer; color: inherit; }
+
+    .input-group { display: flex; align-items: center; gap: .5em; }
+    .input-group input[type="number"] { width: 7em; padding: .45em; border: 1px solid var(--border); border-radius: 6px; }
+    html[data-theme='dark'] .input-group input[type="number"] { background: #2a2a2a; border-color: var(--border-dark); color: var(--text-dark); }
+
+    .log { margin-top: 1em; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    html[data-theme='dark'] .log { border-color: var(--border-dark); }
+    .log-header { padding: .7em 1em; font-weight: bold; background: rgba(0,0,0,.05); }
+    html[data-theme='dark'] .log-header { background: rgba(255,255,255,.06); }
+    .log-body { max-height: 420px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    .log-row { display: grid; grid-template-columns: 1.2fr .9fr .9fr .9fr 1.5fr; gap: .5em; padding: .6em 1em; border-top: 1px dashed var(--border); align-items: center; word-break: break-all; }
+    html[data-theme='dark'] .log-row { border-color: var(--border-dark); }
+    .log-row.header { font-weight: 600; position: sticky; top: 0; background: inherit; }
+    .badge { padding: .15em .5em; border-radius: 999px; font-weight: 700; font-size: 12px; display: inline-block; }
+    .ok { background: #e7f8ec; color: #0a7a32; }
+    .skip { background: #fff6e5; color: #915e00; }
+    .err { background: #ffe8e6; color: #982222; }
+
+    /* toast */
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 16px; border-radius: 8px; z-index: 1000; display: none; }
+    .toast.show { display: block; animation: fadeInUp .25s; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
   </style>
 </head>
 <body>
-  <h2>📂 图片压缩（覆盖原文件）</h2>
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:1em;flex-wrap:wrap;">
+    <h2>📦 图片压缩器</h2>
+    <button id="themeToggle" title="深浅色切换">🌓</button>
+  </header>
 
-  <div id="controls">
-    <button id="chooseDirBtn">选择文件夹并压缩</button>
-    <input type="number" id="targetSize" value="160" min="10" style="width: 6em;" /> KB
-    <button id="toggleTheme">切换深色模式</button>
+  <div class="toolbar">
+    <button class="btn primary" id="chooseDirBtn">选择文件夹并压缩</button>
+
+    <label class="input-group" style="gap:.4em">
+      <input type="checkbox" id="forceUseDefault" /> 手动设置
+    </label>
+    <div id="defaultSizeGroup" class="input-group" style="display:none">
+      <label for="defaultSizeInput">目标（KB）：</label>
+      <input type="number" id="defaultSizeInput" value="160" min="1" />
+    </div>
+
+    <label class="input-group" style="gap:.4em">
+      <input type="checkbox" id="removeParamCheckbox" /> 删除文件名中的参数
+    </label>
   </div>
 
-  <div id="dropZone">拖入文件或文件夹到此处</div>
-  <div id="log"></div>
+  <p style="margin:.6em 0 .2em">拖入 <strong>文件或文件夹</strong> 开始（文件夹会递归处理并覆盖保存）。文件名可包含大小参数，如 <code>xxx-160KB.jpg</code>。</p>
+  <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
 
-<script>
-const dropZone = document.getElementById('dropZone');
-const chooseDirBtn = document.getElementById('chooseDirBtn');
-const logDiv = document.getElementById('log');
-const targetSizeInput = document.getElementById('targetSize');
-const toggleThemeBtn = document.getElementById('toggleTheme');
+  <section class="log">
+    <div class="log-header">处理日志</div>
+    <div class="log-body" id="logBody">
+      <div class="log-row header"><div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div></div>
+    </div>
+  </section>
 
-function log(msg) {
-  const p = document.createElement('div');
-  p.className = "log";
-  p.textContent = msg;
-  logDiv.appendChild(p);
-}
+  <div class="toast" id="toast"></div>
 
-// 切换深色模式
-toggleThemeBtn.addEventListener('click', () => {
-  const html = document.documentElement;
-  html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
-});
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script>
+    const APP_VERSION = '1.1.0';
 
-// 文件类型判断
-function isImageFile(name) {
-  return /\.(jpe?g|png|webp)$/i.test(name);
-}
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const chooseDirBtn = document.getElementById('chooseDirBtn');
+    const defaultSizeInput = document.getElementById('defaultSizeInput');
+    const forceUseDefault = document.getElementById('forceUseDefault');
+    const defaultSizeGroup = document.getElementById('defaultSizeGroup');
+    const themeToggle = document.getElementById('themeToggle');
+    const removeParamCheckbox = document.getElementById('removeParamCheckbox');
+    const logBody = document.getElementById('logBody');
+    const toast = document.getElementById('toast');
 
-// DataURL 转 Blob
-function dataURLToBlob(dataURL) {
-  const [header, base64] = dataURL.split(',');
-  const mime = header.match(/:(.*?);/)[1];
-  const binary = atob(base64);
-  const array = Uint8Array.from(binary, c => c.charCodeAt(0));
-  return new Blob([array], { type: mime });
-}
+    const zip = new JSZip();
 
-// 压缩函数
-async function compressImageToTarget(file, targetSizeKB = 160) {
-  const img = new Image();
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  await new Promise(resolve => { reader.onload = () => { img.src = reader.result; img.onload = resolve; }; });
+    function showToast(msg, ms = 2200){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), ms); }
 
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width; canvas.height = img.height;
-  const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+    function updateDefaultSizeVisibility(){ defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none'; }
+    forceUseDefault.addEventListener('change', updateDefaultSizeVisibility); updateDefaultSizeVisibility();
 
-  let low = 0.1, high = 1.0, resultBlob = null;
-  const targetSize = targetSizeKB * 1024;
+    function formatKB(n){ return (n/1000).toFixed(1) + 'KB'; } // 1000 进制
 
-  for (let i = 0; i < 8; i++) {
-    const mid = (low + high) / 2;
-    const dataUrl = canvas.toDataURL('image/jpeg', mid);
-    const blob = dataURLToBlob(dataUrl);
-    if (blob.size <= targetSize) { resultBlob = blob; low = mid; }
-    else { high = mid; }
-  }
-  return resultBlob;
-}
-
-// 遍历文件夹
-async function traverseAndCompress(dirHandle, targetSizeKB) {
-  for await (const entry of dirHandle.values()) {
-    if (entry.kind === "file" && isImageFile(entry.name)) {
-      const file = await entry.getFile();
-      const compressed = await compressImageToTarget(file, targetSizeKB);
-      if (compressed && compressed.size < file.size) {
-        const writable = await entry.createWritable();
-        await writable.write(compressed);
-        await writable.close();
-        log(`✅ ${entry.name} 压缩完成 (${(file.size/1024).toFixed(1)}KB → ${(compressed.size/1024).toFixed(1)}KB)`);
-      } else {
-        log(`ℹ️ ${entry.name} 已跳过（${(file.size/1024).toFixed(1)}KB，无需压缩）`);
-      }
-    } else if (entry.kind === "directory") {
-      await traverseAndCompress(entry, targetSizeKB); // 递归
+    function getTargetSizeFromName(name){
+      const fallback = parseInt(defaultSizeInput.value);
+      const force = forceUseDefault.checked;
+      if (force) return Math.max(1, fallback) * 1000;
+      const m = name.match(/-(\d+)KB/i);
+      if (m) return parseInt(m[1]) * 1000;
+      return Math.max(1, fallback) * 1000;
     }
-  }
-}
 
-// 拖入文件/文件夹处理
-dropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', async e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  const items = e.dataTransfer.items;
-  logDiv.innerHTML = "";
-  const targetSizeKB = parseInt(targetSizeInput.value, 10) || 160;
+    function getCleanFileName(name){ return name.replace(/-\d+KB/i, ''); }
 
-  for (const item of items) {
-    const entry = item.webkitGetAsEntry();
-    if (entry) {
-      if (entry.isDirectory) {
-        if (confirm(`检测到文件夹「${entry.name}」，是否批量处理？`)) {
-          await traverseAndCompress(entry, targetSizeKB);
+    function ext(name){ return name.split('.').pop().toLowerCase(); }
+
+    function isImageName(name){ return /\.(jpe?g|png|webp)$/i.test(name); }
+
+    function row(status, filePath, orig, target, result, note){
+      const div = document.createElement('div'); div.className = 'log-row';
+      const badge = `<span class="badge ${status}">${status.toUpperCase()}</span>`;
+      div.innerHTML = `<div>${filePath}</div><div>${formatKB(orig)}</div><div>${formatKB(target)}</div><div>${badge} ${formatKB(result)}</div><div>${note||''}</div>`;
+      logBody.appendChild(div); logBody.scrollTop = logBody.scrollHeight;
+    }
+
+    function dataURLToBlob(dataURL){ const [header, base64] = dataURL.split(','); const mime = header.match(/:(.*?);/)[1]; const binary = atob(base64); const array = Uint8Array.from(binary, c => c.charCodeAt(0)); return new Blob([array], { type: mime }); }
+
+    async function compressImageToTarget(file, targetSize){
+      // Load into canvas
+      const img = new Image(); const reader = new FileReader(); reader.readAsDataURL(file);
+      await new Promise(res => { reader.onload = () => { img.src = reader.result; img.onload = res; }; });
+      const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+
+      const extension = ext(file.name);
+      let mime = 'image/jpeg';
+      if (extension === 'webp') mime = 'image/webp';
+      if (extension === 'png') mime = 'image/png'; // PNG 质量参数无效
+
+      let low = 0.1, high = 1.0; let bestBlob = null; let lastTriedSize = 0;
+
+      // For PNG, we try a single re-encode (no quality control). We'll later decide skip if not improved.
+      if (mime === 'image/png'){
+        const dataUrl = canvas.toDataURL(mime); const blob = dataURLToBlob(dataUrl); lastTriedSize = blob.size; if (blob.size <= targetSize) return blob; return blob; // return as-is for decision outside
+      }
+
+      for (let i=0;i<10;i++){
+        const q = (low+high)/2; const dataUrl = canvas.toDataURL(mime, q); const blob = dataURLToBlob(dataUrl); lastTriedSize = blob.size;
+        if (blob.size <= targetSize){ bestBlob = blob; low = q; } else { high = q; }
+      }
+      return bestBlob || new Blob([], {type: mime});
+    }
+
+    function createZipAndDownload(name){ zip.generateAsync({type:'blob'}).then(b => saveAs(b, name)); }
+
+    async function processFileLike(readFile, writeBack, displayPath){
+      // readFile: () => Promise<{file: File, name: string}>
+      // writeBack: (Uint8Array|Blob) => Promise<void> (overwrite)
+      const {file, name} = await readFile();
+
+      if (!isImageName(name)) return; // ignore
+      const target = getTargetSizeFromName(name);
+
+      // If original already smaller than target -> skip
+      if (file.size <= target){ row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过'); return; }
+
+      const compressed = await compressImageToTarget(file, target);
+
+      if (!compressed || compressed.size === 0){ row('err', displayPath, file.size, target, 0, '压缩失败'); return; }
+
+      if (compressed.type === 'image/png'){
+        // PNG: if not smaller or still above target, we may skip
+        if (compressed.size >= file.size){ row('skip', displayPath, file.size, target, compressed.size, 'PNG 重新编码未变小，跳过'); return; }
+        if (compressed.size > target){ row('skip', displayPath, file.size, target, compressed.size, 'PNG 压缩受限，未达目标'); return; }
+      }
+
+      if (compressed.size >= file.size){ row('skip', displayPath, file.size, target, compressed.size, '压缩后更大，跳过'); return; }
+
+      // Good to overwrite
+      await writeBack(compressed);
+      row('ok', displayPath, file.size, target, compressed.size, `已覆盖保存，压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
+    }
+
+    // -------- Folder mode (File System Access API) --------
+    async function chooseAndProcessDirectory(handle){
+      try{
+        if (!handle){
+          if (!window.showDirectoryPicker){ alert('当前浏览器不支持目录访问（仅 Chromium 系）。请使用 Chrome/Edge 或改用拖拽文件压缩为 ZIP 下载。'); return; }
+          handle = await showDirectoryPicker();
         }
-      } else if (entry.isFile) {
-        const file = await item.getAsFile();
-        if (isImageFile(file.name)) {
-          const compressed = await compressImageToTarget(file, targetSizeKB);
-          if (compressed && compressed.size < file.size) {
-            log(`⚠️ 拖拽方式无法覆盖保存：${file.name} (${(file.size/1024).toFixed(1)}KB → ${(compressed.size/1024).toFixed(1)}KB)`);
-          } else {
-            log(`ℹ️ ${file.name} 已跳过（${(file.size/1024).toFixed(1)}KB，无需压缩）`);
+        const ok = confirm('是否批量处理此文件夹？将递归处理并覆盖保存。'); if (!ok) return;
+
+        let count = 0;
+        async function walk(dirHandle, prefix=''){
+          for await (const [name, entry] of dirHandle.entries()){
+            const path = prefix ? `${prefix}/${name}` : name;
+            if (entry.kind === 'file'){
+              await processFileLike(
+                async () => ({ file: await entry.getFile(), name }),
+                async (blob) => { const w = await entry.createWritable(); await w.write(blob); await w.close(); },
+                path
+              );
+              count++;
+            } else if (entry.kind === 'directory'){
+              await walk(entry, path);
+            }
           }
         }
+        await walk(handle);
+        showToast('🎉 全部处理完成');
+      }catch(e){ console.error(e); showToast('处理出错：' + e.message); }
+    }
+
+    // -------- File mode (drag files -> zip) --------
+    async function handleFilesToZip(files){
+      logBody.innerHTML = '<div class="log-row header"><div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div></div>';
+      zip.files = {};
+      let any = false;
+      for (const file of files){
+        const displayName = file.name;
+        await processFileLike(
+          async () => ({ file, name: file.name }),
+          async (blob) => {
+            any = true;
+            const name = removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name;
+            const arrayBuffer = await blob.arrayBuffer();
+            zip.file(name, arrayBuffer, {date: new Date()});
+          },
+          displayName
+        );
+      }
+      if (any){
+        const now = new Date();
+        const zipName = `compressed_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}.zip`;
+        createZipAndDownload(zipName);
+        showToast('🎉 全部处理完成（已生成 ZIP）');
       }
     }
-  }
-});
 
-// 按钮选择文件夹
-chooseDirBtn.addEventListener('click', async () => {
-  logDiv.innerHTML = "";
-  const targetSizeKB = parseInt(targetSizeInput.value, 10) || 160;
-  try {
-    const dirHandle = await window.showDirectoryPicker();
-    log(`开始处理文件夹: ${dirHandle.name}`);
-    await traverseAndCompress(dirHandle, targetSizeKB);
-    log("🎉 全部处理完成");
-  } catch (e) {
-    log("❌ 操作取消");
-    console.error(e);
-  }
-});
-</script>
+    // Drag & Drop (files or a single folder)
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', async e => {
+      e.preventDefault(); dropZone.classList.remove('dragover');
+      const items = e.dataTransfer.items;
+      if (items && items.length === 1){
+        // try directory handle path
+        const item = items[0];
+        if (item.getAsFileSystemHandle){
+          try{
+            const handle = await item.getAsFileSystemHandle();
+            if (handle && handle.kind === 'directory'){ await chooseAndProcessDirectory(handle); return; }
+          }catch(err){ /* fallthrough */ }
+        }
+        // webkit entry fallback (read-only)
+        if (item.webkitGetAsEntry){
+          const entry = item.webkitGetAsEntry();
+          if (entry && entry.isDirectory){ showToast('检测到文件夹，但无法获得写入权限，将仅打包下载'); const files = []; await (async function readDir(dir){ const reader = dir.createReader(); await new Promise(r=>reader.readEntries(async entries=>{ for (const en of entries){ if (en.isFile){ await new Promise(res=> en.file(f=>{ files.push(f); res(); })); } else if (en.isDirectory){ await readDir(en); } } r(); })); })(entry); await handleFilesToZip(files); return; }
+        }
+      }
+      // files mode
+      const files = e.dataTransfer.files; if (files && files.length) await handleFilesToZip(Array.from(files));
+    });
+
+    // Click to choose files (zip mode)
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFilesToZip(Array.from(fileInput.files)); });
+
+    // Choose directory (overwrite mode)
+    chooseDirBtn.addEventListener('click', async () => { await chooseAndProcessDirectory(null); });
+
+    // Theme
+    themeToggle.addEventListener('click', () => { const html = document.documentElement; html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', html.dataset.theme); });
+    const savedTheme = localStorage.getItem('theme'); if (savedTheme) document.documentElement.dataset.theme = savedTheme; else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+
+    // Simple versioned cache clear
+    const savedVersion = localStorage.getItem('appVersion'); if (savedVersion !== APP_VERSION){ if ('caches' in window){ caches.keys().then(names => names.forEach(n => caches.delete(n))); } localStorage.setItem('appVersion', APP_VERSION); }
+  </script>
+
+  <!-- 可选：统计脚本（保留原有） -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VZ52ZP6XCX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-VZ52ZP6XCX');
+  </script>
+  <script>
+    var _hmt = _hmt || [];
+    (function(){ var hm = document.createElement('script'); hm.src = 'https://hm.baidu.com/hm.js?ed5dc7380b880499808494b9cf6f0f48'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(hm, s); })();
+  </script>
 </body>
 </html>
