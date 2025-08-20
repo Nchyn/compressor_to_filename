@@ -3,217 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>图片压缩工具</title>
-<link rel="manifest" href="manifest.json">
+<title>批量图片压缩工具</title>
 <style>
-  :root {
-    --bg-color: #f0f0f0;
-    --text-color: #000;
-    --input-bg: #fff;
-    --input-border: #ccc;
-    --button-bg: #007bff;
-    --button-color: #fff;
-  }
-  [data-theme="dark"] {
-    --bg-color: #181818;
-    --text-color: #f0f0f0;
-    --input-bg: #282828;
-    --input-border: #555;
-    --button-bg: #0d6efd;
-    --button-color: #fff;
-  }
   body {
-    margin: 0;
-    font-family: sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    background-color: #f0f0f0;
+    color: #222;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark {
+    background-color: #1e1e1e;
+    color: #eee;
+  }
+  header {
+    padding: 1rem;
+    text-align: center;
+    background-color: #007acc;
+    color: #fff;
+  }
+  main {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 10px;
+  }
+  body.dark main {
+    background: #2c2c2c;
   }
   .input-group {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
+    margin: 1rem 0;
+    gap: 0.5rem;
+  }
+  label {
+    white-space: nowrap;
   }
   input[type="number"] {
-    width: 100px;
-    padding: 5px;
-    border: 1px solid var(--input-border);
-    background: var(--input-bg);
-    color: var(--text-color);
-  }
-  button {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    background-color: var(--button-bg);
-    color: var(--button-color);
-    cursor: pointer;
+    width: 80px;
   }
   #dropZone {
-    width: 100%;
-    max-width: 600px;
-    height: 200px;
-    border: 2px dashed var(--input-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 2px dashed #007acc;
+    padding: 2rem;
     text-align: center;
-    margin-bottom: 20px;
+    cursor: pointer;
+    border-radius: 10px;
     transition: background 0.3s;
   }
   #dropZone.dragover {
-    background: rgba(0,0,0,0.1);
+    background-color: #e0f0ff;
   }
-  #pwaPrompt {
-    position: fixed;
-    bottom: 20px;
-    background: var(--button-bg);
-    color: var(--button-color);
-    padding: 10px 20px;
-    border-radius: 8px;
-    display: none;
+  body.dark #dropZone.dragover {
+    background-color: #444;
+  }
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
     cursor: pointer;
+  }
+  #installPrompt {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fffae0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
   }
 </style>
 </head>
 <body>
-<h1>图片压缩工具v1638</h1>
+<header>
+  <h1>批量图片压缩工具v1654</h1>
+  <button id="toggleDark">切换深色模式</button>
+</header>
+<main>
+  <div class="input-group">
+    <label for="forceUseDefault">
+      <input type="checkbox" id="forceUseDefault">
+      手动设置目标大小（KB）
+    </label>
+    <input type="number" id="defaultSizeInput" value="160" min="1" style="display:none;">
+  </div>
 
-<div class="input-group">
-  <label for="forceUseDefault">
-    <input type="checkbox" id="forceUseDefault" />
-    手动设置大小
-  </label>
-  <input type="number" id="defaultSizeInput" value="160" min="1" style="display:none;" />
-</div>
-
-<div class="input-group">
-  <button id="chooseFolder">选择文件夹处理图片</button>
-  <button id="themeToggle">切换深色模式</button>
-</div>
-
-<div id="dropZone">拖拽文件夹到这里</div>
-
-<div id="pwaPrompt">点击安装应用</div>
+  <div id="dropZone">拖拽图片或文件夹到这里，或点击选择文件</div>
+  <input type="file" id="fileInput" multiple webkitdirectory style="display:none;">
+  <button id="startCompress">开始压缩</button>
+  <div id="installPrompt">
+    可将此应用安装到桌面：点击浏览器菜单 → 添加到主屏幕
+  </div>
+</main>
 
 <script>
-let deferredPrompt;
-const forceCheckbox = document.getElementById('forceUseDefault');
-const sizeInput = document.getElementById('defaultSizeInput');
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const startBtn = document.getElementById('startCompress');
+  const forceCheckbox = document.getElementById('forceUseDefault');
+  const defaultSizeInput = document.getElementById('defaultSizeInput');
+  const toggleDarkBtn = document.getElementById('toggleDark');
+  const installPrompt = document.getElementById('installPrompt');
 
-forceCheckbox.addEventListener('change', () => {
-  sizeInput.style.display = forceCheckbox.checked ? 'inline-block' : 'none';
-});
+  let deferredPrompt;
 
-// PWA
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('pwaPrompt').style.display = 'block';
-});
-document.getElementById('pwaPrompt').addEventListener('click', async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-    document.getElementById('pwaPrompt').style.display = 'none';
-  }
-});
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installPrompt.style.display = 'block';
+  });
 
-// 深色模式切换
-document.getElementById('themeToggle').addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
-});
+  toggleDarkBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+  });
 
-// 工具函数
-async function compressImage(fileHandle, targetKB) {
-  const file = await fileHandle.getFile();
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(bitmap, 0, 0);
-  let quality = 0.92;
-  let blob;
-  do {
-    blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
-    quality -= 0.05;
-  } while(blob.size / 1024 > targetKB && quality > 0.1);
-  const writable = await fileHandle.createWritable();
-  await writable.write(blob);
-  await writable.close();
-}
+  forceCheckbox.addEventListener('change', () => {
+    defaultSizeInput.style.display = forceCheckbox.checked ? 'inline-block' : 'none';
+  });
 
-// 遍历文件夹
-async function* getFilesRecursively(dirHandle) {
-  for await (const entry of dirHandle.values()) {
-    if (entry.kind === 'file') {
-      if (entry.name.match(/\.(jpe?g|png)$/i)) yield entry;
-    } else if (entry.kind === 'directory') {
-      yield* getFilesRecursively(entry);
+  dropZone.addEventListener('click', () => fileInput.click());
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', e => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    handleFiles([...e.dataTransfer.items]);
+  });
+
+  fileInput.addEventListener('change', e => {
+    handleFiles([...e.target.files]);
+  });
+
+  let allFiles = [];
+
+  async function handleFiles(items) {
+    const files = [];
+    for (const item of items) {
+      let entry;
+      if (item.getAsFileSystemHandle) {
+        entry = await item.getAsFileSystemHandle();
+        await traverseHandle(entry, files);
+      } else if (item.kind === 'file') {
+        files.push(item);
+      }
     }
+    if (files.length > 0) allFiles = files;
+    alert(`共找到 ${allFiles.length} 个图片文件`);
   }
-}
 
-// 批量处理
-async function processFolder(dirHandle) {
-  const targetKB = forceCheckbox.checked ? parseInt(sizeInput.value) : 160;
-  const files = [];
-  for await (const file of getFilesRecursively(dirHandle)) {
-    files.push(file);
-  }
-  if (files.length === 0) {
-    alert('没有找到图片文件！');
-    return;
-  }
-  if (files.length > 100) {
-    if (!confirm(`检测到 ${files.length} 个图片文件，确定继续吗？`)) return;
-  }
-  for (const fileHandle of files) {
-    await compressImage(fileHandle, targetKB);
-  }
-  alert(`已压缩 ${files.length} 张图片`);
-}
-
-// 选择文件夹按钮
-document.getElementById('chooseFolder').addEventListener('click', async () => {
-  try {
-    const folderHandle = await window.showDirectoryPicker();
-    await processFolder(folderHandle);
-  } catch (err) {
-    console.error(err);
-  }
-});
-
-// 拖拽
-const dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', async (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  const items = e.dataTransfer.items;
-  if (items.length === 0) return;
-  for (const item of items) {
-    if (item.kind === 'file' && item.webkitGetAsEntry) {
-      const entry = item.webkitGetAsEntry();
-      if (entry.isDirectory) {
-        const folderHandle = await window.showDirectoryPicker();
-        await processFolder(folderHandle);
-        break; // 只处理第一个文件夹
+  async function traverseHandle(handle, fileList) {
+    if (handle.kind === 'file') {
+      const file = await handle.getFile();
+      if (file.type.startsWith('image/')) fileList.push({handle, file});
+    } else if (handle.kind === 'directory') {
+      for await (const entry of handle.values()) {
+        await traverseHandle(entry, fileList);
       }
     }
   }
-});
+
+  async function compressImageToTarget(file, targetSize) {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    await new Promise(resolve => {
+      reader.onload = () => {
+        img.src = reader.result;
+        img.onload = resolve;
+      };
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    let low = 0.1, high = 1.0;
+    let resultBlob = null;
+
+    for (let i = 0; i < 10; i++) {
+      const mid = (low + high) / 2;
+      const dataUrl = canvas.toDataURL('image/jpeg', mid);
+      const blob = dataURLToBlob(dataUrl);
+      if (blob.size <= targetSize) {
+        resultBlob = blob;
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return resultBlob;
+  }
+
+  function dataURLToBlob(dataUrl) {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--){
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type: mime});
+  }
+
+  startBtn.addEventListener('click', async () => {
+    if (!allFiles || allFiles.length === 0) {
+      alert('请先拖入文件或文件夹');
+      return;
+    }
+
+    const targetKB = forceCheckbox.checked ? parseInt(defaultSizeInput.value) : 160;
+    const targetBytes = targetKB * 1024;
+
+    if (allFiles.length > 100) {
+      const ok = confirm(`检测到 ${allFiles.length} 个文件，是否继续压缩？`);
+      if (!ok) return;
+    }
+
+    for (const item of allFiles) {
+      const {handle, file} = item.handle ? item : {file: item.file, handle: item.handle};
+      const compressedBlob = await compressImageToTarget(file, targetBytes);
+      if (compressedBlob && handle && handle.createWritable) {
+        const writable = await handle.createWritable();
+        await writable.write(compressedBlob);
+        await writable.close();
+      }
+    }
+    alert('批量压缩完成！');
+  });
 </script>
 </body>
 </html>
