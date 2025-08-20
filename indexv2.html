@@ -5,19 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>图片压缩覆盖保存</title>
   <style>
-    body { font-family: sans-serif; padding: 2em; }
-    #chooseDirBtn { padding: 0.5em 1em; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; }
-    .log { margin: 0.5em 0; }
+    body { font-family: sans-serif; padding: 2em; transition: background 0.3s, color 0.3s; }
+    [data-theme="light"] { background: #fff; color: #000; }
+    [data-theme="dark"] { background: #121212; color: #eee; }
+    #controls { margin-bottom: 1em; display: flex; gap: 1em; flex-wrap: wrap; }
+    button, input { padding: 0.5em 1em; border-radius: 6px; border: 1px solid #ccc; }
+    #dropZone {
+      border: 2px dashed #888; border-radius: 12px;
+      padding: 2em; text-align: center; margin-top: 1em;
+    }
+    #dropZone.dragover { background: rgba(0,0,0,0.1); }
+    .log { margin: 0.3em 0; font-size: 0.9em; }
   </style>
 </head>
 <body>
   <h2>📂 图片压缩（覆盖原文件）</h2>
-  <button id="chooseDirBtn">选择文件夹并压缩</button>
+
+  <div id="controls">
+    <button id="chooseDirBtn">选择文件夹并压缩</button>
+    <input type="number" id="targetSize" value="160" min="10" style="width: 6em;" /> KB
+    <button id="toggleTheme">切换深色模式</button>
+  </div>
+
+  <div id="dropZone">拖入文件或文件夹到此处</div>
   <div id="log"></div>
 
 <script>
+const dropZone = document.getElementById('dropZone');
 const chooseDirBtn = document.getElementById('chooseDirBtn');
 const logDiv = document.getElementById('log');
+const targetSizeInput = document.getElementById('targetSize');
+const toggleThemeBtn = document.getElementById('toggleTheme');
 
 function log(msg) {
   const p = document.createElement('div');
@@ -26,7 +44,13 @@ function log(msg) {
   logDiv.appendChild(p);
 }
 
-// 只识别常见图片扩展名
+// 切换深色模式
+toggleThemeBtn.addEventListener('click', () => {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === "dark" ? "light" : "dark";
+});
+
+// 文件类型判断
 function isImageFile(name) {
   return /\.(jpe?g|png|webp)$/i.test(name);
 }
@@ -40,7 +64,7 @@ function dataURLToBlob(dataURL) {
   return new Blob([array], { type: mime });
 }
 
-// 压缩逻辑
+// 压缩函数
 async function compressImageToTarget(file, targetSizeKB = 160) {
   const img = new Image();
   const reader = new FileReader();
@@ -64,33 +88,69 @@ async function compressImageToTarget(file, targetSizeKB = 160) {
   return resultBlob;
 }
 
-// 递归遍历文件夹
-async function traverseAndCompress(dirHandle) {
+// 遍历文件夹
+async function traverseAndCompress(dirHandle, targetSizeKB) {
   for await (const entry of dirHandle.values()) {
     if (entry.kind === "file" && isImageFile(entry.name)) {
       const file = await entry.getFile();
-      const compressed = await compressImageToTarget(file);
+      const compressed = await compressImageToTarget(file, targetSizeKB);
       if (compressed && compressed.size < file.size) {
         const writable = await entry.createWritable();
         await writable.write(compressed);
         await writable.close();
         log(`✅ ${entry.name} 压缩完成 (${(file.size/1024).toFixed(1)}KB → ${(compressed.size/1024).toFixed(1)}KB)`);
       } else {
-        log(`ℹ️ ${entry.name} 已跳过（无需压缩）`);
+        log(`ℹ️ ${entry.name} 已跳过（${(file.size/1024).toFixed(1)}KB，无需压缩）`);
       }
     } else if (entry.kind === "directory") {
-      await traverseAndCompress(entry); // 递归子目录
+      await traverseAndCompress(entry, targetSizeKB); // 递归
     }
   }
 }
 
-// 按钮点击：选择目录并覆盖压缩
+// 拖入文件/文件夹处理
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const items = e.dataTransfer.items;
+  logDiv.innerHTML = "";
+  const targetSizeKB = parseInt(targetSizeInput.value, 10) || 160;
+
+  for (const item of items) {
+    const entry = item.webkitGetAsEntry();
+    if (entry) {
+      if (entry.isDirectory) {
+        if (confirm(`检测到文件夹「${entry.name}」，是否批量处理？`)) {
+          await traverseAndCompress(entry, targetSizeKB);
+        }
+      } else if (entry.isFile) {
+        const file = await item.getAsFile();
+        if (isImageFile(file.name)) {
+          const compressed = await compressImageToTarget(file, targetSizeKB);
+          if (compressed && compressed.size < file.size) {
+            log(`⚠️ 拖拽方式无法覆盖保存：${file.name} (${(file.size/1024).toFixed(1)}KB → ${(compressed.size/1024).toFixed(1)}KB)`);
+          } else {
+            log(`ℹ️ ${file.name} 已跳过（${(file.size/1024).toFixed(1)}KB，无需压缩）`);
+          }
+        }
+      }
+    }
+  }
+});
+
+// 按钮选择文件夹
 chooseDirBtn.addEventListener('click', async () => {
-  logDiv.innerHTML = ""; // 清空日志
+  logDiv.innerHTML = "";
+  const targetSizeKB = parseInt(targetSizeInput.value, 10) || 160;
   try {
     const dirHandle = await window.showDirectoryPicker();
     log(`开始处理文件夹: ${dirHandle.name}`);
-    await traverseAndCompress(dirHandle);
+    await traverseAndCompress(dirHandle, targetSizeKB);
     log("🎉 全部处理完成");
   } catch (e) {
     log("❌ 操作取消");
