@@ -222,13 +222,37 @@
 
     // 兼容性检查 + 显示/隐藏按钮
     window.addEventListener('DOMContentLoaded', () => {
-      if (!('showDirectoryPicker' in window)) {
-        alert('⚠️当前浏览器不支持文件直接修改⚠️\n✅️将使用文件拖拽打包为ZIP下载✅️\n推荐使用Chrome/Edge浏览器。');
-      } else {
-        //chooseDirBtn.style.display = 'inline-block';
-        //隐藏手动上传按钮
-      }
+  if (!('showDirectoryPicker' in window)) {
+    // 设置 modal 文本
+    const modalText = document.getElementById('modalText');
+    modalText.textContent = '⚠️当前浏览器不支持文件直接修改⚠️\n✅️将使用文件拖拽打包为ZIP下载✅️\n推荐使用Chrome/Edge浏览器。';
+    modalConfirmBtn.style = 'display:none';
+    modalCancelBtn.textContent = '继续使用打包模式处理图片';
+    // 显示 modal
+    const modal = document.getElementById('modalOverlay');
+    modal.classList.add('show');
+
+    // 获取按钮
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+
+    // 点击取消按钮隐藏 modal
+    cancelBtn.addEventListener('click', () => {
+      modal.classList.remove('show');
     });
+
+    // 点击继续处理按钮隐藏 modal，并执行默认逻辑
+    confirmBtn.addEventListener('click', () => {
+      modal.classList.remove('show');
+      console.log('继续处理拖拽打包逻辑...');
+      // 这里可以调用你的拖拽打包函数
+    });
+  } else {
+    // 浏览器支持 showDirectoryPicker 的逻辑
+    // chooseDirBtn.style.display = 'inline-block';
+  }
+});
+
 
     function showToast(msg, ms = 5000){
         toast.textContent = msg;
@@ -413,7 +437,7 @@
         let ok = false;
         if (imageCount >= 50) {
           // 调用新的自定义弹窗
-          ok = await showCustomConfirm(`您已提交 ${imageCount} 张图片，即将覆盖处理，是否继续？`);
+          ok = await showCustomConfirm(`🚨🚨🚨！注意！🚨🚨🚨\n您已提交 ${imageCount} 张图片，即将覆盖处理，是否继续？`);
         } else {
           // 调用新的自定义弹窗
           ok = await showCustomConfirm(`是否批量处理此文件夹中的 ${imageCount} 张图片？\n将递归处理并覆盖保存。`);
