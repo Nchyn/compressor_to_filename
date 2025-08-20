@@ -25,7 +25,7 @@
     html[data-theme='dark'] { background-color: var(--bg-dark); color: var(--text-dark); }
     html[data-theme='light'] { background-color: var(--bg-light); color: var(--text-light); }
 
-    body { font-family: sans-serif; padding: 2em; max-width: 980px; margin: auto; transition: background .3s, color .3s; }
+    body { font-family: sans-serif; padding: 2em; max-width: 1440px; margin: auto; transition: background .3s, color .3s; }
 
     #dropZone { border: 2px dashed var(--border); padding: 1.5em; text-align: center; margin: 1em 0; border-radius: 10px; background: #f9f9f9; cursor: pointer; transition: background-color .3s, border-color .3s; }
     html[data-theme='dark'] #dropZone { background: #1f1f1f; border-color: var(--border-dark); }
@@ -37,6 +37,17 @@
     .btn { padding: .6em 1em; border: 1px solid var(--border); border-radius: 8px; background: transparent; cursor: pointer; }
     .btn.primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
     .btn.primary:hover { background: var(--primary-hover); }
+    .btn.warning {
+        background: #f44336; /* 红色背景 */
+        color: #fff;         /* 白色文字 */
+        border-color: #f44336; /* 边框红色 */
+    }
+    
+    .btn.warning:hover {
+        background: #e53935; /* 深一点的红色 */
+    }
+
+
 
     #themeToggle { background: none; border: none; font-size: 1.2em; cursor: pointer; color: inherit; }
 
@@ -48,19 +59,111 @@
     html[data-theme='dark'] .log { border-color: var(--border-dark); }
     .log-header { padding: .7em 1em; font-weight: bold; background: rgba(0,0,0,.05); }
     html[data-theme='dark'] .log-header { background: rgba(255,255,255,.06); }
-    .log-body { max-height: 420px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
-    .log-row { display: grid; grid-template-columns: 1.2fr .9fr .9fr .9fr 1.5fr; gap: .5em; padding: .6em 1em; border-top: 1px dashed var(--border); align-items: center; word-break: break-all; }
+    .log-body { overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+    .log-row { display: grid; grid-template-columns: 2fr .6fr .6fr .6fr 1.5fr; gap: .5em; padding: .6em 1em; border-top: 1px dashed var(--border); align-items: center; word-break: break-all; }
     html[data-theme='dark'] .log-row { border-color: var(--border-dark); }
-    .log-row.header { font-weight: 600; position: sticky; top: 0; background: inherit; }
+    .log-row.header { font-weight: 600; position: sticky; top: 0; background: inherit; border-top: none; }
     .badge { padding: .15em .5em; border-radius: 999px; font-weight: 700; font-size: 12px; display: inline-block; }
     .ok { background: #e7f8ec; color: #0a7a32; }
     .skip { background: #fff6e5; color: #915e00; }
     .err { background: #ffe8e6; color: #982222; }
 
-    /* toast */
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 16px; border-radius: 8px; z-index: 1000; display: none; }
-    .toast.show { display: block; animation: fadeInUp .25s; }
-    @keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    /* START: 新增的弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: none; /* 默认隐藏 */
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity .2s ease-in-out;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: var(--bg-light);
+      padding: 2em;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+      transform: scale(0.95);
+      transition: transform .2s ease-in-out;
+    }
+    .modal-overlay.show .modal-content {
+      transform: scale(1);
+    }
+    html[data-theme='dark'] .modal-content {
+      background: #282828;
+    }
+
+    .modal-content p {
+      margin: 0 0 1.5em;
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap; /* 保证 \n 换行符生效 */
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 1em;
+      justify-content: center;
+    }
+    /* END: 新增的弹窗样式 */
+
+    .toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-10px); /* 初始向上偏移 */
+        background: #333;
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 8px;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s, transform 0.3s;
+    }
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+
+.toast.show {
+    display: block;
+    animation: fadeInDown .25s;  /* 可以改动画名称更语义化 */
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -10px); /* 从上方移动到位置 */
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+.toast.hide {
+    opacity: 0;
+    transform: translate(-50%, -10px); /* 向上淡出 */
+}
   </style>
 </head>
 <body>
@@ -70,7 +173,7 @@
   </header>
 
   <div class="toolbar">
-    <button class="btn primary" id="chooseDirBtn">选择文件夹并压缩</button>
+    <button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button>
 
     <label class="input-group" style="gap:.4em">
       <input type="checkbox" id="forceUseDefault" /> 手动设置
@@ -85,14 +188,15 @@
     </label>
   </div>
 
-  <p style="margin:.6em 0 .2em">拖入 <strong>文件或文件夹</strong> 开始（文件夹会递归处理并覆盖保存）。文件名可包含大小参数，如 <code>xxx-160KB.jpg</code>。</p>
-  <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
+  <p style="margin:.6em 0 .2em">拖入 <strong>文件或文件夹</strong> 开始。文件名可包含大小参数，如 <code>xxx-160KB.jpg</code>。</p>
+  <div id="dropZone">📂 点击上传图片或将 <strong>文件夹</strong> 拖拽到此区域</div>
   <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
 
   <section class="log">
     <div class="log-header">处理日志</div>
+    <div class="log-row header"><div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div></div>
     <div class="log-body" id="logBody">
-      <div class="log-row header"><div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div></div>
+    
     </div>
   </section>
 
@@ -101,7 +205,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.1.2';
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -116,8 +220,59 @@
 
     const zip = new JSZip();
 
-    function showToast(msg, ms = 2200){ toast.textContent = msg; toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), ms); }
+    // 兼容性检查 + 显示/隐藏按钮
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!('showDirectoryPicker' in window)) {
+        alert('⚠️当前浏览器不支持文件直接修改⚠️\n✅️将使用文件拖拽打包为ZIP下载✅️\n推荐使用Chrome/Edge浏览器。');
+      } else {
+        //chooseDirBtn.style.display = 'inline-block';
+        //隐藏手动上传按钮
+      }
+    });
 
+    function showToast(msg, ms = 5000){
+        toast.textContent = msg;
+        toast.classList.add('show');
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+
+        setTimeout(()=>{
+            toast.classList.remove('show');  // 自动淡出
+            toast.style.transform = 'translateX(-50%) translateY(-10px)';
+        }, ms);
+    }
+
+    // START: 新增的自定义弹窗函数
+    function showCustomConfirm(message) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById('modalOverlay');
+        const textEl = document.getElementById('modalText');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        textEl.textContent = message;
+        overlay.classList.add('show');
+
+        const cleanup = () => {
+          overlay.classList.remove('show');
+          // 克隆并替换按钮以移除所有事件监听器，这是一种简单的清理方式
+          confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+          cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        };
+
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+          cleanup();
+          resolve(true);
+        });
+
+        document.getElementById('modalCancelBtn').addEventListener('click', () => {
+          cleanup();
+          resolve(false);
+        });
+      });
+    }
+    // END: 新增的自定义弹窗函数
+
+    function updateDefaultSizeVisibility(){ defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none'; }
     function updateDefaultSizeVisibility(){ defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none'; }
     forceUseDefault.addEventListener('change', updateDefaultSizeVisibility); updateDefaultSizeVisibility();
 
@@ -132,110 +287,181 @@
       return Math.max(1, fallback) * 1000;
     }
 
-    function getCleanFileName(name){ return name.replace(/-\d+KB/i, ''); }
-
+    function getCleanFileName(name){ return name.replace(/-\d+KB(?=\.[^.]+$)/i, ''); }
     function ext(name){ return name.split('.').pop().toLowerCase(); }
-
     function isImageName(name){ return /\.(jpe?g|png|webp)$/i.test(name); }
 
     function row(status, filePath, orig, target, result, note){
       const div = document.createElement('div'); div.className = 'log-row';
       const badge = `<span class="badge ${status}">${status.toUpperCase()}</span>`;
-      div.innerHTML = `<div>${filePath}</div><div>${formatKB(orig)}</div><div>${formatKB(target)}</div><div>${badge} ${formatKB(result)}</div><div>${note||''}</div>`;
-      logBody.appendChild(div); logBody.scrollTop = logBody.scrollHeight;
+      div.innerHTML = `<div>${filePath}</div><div>${formatKB(orig)}</div><div>${formatKB(target)}</div><div>${formatKB(result)} ${badge}</div><div>${note||''}</div>`;
+      logBody.prepend(div); logBody.scrollTop = logBody.scrollHeight;
     }
 
-    function dataURLToBlob(dataURL){ const [header, base64] = dataURL.split(','); const mime = header.match(/:(.*?);/)[1]; const binary = atob(base64); const array = Uint8Array.from(binary, c => c.charCodeAt(0)); return new Blob([array], { type: mime }); }
+    function dataURLToBlob(dataURL){
+      const [header, base64] = dataURL.split(',');
+      const mime = header.match(/:(.*?);/)[1];
+      const binary = atob(base64);
+      const array = Uint8Array.from(binary, c => c.charCodeAt(0));
+      return new Blob([array], { type: mime });
+    }
 
     async function compressImageToTarget(file, targetSize){
-      // Load into canvas
+      // 加载到 canvas
       const img = new Image(); const reader = new FileReader(); reader.readAsDataURL(file);
       await new Promise(res => { reader.onload = () => { img.src = reader.result; img.onload = res; }; });
-      const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
 
       const extension = ext(file.name);
       let mime = 'image/jpeg';
       if (extension === 'webp') mime = 'image/webp';
-      if (extension === 'png') mime = 'image/png'; // PNG 质量参数无效
+      if (extension === 'png') mime = 'image/png'; // PNG 无质量参数
 
-      let low = 0.1, high = 1.0; let bestBlob = null; let lastTriedSize = 0;
-
-      // For PNG, we try a single re-encode (no quality control). We'll later decide skip if not improved.
       if (mime === 'image/png'){
-        const dataUrl = canvas.toDataURL(mime); const blob = dataURLToBlob(dataUrl); lastTriedSize = blob.size; if (blob.size <= targetSize) return blob; return blob; // return as-is for decision outside
+        // 仅重新编码一次
+        const dataUrl = canvas.toDataURL(mime);
+        return dataURLToBlob(dataUrl);
       }
 
-      for (let i=0;i<10;i++){
-        const q = (low+high)/2; const dataUrl = canvas.toDataURL(mime, q); const blob = dataURLToBlob(dataUrl); lastTriedSize = blob.size;
+      // JPEG/WEBP：二分搜索质量
+      let low = 0.1, high = 1.0; let bestBlob = null;
+      for (let i=0; i<10; i++){
+        const q = (low + high) / 2;
+        const dataUrl = canvas.toDataURL(mime, q);
+        const blob = dataURLToBlob(dataUrl);
         if (blob.size <= targetSize){ bestBlob = blob; low = q; } else { high = q; }
       }
-      return bestBlob || new Blob([], {type: mime});
+      return bestBlob || null;
+    }
+
+    // 新增：递归计数文件夹中的图片文件
+    async function countImageFiles(dirHandle) {
+      let count = 0;
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file' && isImageName(entry.name)) {
+          count++;
+        } else if (entry.kind === 'directory') {
+          count += await countImageFiles(entry);
+        }
+      }
+      return count;
     }
 
     function createZipAndDownload(name){ zip.generateAsync({type:'blob'}).then(b => saveAs(b, name)); }
 
     async function processFileLike(readFile, writeBack, displayPath){
-      // readFile: () => Promise<{file: File, name: string}>
-      // writeBack: (Uint8Array|Blob) => Promise<void> (overwrite)
       const {file, name} = await readFile();
+      if (!isImageName(name)) return;
 
-      if (!isImageName(name)) return; // ignore
       const target = getTargetSizeFromName(name);
 
-      // If original already smaller than target -> skip
-      if (file.size <= target){ row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过'); return; }
-
-      const compressed = await compressImageToTarget(file, target);
-
-      if (!compressed || compressed.size === 0){ row('err', displayPath, file.size, target, 0, '压缩失败'); return; }
-
-      if (compressed.type === 'image/png'){
-        // PNG: if not smaller or still above target, we may skip
-        if (compressed.size >= file.size){ row('skip', displayPath, file.size, target, compressed.size, 'PNG 重新编码未变小，跳过'); return; }
-        if (compressed.size > target){ row('skip', displayPath, file.size, target, compressed.size, 'PNG 压缩受限，未达目标'); return; }
+      // 1) 原始文件不需要压缩
+      if (file.size <= target){
+        if (removeParamCheckbox.checked){
+          await writeBack(file); // 用于改名（磁盘/ZIP 同步）
+          row('skip', displayPath, file.size, target, file.size, '未压缩，仅修改文件名');
+        } else {
+          row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过');
+        }
+        return;
       }
 
-      if (compressed.size >= file.size){ row('skip', displayPath, file.size, target, compressed.size, '压缩后更大，跳过'); return; }
+      // 2) 尝试压缩
+      const compressed = await compressImageToTarget(file, target);
+      if (!compressed || compressed.size === 0){
+        row('err', displayPath, file.size, target, 0, '压缩失败');
+        return;
+      }
 
-      // Good to overwrite
+      // 3) 压缩后不小于原始
+      if (compressed.size >= file.size){
+        if (removeParamCheckbox.checked){
+          await writeBack(file); // 仅改名
+          row('skip', displayPath, file.size, target, file.size, '未压缩，仅修改文件名');
+        } else {
+          row('skip', displayPath, file.size, target, compressed.size, '压缩后更大，跳过');
+        }
+        return;
+      }
+
+      // 4) 正常写回（可能仍未达到 target，记录提示）
       await writeBack(compressed);
-      row('ok', displayPath, file.size, target, compressed.size, `已覆盖保存，压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
+      const note = compressed.size > target ? '已减小但未达目标' : `压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`;
+      row('ok', displayPath, file.size, target, compressed.size, note);
     }
 
-    // -------- Folder mode (File System Access API) --------
+    // -------- 文件夹模式（覆盖保存 + 可重命名） --------
     async function chooseAndProcessDirectory(handle){
       try{
         if (!handle){
-          if (!window.showDirectoryPicker){ alert('当前浏览器不支持目录访问（仅 Chromium 系）。请使用 Chrome/Edge 或改用拖拽文件压缩为 ZIP 下载。'); return; }
+          if (!window.showDirectoryPicker){
+            alert('当前浏览器不支持目录访问，请使用 Chrome/Edge 或改用拖拽文件压缩为 ZIP 下载。');
+            return;
+          }
           handle = await showDirectoryPicker();
         }
-        const ok = confirm('是否批量处理此文件夹？将递归处理并覆盖保存。'); if (!ok) return;
 
-        let count = 0;
+        const imageCount = await countImageFiles(handle);
+
+        if (imageCount === 0) {
+          showToast('文件夹中没有找到可处理的图片。');
+          return;
+        }
+
+        let ok = false;
+        if (imageCount >= 50) {
+          // 调用新的自定义弹窗
+          ok = await showCustomConfirm(`您已提交 ${imageCount} 张图片，即将覆盖处理，是否继续？`);
+        } else {
+          // 调用新的自定义弹窗
+          ok = await showCustomConfirm(`是否批量处理此文件夹中的 ${imageCount} 张图片？\n将递归处理并覆盖保存。`);
+        }
+        
+        if (!ok) return;
+
+
         async function walk(dirHandle, prefix=''){
           for await (const [name, entry] of dirHandle.entries()){
             const path = prefix ? `${prefix}/${name}` : name;
             if (entry.kind === 'file'){
               await processFileLike(
                 async () => ({ file: await entry.getFile(), name }),
-                async (blob) => { const w = await entry.createWritable(); await w.write(blob); await w.close(); },
+                async (blob) => {
+                  const newName = removeParamCheckbox.checked ? getCleanFileName(name) : name;
+
+                  if (newName !== name){
+                    const newHandle = await dirHandle.getFileHandle(newName, { create: true });
+                    const w = await newHandle.createWritable();
+                    await w.write(blob);
+                    await w.close();
+                    try { await dirHandle.removeEntry(name); } catch(e){}
+                  } else {
+                    const w = await entry.createWritable();
+                    await w.write(blob);
+                    await w.close();
+                  }
+                },
                 path
               );
-              count++;
             } else if (entry.kind === 'directory'){
               await walk(entry, path);
             }
           }
         }
+        
         await walk(handle);
-        showToast('🎉 全部处理完成');
-      }catch(e){ console.error(e); showToast('处理出错：' + e.message); }
+        showToast('🎉 全部处理完成（文件夹模式）');
+      }catch(e){
+        console.error(e);
+        showToast('处理出错：' + e.message);
+      }
     }
 
-    // -------- File mode (drag files -> zip) --------
+    // -------- 文件模式（拖文件 -> ZIP 下载，支持改名） --------
     async function handleFilesToZip(files){
-      logBody.innerHTML = '<div class="log-row header"><div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div></div>';
-      zip.files = {};
+      zip.files = {}; // 重置
       let any = false;
       for (const file of files){
         const displayName = file.name;
@@ -243,9 +469,9 @@
           async () => ({ file, name: file.name }),
           async (blob) => {
             any = true;
-            const name = removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name;
+            const newName = removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name;
             const arrayBuffer = await blob.arrayBuffer();
-            zip.file(name, arrayBuffer, {date: new Date()});
+            zip.file(newName, arrayBuffer, {date: new Date()});
           },
           displayName
         );
@@ -255,47 +481,94 @@
         const zipName = `compressed_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}.zip`;
         createZipAndDownload(zipName);
         showToast('🎉 全部处理完成（已生成 ZIP）');
+      } else {
+        showToast('未处理任何文件');
       }
     }
 
-    // Drag & Drop (files or a single folder)
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+// 拖拽交互（单文件夹或多个文件）
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', async e => {
-      e.preventDefault(); dropZone.classList.remove('dragover');
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+
+      // 关键修复：在任何 await 之前立即捕获文件列表
       const items = e.dataTransfer.items;
+      const files = e.dataTransfer.files; 
+
+      // 1) 优先处理单文件夹拖入的特殊情况
       if (items && items.length === 1){
-        // try directory handle path
         const item = items[0];
+
+        // 1a) 新版 Chromium API：尝试获取目录句柄
         if (item.getAsFileSystemHandle){
           try{
             const handle = await item.getAsFileSystemHandle();
-            if (handle && handle.kind === 'directory'){ await chooseAndProcessDirectory(handle); return; }
-          }catch(err){ /* fallthrough */ }
+            if (handle && handle.kind === 'directory'){
+              // 确认是文件夹，处理并直接返回，结束流程
+              await chooseAndProcessDirectory(handle);
+              return;
+            }
+          }catch(err){ /* 如果失败 (例如，它是文件而不是文件夹), 则会自然地继续执行下面的文件处理逻辑 */ }
         }
-        // webkit entry fallback (read-only)
+
+        // 1b) 旧版 webkit API (只读)
         if (item.webkitGetAsEntry){
           const entry = item.webkitGetAsEntry();
-          if (entry && entry.isDirectory){ showToast('检测到文件夹，但无法获得写入权限，将仅打包下载'); const files = []; await (async function readDir(dir){ const reader = dir.createReader(); await new Promise(r=>reader.readEntries(async entries=>{ for (const en of entries){ if (en.isFile){ await new Promise(res=> en.file(f=>{ files.push(f); res(); })); } else if (en.isDirectory){ await readDir(en); } } r(); })); })(entry); await handleFilesToZip(files); return; }
+          if (entry && entry.isDirectory){
+            showToast('检测到文件夹，但无写入权限，将读取后打包为 ZIP 下载');
+            const dirFiles = [];
+            async function readDir(dir){
+              const reader = dir.createReader();
+              await new Promise(res => reader.readEntries(async entries => {
+                for (const en of entries){
+                  if (en.isFile){
+                    await new Promise(r => en.file(f => { dirFiles.push(f); r(); }));
+                  } else if (en.isDirectory){
+                    await readDir(en);
+                  }
+                }
+                res();
+              }));
+            }
+            await readDir(entry);
+            await handleFilesToZip(dirFiles);
+            return; // 文件夹处理完毕，结束流程
+          }
         }
       }
-      // files mode
-      const files = e.dataTransfer.files; if (files && files.length) await handleFilesToZip(Array.from(files));
+
+      // 2) 处理所有其他情况 (多文件, 或未被识别为文件夹的单文件)
+      // 使用在函数开头安全捕获的 'files' 变量
+      if (files && files.length) {
+        await handleFilesToZip(Array.from(files));
+      }
     });
 
-    // Click to choose files (zip mode)
+    // 点击选择文件（ZIP 模式）
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFilesToZip(Array.from(fileInput.files)); });
 
-    // Choose directory (overwrite mode)
+    // 选择目录（覆盖保存模式）
     chooseDirBtn.addEventListener('click', async () => { await chooseAndProcessDirectory(null); });
 
-    // Theme
-    themeToggle.addEventListener('click', () => { const html = document.documentElement; html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', html.dataset.theme); });
-    const savedTheme = localStorage.getItem('theme'); if (savedTheme) document.documentElement.dataset.theme = savedTheme; else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+    // 主题切换 & 记忆
+    themeToggle.addEventListener('click', () => {
+      const html = document.documentElement;
+      html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', html.dataset.theme);
+    });
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
 
-    // Simple versioned cache clear
-    const savedVersion = localStorage.getItem('appVersion'); if (savedVersion !== APP_VERSION){ if ('caches' in window){ caches.keys().then(names => names.forEach(n => caches.delete(n))); } localStorage.setItem('appVersion', APP_VERSION); }
+    // 简单版本缓存清理
+    const savedVersion = localStorage.getItem('appVersion');
+    if (savedVersion !== APP_VERSION){
+      if ('caches' in window){ caches.keys().then(names => names.forEach(n => caches.delete(n))); }
+      localStorage.setItem('appVersion', APP_VERSION);
+    }
   </script>
 
   <!-- 可选：统计脚本（保留原有） -->
@@ -308,5 +581,16 @@
     var _hmt = _hmt || [];
     (function(){ var hm = document.createElement('script'); hm.src = 'https://hm.baidu.com/hm.js?ed5dc7380b880499808494b9cf6f0f48'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(hm, s); })();
   </script>
+
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+      <p id="modalText"></p>
+      <div class="modal-buttons">
+        <button id="modalCancelBtn" class="btn primary">取消</button>
+        <button id="modalConfirmBtn" class="btn warning">继续处理</button>
+      </div>
+    </div>
+  </div>
+
 </body>
-</html>
+</html> 
