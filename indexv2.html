@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片压缩工具（File System Access API）</title>
+<style>
+  :root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --input-bg: #f0f0f0;
+    --input-border: #ccc;
+    --button-bg: #007bff;
+    --button-color: #fff;
+  }
+  [data-theme="dark"] {
+    --bg-color: #1e1e1e;
+    --text-color: #f0f0f0;
+    --input-bg: #333;
+    --input-border: #555;
+    --button-bg: #0d6efd;
+    --button-color: #fff;
+  }
+  body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: sans-serif;
+    margin: 0;
+    padding: 1rem;
+  }
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  input[type="number"] {
+    width: 80px;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-color);
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: var(--button-bg);
+    color: var(--button-color);
+    cursor: pointer;
+  }
+  .theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+  }
+  #installPrompt {
+    display: none;
+    padding: 1rem;
+    background: #fffae6;
+    border: 1px solid #ffd700;
+    margin-bottom: 1rem;
+  }
+</style>
+</head>
+<body>
+<div id="installPrompt">
+  你可以将此工具安装为应用：<button id="installBtn">安装</button>
+</div>
+
+<h1>图片压缩工具</h1>
+
+<div class="input-group">
+  <label>
+    <input type="checkbox" id="forceUseDefault" />
+    手动设置大小
+  </label>
+  <label id="defaultSizeGroup" style="display:none;">
+    默认压缩目标大小（KB）：
+    <input type="number" id="defaultSizeInput" value="160" min="1" />
+  </label>
+</div>
+
+<div class="input-group">
+  <button id="selectFilesBtn">选择图片并压缩覆盖</button>
+</div>
+
+<button class="theme-toggle" id="themeToggle">切换深色模式</button>
+
+<script>
+  // 深色模式切换
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.addEventListener('click', () => {
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+  });
+
+  // 手动大小显示控制
+  const forceCheckbox = document.getElementById('forceUseDefault');
+  const defaultSizeGroup = document.getElementById('defaultSizeGroup');
+  forceCheckbox.addEventListener('change', () => {
+    defaultSizeGroup.style.display = forceCheckbox.checked ? 'inline-flex' : 'none';
+  });
+
+  // File System Access API 安装提示
+  let deferredPrompt;
+  const installPromptDiv = document.getElementById('installPrompt');
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installPromptDiv.style.display = 'block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    installPromptDiv.style.display = 'none';
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => deferredPrompt = null);
+    }
+  });
+
+  // 图片压缩逻辑
+  const selectFilesBtn = document.getElementById('selectFilesBtn');
+  selectFilesBtn.addEventListener('click', async () => {
+    try {
+      const fileHandles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{ description: '图片', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }]
+      });
+
+      for (const fileHandle of fileHandles) {
+        const file = await fileHandle.getFile();
+        const img = new Image();
+        const arrayBuffer = await file.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: file.type });
+        const url = URL.createObjectURL(blob);
+        img.src = url;
+
+        await new Promise(resolve => img.onload = resolve);
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        let quality = 0.92; // 默认质量
+        if (forceCheckbox.checked) {
+          const targetKB = Number(document.getElementById('defaultSizeInput').value);
+          // 根据目标大小调整质量（粗略估算）
+          const factor = targetKB * 1024 / blob.size;
+          quality = Math.min(Math.max(factor, 0.1), 0.92);
+        }
+
+        const compressedBlob = await new Promise(res => canvas.toBlob(res, file.type, quality));
+        const writable = await fileHandle.createWritable();
+        await writable.write(compressedBlob);
+        await writable.close();
+        URL.revokeObjectURL(url);
+      }
+      alert('压缩完成，已覆盖原文件');
+    } catch (err) {
+      console.error(err);
+      alert('操作取消或出错');
+    }
+  });
+</script>
+</body>
+</html>
