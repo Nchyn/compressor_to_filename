@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>图片压缩工具（拖拽 + 批量覆盖）</title>
+<title>图片压缩工具（拖拽 + 批量覆盖 + 文件夹）-v1629</title>
 <style>
   :root {
     --bg-color: #ffffff;
@@ -92,7 +92,7 @@
   </label>
 </div>
 
-<div id="dropZone">拖拽图片到这里或点击选择文件</div>
+<div id="dropZone">拖拽图片/文件夹到这里或点击选择文件</div>
 <div class="input-group">
   <button id="selectFilesBtn">选择图片</button>
 </div>
@@ -100,21 +100,19 @@
 <button class="theme-toggle" id="themeToggle">切换深色模式</button>
 
 <script>
-  // 深色模式切换
   const themeToggle = document.getElementById('themeToggle');
   themeToggle.addEventListener('click', () => {
     const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', theme);
   });
 
-  // 手动大小显示控制
   const forceCheckbox = document.getElementById('forceUseDefault');
   const defaultSizeGroup = document.getElementById('defaultSizeGroup');
   forceCheckbox.addEventListener('change', () => {
     defaultSizeGroup.style.display = forceCheckbox.checked ? 'inline-flex' : 'none';
   });
 
-  // File System Access API 安装提示
+  // PWA安装提示
   let deferredPrompt;
   const installPromptDiv = document.getElementById('installPrompt');
   const installBtn = document.getElementById('installBtn');
@@ -131,57 +129,67 @@
     }
   });
 
-  // 图片压缩逻辑
+  // 压缩单个文件
+  async function compressFile(fileHandle) {
+    const file = await fileHandle.getFile();
+    const img = new Image();
+    const blob = await fileHandle.getFile();
+    const url = URL.createObjectURL(blob);
+    img.src = url;
+
+    await new Promise(resolve => img.onload = resolve);
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+
+    let quality = 0.92;
+    if (forceCheckbox.checked) {
+      const targetKB = Number(document.getElementById('defaultSizeInput').value);
+      const factor = targetKB * 1024 / blob.size;
+      quality = Math.min(Math.max(factor, 0.1), 0.92);
+    }
+
+    const compressedBlob = await new Promise(res => canvas.toBlob(res, file.type, quality));
+    const writable = await fileHandle.createWritable();
+    await writable.write(compressedBlob);
+    await writable.close();
+    URL.revokeObjectURL(url);
+  }
+
+  // 批量压缩
   async function compressFiles(fileHandles) {
+    if (fileHandles.length > 100) {
+      const ok = confirm(`你选择了 ${fileHandles.length} 个文件，继续压缩吗？`);
+      if (!ok) return;
+    }
     for (const fileHandle of fileHandles) {
-      const file = await fileHandle.getFile();
-      const img = new Image();
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: file.type });
-      const url = URL.createObjectURL(blob);
-      img.src = url;
-
-      await new Promise(resolve => img.onload = resolve);
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-
-      let quality = 0.92; // 默认质量
-      if (forceCheckbox.checked) {
-        const targetKB = Number(document.getElementById('defaultSizeInput').value);
-        const factor = targetKB * 1024 / blob.size;
-        quality = Math.min(Math.max(factor, 0.1), 0.92);
-      }
-
-      const compressedBlob = await new Promise(res => canvas.toBlob(res, file.type, quality));
-      const writable = await fileHandle.createWritable();
-      await writable.write(compressedBlob);
-      await writable.close();
-      URL.revokeObjectURL(url);
+      await compressFile(fileHandle);
     }
     alert(`批量压缩完成，共处理 ${fileHandles.length} 个文件`);
   }
 
-  const selectFilesBtn = document.getElementById('selectFilesBtn');
-  selectFilesBtn.addEventListener('click', async () => {
-    try {
-      const fileHandles = await window.showOpenFilePicker({
-        multiple: true,
-        types: [{ description: '图片', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }]
-      });
-      await compressFiles(fileHandles);
-    } catch (err) {
-      console.error(err);
-      alert('操作取消或出错');
+  // 递归遍历文件夹
+  async function getFilesFromEntry(entry) {
+    const files = [];
+    if (entry.isFile) {
+      const handle = await entry.getFileSystemHandle?.() || entry;
+      files.push(handle);
+    } else if (entry.isDirectory) {
+      for await (const handle of entry.values()) {
+        const subFiles = await getFilesFromEntry(handle);
+        files.push(...subFiles);
+      }
     }
-  });
+    return files;
+  }
 
-  // 拖拽功能
+  // 拖拽处理
   const dropZone = document.getElementById('dropZone');
   dropZone.addEventListener('click', () => selectFilesBtn.click());
+
   dropZone.addEventListener('dragover', e => {
     e.preventDefault();
     dropZone.classList.add('dragover');
@@ -193,17 +201,35 @@
   dropZone.addEventListener('drop', async e => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
+
     const items = e.dataTransfer.items;
     const fileHandles = [];
     for (let i = 0; i < items.length; i++) {
       const entry = items[i].webkitGetAsEntry();
-      if (entry.isFile) {
-        const handle = await items[i].getAsFileSystemHandle();
-        fileHandles.push(handle);
+      if (entry) {
+        const handles = await getFilesFromEntry(entry);
+        fileHandles.push(...handles);
       }
     }
     if (fileHandles.length > 0) {
       await compressFiles(fileHandles);
+    }
+  });
+
+  // 按钮选择文件
+  const selectFilesBtn = document.getElementById('selectFilesBtn');
+  selectFilesBtn.addEventListener('click', async () => {
+    try {
+      const fileHandles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{ description: '图片', accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] } }]
+      });
+      if (fileHandles.length > 0) {
+        await compressFiles(fileHandles);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('操作取消或出错');
     }
   });
 </script>
