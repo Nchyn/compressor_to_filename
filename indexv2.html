@@ -490,64 +490,60 @@ async function compressImageToTarget(file, targetSize, options = {}) {
 
     function createZipAndDownload(name){ zip.generateAsync({type:'blob'}).then(b => saveAs(b, name)); }
 
-    async function processFileLike(readFile, writeBack, displayPath){
+async function processFileLike(readFile, writeBack, displayPath){
       const {file, name} = await readFile();
       if (!isImageName(name)) return;
 
       const target = getTargetSizeFromName(name);
       const pngToJpg = pngToJpgCheckbox.checked;
+      const fileExt = ext(name);
 
       // 预览（默认用原文件，若之后有压缩会替换为新blob）
       let previewURL = URL.createObjectURL(file);
       currentPreviewURLs.push(previewURL);
       let outName = name;
+      let compressed, outExt, noteParts;
 
-      // 1) 原始文件不需要压缩
-      if (file.size <= target){
-        if (removeParamCheckbox.checked){
-          const finalName = getOutputFileName(name, ext(name)); // 仅移除参数
+      // 新增逻辑: 如果是PNG且勾选了转JPG，无视大小直接压缩
+      if (fileExt === 'png' && pngToJpg) {
+        // 直接执行压缩和转换
+        ({ blob: compressed, outExt } = await compressImageToTarget(file, target, { pngToJpg }));
+        noteParts = [`扩展名 ${fileExt}→${outExt}`];
+      } else if (file.size <= target && !removeParamCheckbox.checked) {
+        // 如果原始文件小于目标且不需要改名，则直接跳过
+        row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过', previewURL, name);
+        return;
+      } else {
+        // 否则，尝试压缩
+        ({ blob: compressed, outExt } = await compressImageToTarget(file, target, { pngToJpg }));
+        noteParts = [];
+      }
+
+      // 处理文件名修改的情况
+      if (!compressed || compressed.size >= file.size) {
+        // 如果压缩失败或结果更大，则仅修改文件名（如果勾选了）
+        if (removeParamCheckbox.checked) {
+          const finalName = getOutputFileName(name, fileExt);
           outName = finalName;
           await writeBack(file, finalName);
           row('skip', displayPath, file.size, target, file.size, '未压缩，仅修改文件名', previewURL, finalName);
         } else {
-          row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过', previewURL, name);
+          // 否则，跳过处理
+          row('skip', displayPath, file.size, target, file.size, '压缩后更大，跳过', previewURL, name);
         }
         return;
       }
 
-      // 2) 尝试压缩（含可选 PNG->JPG）
-      const { blob: compressed, outExt } = await compressImageToTarget(file, target, { pngToJpg });
-
-      if (!compressed || compressed.size === 0){
-        row('err', displayPath, file.size, target, 0, '压缩失败', previewURL, name);
-        return;
-      }
-
-      // 3) 压缩后若不小于原始
-      if (compressed.size >= file.size){
-        if (removeParamCheckbox.checked){
-          const finalName = getOutputFileName(name, ext(name)); // 仅改名
-          outName = finalName;
-          await writeBack(file, finalName);
-          row('skip', displayPath, file.size, target, file.size, '未压缩，仅修改文件名', previewURL, finalName);
-        } else {
-          row('skip', displayPath, file.size, target, compressed.size, '压缩后更大，跳过', previewURL, name);
-        }
-        return;
-      }
-
-      // 4) 正常写回
+      // 正常写回（压缩成功）
       const finalName = getOutputFileName(name, outExt);
       outName = finalName;
 
       const resultURL = URL.createObjectURL(compressed);
       currentPreviewURLs.push(resultURL);
-      // 用压缩后的预览替换
       previewURL = resultURL;
 
       await writeBack(compressed, finalName);
-      const noteParts = [];
-      if (ext(name) !== outExt) noteParts.push(`扩展名 ${ext(name)}→${outExt}`);
+
       noteParts.push(compressed.size > target ? '已减小但未达目标' : `压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
       row('ok', displayPath, file.size, target, compressed.size, noteParts.join('；'), previewURL, finalName);
     }
