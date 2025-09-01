@@ -1,4 +1,3 @@
-  <script>
     const MAX_W = 8000;
     const MAX_H = 8000;
     const GAP = 15; // 图片间距
@@ -221,4 +220,3 @@
         URL.revokeObjectURL(a.href);
       }, 'image/jpeg', 0.9);
     }
-  </script>
