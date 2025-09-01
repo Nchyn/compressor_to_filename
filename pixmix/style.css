@@ -1,4 +1,4 @@
-  <style>
+
     /* Ant Design 风格变量 */
     :root {
       --primary-color: #1677ff;
@@ -198,4 +198,3 @@
     #theme-toggle:hover {
       background: var(--border-color-split);
     }
-  </style>
