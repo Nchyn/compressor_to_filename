@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSV 图片信息卡片生成器</title>
+<style>
+:root {
+  --bg: #0b0f15;
+  --fg: #e8eef7;
+  --muted: #91a0b6;
+  --card: #121825;
+  --accent: #49a6ff;
+  --accent-active: #2d7dcc;
+  --shadow: 0 8px 30px rgba(0, 0, 0, .25);
+  --btn-radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0b0f15, #0f1420);
+  color: var(--fg);
+  font: 16px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+  font-weight: 750;
+  letter-spacing: .2px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: var(--btn-radius);
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #001;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:hover {
+  background: #3885c8;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+}
+
+.btn.secondary {
+  background: #1d2738;
+  color: var(--fg);
+}
+
+/* 排序按钮样式 */
+.sort-btn {
+  padding: 8px 12px;
+  font-size: 14px;
+  background: #1d2738;
+  border: 1px solid transparent;
+}
+
+.sort-btn:hover {
+  background: #1a2232;
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+.sort-btn.active {
+  background: var(--accent-active);
+  color: #001;
+  border-color: var(--accent);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #22304a;
+  border-radius: var(--btn-radius);
+  background: #0f1726;
+  color: var(--fg);
+  padding: 12px 14px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(73, 166, 255, .08);
+  resize: vertical;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid #1b2436;
+  border-radius: var(--btn-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+}
+
+/* 固定 16:9 图片窗口 */
+.thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: contain;
+  background: #0a0f18;
+  display: block;
+  cursor: zoom-in;
+}
+
+.body {
+  padding: 6px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stat {
+  background: #0f1726;
+  border: 1px solid #212c45;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.value {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 小号灰色完整数字（复用 ctr-value 样式） */
+.ctr-info {
+  margin-top: 6px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.ctr-value {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* 图片ID */
+.id {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+  word-break: break-all;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* 排序控制区样式 */
+.sort-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #1b2436;
+  border-bottom: 1px solid #1b2436;
+}
+
+.sort-label {
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+input[type="file"] { display: none; }
+
+.file-label {
+  border: 1px dashed #33415f;
+  border-radius: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--fg);
+  background: #11182a;
+  transition: background 0.3s;
+}
+
+.file-label:hover {
+  background: #1a2232;
+}
+
+.top-hr {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #20304d, transparent);
+  margin: 12px 0;
+}
+
+.empty {
+  border: 1px dashed #2b3a57;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  margin-top: 24px;
+  padding: 40px 20px;
+}
+
+.footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* 放大预览层 */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+#lightbox .lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 95%;
+  width: min(1100px, 95%);
+}
+#lightbox img {
+  max-width: 100%;
+  max-height: 70vh;
+  /* border-radius: 6px; */
+  box-shadow: 0 8px 30px rgba(0,0,0,.5);
+  background: #07101a;
+  cursor: zoom-out;
+}
+
+/* lightbox 信息卡（不格式化，显示原始数据） */
+.lightbox-info {
+  margin-top: 12px;
+  width: 100%;
+  background: var(--card);
+  border: 1px solid #1b2436;
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--fg);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.lightbox-info .lb-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.lightbox-info .lb-value {
+  color: var(--fg);
+  font-weight: 700;
+  word-break: break-all;
+}
+@media (max-width: 720px) {
+  .lightbox-info { grid-template-columns: repeat(2, 1fr); }
+  .sort-controls { gap: 6px; }
+  .sort-btn { padding: 6px 10px; font-size: 13px; }
+}
+
+.video-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+.video-placeholder:hover {
+  background: #222;
+}
+.thumb-wrapper video {
+  transition: opacity 0.3s ease;
+}
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CSV 图片信息卡片生成器</h1>
+      <div class="bar">
+        <button id="downloadBtn" class="btn secondary">下载示例数据</button>
+        <label class="file-label" for="fileInput">选择 CSV 文件</label>
+        <input id="fileInput" type="file" accept=".csv,text/csv" />
+      </div>
+    </header>
+
+    <div class="hint">支持逗号或制表符（Tab）分隔；<strong>必填列：图片URL、消费</strong>，可选列：图片ID、展现、点击、点击率（顺序不严格）。</div>
+
+    <div class="top-hr"></div>
+
+    <textarea id="csvInput" placeholder="在此粘贴 CSV 内容或点击上方选择文件">
+图片URL, 图片ID,展现,点击,消费,点击率,平均点击价格
+https://feed-image.baidu.com/0/pic/-692297455_897656349_1620457166.jpg,12658019099,90299,2943,4353.63,3.26%,1.48
+https://feed-image.baidu.com/0/pic/-734365233_870685342_2040281049.jpg,12658019098,43735,2058,2608.83,4.71%,1.27
+https://feed-image.baidu.com/0/pic/-123456789_987654321_1234567890.jpg,,15000,,890.5,1.8%,
+https://feed-image.baidu.com/0/pic/-987654321_123456789_0987654321.jpg,,,2500.33,,
+    </textarea>
+
+    <div class="footer">
+      <div class="controls">
+        <button id="parseBtn" class="btn secondary">解析并生成卡片</button>
+      </div>
+    </div>
+
+    <!-- 新增排序控制区 -->
+    <div id="sortControls" class="sort-controls" style="display: none;">
+      <span class="sort-label">排序方式：</span>
+      <button class="btn secondary sort-btn" data-sort="imp" data-order="desc">
+        展现 <span>(降序)</span>
+      </button>
+      <button class="btn secondary sort-btn" data-sort="clk" data-order="desc">
+        点击 <span>(降序)</span>
+      </button>
+      <button class="btn secondary sort-btn" data-sort="cost" data-order="desc">
+        消费 <span>(降序)</span>
+      </button>
+      <button class="btn secondary sort-btn" data-sort="ctr" data-order="desc">
+        点击率 <span>(降序)</span>
+      </button>
+    </div>
+
+    <div id="grid" class="grid" aria-live="polite"></div>
+
+    <div id="empty" class="empty">未检测到有效数据，请粘贴 CSV 或选择文件，再点击“解析并生成卡片”。</div>
+  </div>
+
+  <!-- 放大预览层（包含图片与原始数据：展/点/销/图片ID） -->
+  <div id="lightbox" aria-hidden="true">
+    <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="图片预览与数据">
+      <img src="" alt="预览图">
+      <div class="lightbox-info">
+        <div>
+          <div class="lb-label">展现</div>
+          <div class="lb-value" id="lb-imp"></div>
+        </div>
+        <div>
+          <div class="lb-label">点击</div>
+          <div class="lb-value" id="lb-clk"></div>
+        </div>
+        <div>
+          <div class="lb-label">消费</div>
+          <div class="lb-value" id="lb-cost"></div>
+        </div>
+        <div>
+          <div class="lb-label">图片ID</div>
+          <div class="lb-value" id="lb-id"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const q = sel => document.querySelector(sel);
+const grid = q('#grid');
+const empty = q('#empty');
+const csvInput = q('#csvInput');
+const sortControls = q('#sortControls');
+const sortBtns = document.querySelectorAll('.sort-btn');
+
+let originalData = [];
+let currentSort = { key: 'cost', order: 'desc' };
+
+function smartSplit(line){
+  if(!line) return [];
+  if(line.includes('\t')) return line.split('\t');
+  const parts=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"') { inQ=!inQ; continue; }
+    if(ch===',' && !inQ){ parts.push(cur); cur=''; }
+    else cur+=ch;
+  }
+  parts.push(cur);
+  return parts;
+}
+
+function parseCSV(text){
+  if(!text) return [];
+  const rows = text.trim().split(/\r?\n/).map(s=>s.replace(/\s+$/,''));
+  if(rows.length===0) return [];
+  const header = smartSplit(rows[0]).map(h=>h.trim().toLowerCase());
+  const idx = {
+    url: header.findIndex(h=>h.includes('url') || h.includes('图片') && (h.includes('链接') || h.includes('地址') || h.includes('url'))),
+    id: header.findIndex(h=>h.includes('id') || h.includes('图片id') || h.includes('编号')),
+    imp: header.findIndex(h=>h.includes('展现') || h.includes('曝光') || h.includes('imp')),
+    clk: header.findIndex(h=>h.includes('点击') || h.includes('clk')),
+    cost: header.findIndex(h=>h.includes('消费') || h.includes('花费') || h.includes('cost')),
+    ctr: header.findIndex(h=>h.includes('点击率') || h.includes('ctr'))
+  };
+  if(idx.url === -1) throw new Error('缺少必要列：图片URL');
+  if(idx.cost === -1) throw new Error('缺少必要列：消费');
+
+  const data=[];
+  for(let r=1;r<rows.length;r++){
+    const row = rows[r].trim();
+    if(!row) continue;
+    const cols = smartSplit(row).map(c=>c.trim());
+    data.push({
+      url: cols[idx.url] || '',
+      id: idx.id > -1 ? cols[idx.id] || '' : '',
+      imp: idx.imp > -1 ? cols[idx.imp] || '' : '',
+      clk: idx.clk > -1 ? cols[idx.clk] || '' : '',
+      cost: cols[idx.cost] || '',
+      ctr: idx.ctr > -1 ? cols[idx.ctr] || '' : ''
+    });
+  }
+  return data;
+}
+
+function getSortValue(item, key) {
+  switch(key) {
+    case 'imp':
+    case 'clk':
+    case 'cost':
+      return parseFloat(item[key].replace(/,/g, '')) || 0;
+    case 'ctr':
+      return parseFloat(item[key].replace(/%/g, '').replace(/,/g, '')) || 0;
+    default:
+      return item[key] || '';
+  }
+}
+
+function sortData(data, key, order) {
+  return [...data].sort((a, b) => {
+    const valA = getSortValue(a, key);
+    const valB = getSortValue(b, key);
+    if(typeof valA === 'number' && typeof valB === 'number')
+      return order === 'asc' ? valA - valB : valB - valA;
+    return order === 'asc'
+      ? String(valA).localeCompare(String(valB))
+      : String(valB).localeCompare(String(valA));
+  });
+}
+
+function numFormat(n){
+  if(n==null || n==='') return '';
+  const s = String(n).replace(/%$/,'').replace(/,/g,'').trim();
+  const x = Number(s);
+  if(Number.isNaN(x)) return n;
+  if (Math.abs(x) >= 1_000_000) return (x / 1_000_000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (Math.abs(x) >= 10_000) return (x / 10_000).toFixed(1).replace(/\.0$/,'') + '万';
+  if (Math.abs(x) >= 1_000) return (x / 1_000).toFixed(1).replace(/\.0$/,'') + 'k';
+  return x.toString();
+}
+
+function isVideo(url) {
+  return /\.(mp4|mov|webm|m4v|avi|ogg)$/i.test(url);
+}
+
+function render(data){
+  grid.innerHTML='';
+  if(!data || data.length===0){ 
+    empty.style.display='block'; 
+    sortControls.style.display='none';
+    return;
+  }
+  empty.style.display='none';
+  sortControls.style.display='flex';
+
+  const sortedData = sortData(data, currentSort.key, currentSort.order);
+  const frag = document.createDocumentFragment();
+
+  sortedData.forEach(item=>{
+    const card = document.createElement('article');
+    card.className = 'card';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'thumb-wrapper';
+    let isLoaded = false;
+    let video = null;
+
+    if(isVideo(item.url)){
+      const placeholder = document.createElement('div');
+      placeholder.className = 'video-placeholder';
+      placeholder.innerHTML = `
+        <svg viewBox="0 0 100 100" width="60" height="60">
+          <circle cx="50" cy="50" r="48" fill="rgba(0,0,0,0.4)"/>
+          <polygon points="40,30 70,50 40,70" fill="white"/>
+        </svg>`;
+      wrapper.appendChild(placeholder);
+
+      // ✅ 懒加载 + 鼠标进入播放
+      card.addEventListener('mouseenter', () => {
+        if (!isLoaded) {
+          isLoaded = true;
+          placeholder.style.display = 'none';
+          video = document.createElement('video');
+          video.className = 'thumb';
+          video.src = item.url;
+          video.muted = true;
+          video.loop = true;
+          video.autoplay = true;
+          video.playsInline = true;
+          wrapper.appendChild(video);
+        } else if (video && video.paused) {
+          video.play().catch(()=>{});
+        }
+      });
+
+      // ✅ 鼠标移出暂停，但保持显示
+      card.addEventListener('mouseleave', () => {
+        if (video && !video.paused) {
+          video.pause();
+        }
+      });
+
+      // ✅ 点击打开预览层
+      card.addEventListener('click', e=>{
+        e.stopPropagation();
+        openLightbox(item, true);
+      });
+    } else {
+      // 图片逻辑不变
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.src = item.url;
+      img.loading = 'lazy';
+      img.alt = item.id ? `图片ID: ${item.id}` : '广告图片';
+      wrapper.appendChild(img);
+      img.addEventListener('click', e=>{
+        e.stopPropagation();
+        openLightbox(item, false);
+      });
+    }
+
+    card.appendChild(wrapper);
+
+    // 🧾 信息区保持原样
+    const body = document.createElement('div');
+    body.className = 'body';
+    const mainStatsRow = document.createElement('div');
+    mainStatsRow.className = 'stats-row';
+    const impBig = numFormat(item.imp) || '—';
+    const costBig = numFormat(item.cost) || '—';
+    const clkRaw = item.clk || '—';
+    const ctrRaw = item.ctr || '—';
+    const ctrBig = ctrRaw === '—' ? '—' : (ctrRaw.includes('%') ? ctrRaw : `${ctrRaw}%`);
+    mainStatsRow.innerHTML = `
+      <div class="stat">
+        <span class="label">展现</span>
+        <span class="value">${impBig}</span>
+        <div class="ctr-info"><span class="ctr-value">${item.imp || '—'}</span></div>
+      </div>
+      <div class="stat">
+        <span class="label">点击率</span>
+        <span class="value">${ctrBig}</span>
+        <div class="ctr-info"><span class="ctr-value">${clkRaw}</span></div>
+      </div>
+      <div class="stat">
+        <span class="label">消费</span>
+        <span class="value">${costBig}</span>
+        <div class="ctr-info"><span class="ctr-value">${item.cost || '—'}</span></div>
+      </div>`;
+    const id = document.createElement('div');
+    id.className = 'id';
+    id.textContent = item.id ? `图片ID：${item.id}` : '图片ID：未设置';
+    if(!item.id) id.style.color = '#5a6a85';
+    body.appendChild(mainStatsRow);
+    body.appendChild(id);
+    card.appendChild(body);
+    frag.appendChild(card);
+  });
+
+  grid.appendChild(frag);
+  updateSortBtnStates();
+}
+
+
+function openLightbox(item, isVideo){
+  const lightbox = q('#lightbox');
+  const container = lightbox.querySelector('.lightbox-content');
+  container.querySelector('img')?.remove();
+  container.querySelector('video')?.remove();
+  let media;
+  if(isVideo){
+    media = document.createElement('video');
+    media.src = item.url;
+    media.controls = true;
+    media.autoplay = true;
+    media.style.maxWidth = '100%';
+    media.style.maxHeight = '70vh';
+  }else{
+    media = document.createElement('img');
+    media.src = item.url;
+    media.alt = '预览图';
+  }
+  container.prepend(media);
+  q('#lb-imp').textContent = item.imp || '—';
+  q('#lb-clk').textContent = item.clk || '—';
+  q('#lb-cost').textContent = item.cost || '—';
+  q('#lb-id').textContent = item.id || '—';
+  lightbox.style.display='flex';
+  lightbox.setAttribute('aria-hidden','false');
+}
+
+function updateSortBtnStates(){
+  sortBtns.forEach(btn=>{
+    const sortKey=btn.dataset.sort;
+    if(sortKey===currentSort.key){
+      btn.classList.add('active');
+      const orderText=currentSort.order==='asc'?'(升序)':'(降序)';
+      btn.innerHTML=`${getSortKeyText(sortKey)} <span>${orderText}</span>`;
+    }else{
+      btn.classList.remove('active');
+      btn.innerHTML=`${getSortKeyText(sortKey)} <span>(降序)</span>`;
+    }
+  });
+}
+function getSortKeyText(key){
+  const map={'imp':'展现','clk':'点击','cost':'消费','ctr':'点击率'};
+  return map[key]||key;
+}
+
+q('#parseBtn').addEventListener('click',()=>{
+  try{
+    originalData=parseCSV(csvInput.value);
+    if(originalData.length===0) throw new Error('未解析到有效数据');
+    render(originalData);
+  }catch(err){alert(err.message);}
+});
+sortBtns.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const sortKey=btn.dataset.sort;
+    if(sortKey===currentSort.key){
+      currentSort.order=currentSort.order==='asc'?'desc':'asc';
+    }else{
+      currentSort.key=sortKey;currentSort.order='desc';
+    }
+    render(originalData);
+  });
+});
+q('#downloadBtn').addEventListener('click',()=>{
+  const dataToDownload=csvInput.value;
+  if(!dataToDownload.trim()){alert('无数据');return;}
+  const blob=new Blob(['\uFEFF'+dataToDownload],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;link.download='图片数据.csv';
+  document.body.appendChild(link);link.click();
+  document.body.removeChild(link);URL.revokeObjectURL(url);
+});
+q('#fileInput').addEventListener('change',e=>{
+  const file=e.target.files?.[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    csvInput.value=String(reader.result||'');
+    try{originalData=parseCSV(csvInput.value);render(originalData);}catch{}
+  };
+  reader.readAsText(file,'utf-8');
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  try{originalData=parseCSV(csvInput.value);render(originalData);}catch{}
+});
+const lightbox=q('#lightbox');
+let isDragging=false;
+lightbox.addEventListener('mousedown',()=>{isDragging=false;});
+lightbox.addEventListener('mousemove',()=>{
+  if(window.getSelection().toString()){isDragging=true;}
+});
+lightbox.addEventListener('click',()=>{
+  if(isDragging)return;
+  lightbox.style.display='none';
+  lightbox.setAttribute('aria-hidden','true');
+  lightbox.querySelector('video')?.pause();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&lightbox.style.display==='flex'){
+    lightbox.style.display='none';
+    lightbox.setAttribute('aria-hidden','true');
+    lightbox.querySelector('video')?.pause();
+  }
+});
+</script>
+
+</body>
+</html>
