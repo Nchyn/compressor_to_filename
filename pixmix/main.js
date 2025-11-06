@@ -14,17 +14,32 @@ const statusEl = document.querySelector('#status');
 const themeToggleBtn = document.querySelector('#theme-toggle');
 
 // 默认设置深色模式
-if(localStorage.getItem('theme') === 'dark'){
+if (localStorage.getItem('theme') === 'dark') {
   document.body.classList.add('theme-dark');
   themeToggleBtn.textContent = '☀️';
 }
 
 pickBtn.addEventListener('click', () => fileInput.click());
-clearBtn.addEventListener('click', () => { out.innerHTML = ''; status(''); });
+clearBtn.addEventListener('click', () => {
+  out.innerHTML = '';
+  status('');
+});
 fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
-['dragenter', 'dragover'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }));
-['dragleave', 'drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }));
+['dragenter', 'dragover'].forEach(evt =>
+  dropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('dragover');
+  })
+);
+['dragleave', 'drop'].forEach(evt =>
+  dropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('dragover');
+  })
+);
 dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
 
 themeToggleBtn.addEventListener('click', () => {
@@ -50,10 +65,6 @@ async function handleFiles(fileList) {
     return;
   }
 
-  files.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-  );
-
   status(`正在读取 ${files.length} 张图片…`);
   const bitmaps = [];
   let i = 0;
@@ -72,8 +83,14 @@ async function handleFiles(fileList) {
     return;
   }
 
+  // ✅ 新排序逻辑：先按高度，再按文件名
+  bitmaps.sort((a, b) => {
+    if (a.h !== b.h) return a.h - b.h;
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
   let layout = layoutSingleSheet(bitmaps, 1);
-  
+
   const MAX_TOTAL_HEIGHT = MAX_H; // 纵向最大高度
   let scale = 1;
   let isScaled = false;
@@ -109,7 +126,7 @@ async function handleFiles(fileList) {
   infoSpan.className = 'hint';
   infoSpan.style.marginTop = '8px';
   infoSpan.textContent = `生成图片尺寸：${canvas.width} × ${canvas.height} px`;
-  if(isScaled) {
+  if (isScaled) {
     infoSpan.textContent += ` (已缩放至 ${Math.round(scale * 100)}%)`;
   }
   out.appendChild(infoSpan);
@@ -117,7 +134,7 @@ async function handleFiles(fileList) {
   const btn = document.createElement('button');
   btn.textContent = '下载 JPG';
   btn.className = 'btn btn-primary';
-  btn.style.height ='5em'
+  btn.style.height = '5em';
   btn.style.marginTop = '16px';
   btn.onclick = () => downloadCanvas(canvas, files);
   out.appendChild(btn);
@@ -135,7 +152,9 @@ function loadBitmap(file) {
         width: img.naturalWidth,
         height: img.naturalHeight,
         name: file.name,
-        draw(ctx, x, y, w, h) { ctx.drawImage(img, x, y, w, h); }
+        draw(ctx, x, y, w, h) {
+          ctx.drawImage(img, x, y, w, h);
+        }
       });
     };
     img.onerror = reject;
@@ -143,25 +162,37 @@ function loadBitmap(file) {
   });
 }
 
-// 修复后的布局函数
+// ✅ 修改后的布局逻辑：当高度发生变化时自动换行
 function layoutSingleSheet(items, scale) {
   const positions = [];
   let x = MARGIN, y = MARGIN, rowH = 0, sheetW = 0;
+  let lastHeight = null; // 记录上一张图片的高度（缩放后）
+
   for (const it of items) {
     const w = Math.round(it.w * scale);
     const h = Math.round(it.h * scale);
-    // 如果是行首，x为MARGIN，否则为MARGIN+w+GAP
+
+    // 当高度变化时，强制换行
+    if (lastHeight !== null && h !== lastHeight) {
+      x = MARGIN;
+      y += rowH + GAP;
+      rowH = 0;
+    }
+
+    // 如果当前行放不下，也换行（防止超宽）
     if (x + w + MARGIN > MAX_W && x > MARGIN) {
       x = MARGIN;
       y += rowH + GAP;
       rowH = 0;
     }
-    
+
     positions.push({ item: it, x, y, w, h });
     x += w + GAP;
     rowH = Math.max(rowH, h + TEXT_HEIGHT);
     sheetW = Math.max(sheetW, x - GAP + MARGIN);
+    lastHeight = h;
   }
+
   const sheetH = y + rowH + MARGIN;
   return { width: sheetW, height: sheetH, positions };
 }
@@ -175,20 +206,17 @@ function renderSheet(layout) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   for (const p of layout.positions) {
-    // 绘制白色填充矩形作为背景
     ctx.fillStyle = document.body.classList.contains('theme-dark') ? '#303030' : '#fff';
     ctx.fillRect(p.x, p.y, p.w, p.h + TEXT_HEIGHT);
 
-    // 绘制文字
-    ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    ctx.font =
+      '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     ctx.textBaseline = 'top';
     ctx.fillStyle = document.body.classList.contains('theme-dark') ? '#fff' : '#000000e0';
-    ctx.fillText(p.item.name, p.x + 8, p.y + 3); // 边距
+    ctx.fillText(p.item.name, p.x + 8, p.y + 3);
 
-    // 绘制图片
     p.item.bitmap.draw(ctx, p.x, p.y + TEXT_HEIGHT, p.w, p.h);
 
-    // 绘制描边
     ctx.strokeStyle = document.body.classList.contains('theme-dark') ? '#434343' : '#f0f0f0';
     ctx.lineWidth = 1;
     ctx.strokeRect(p.x, p.y, p.w, p.h + TEXT_HEIGHT);
@@ -210,13 +238,17 @@ function renderPreview(canvas) {
 }
 
 function downloadCanvas(canvas, files) {
-  canvas.toBlob(blob => {
-    const a = document.createElement('a');
-    const firstName = files[0]?.name?.replace(/\.[^.]+$/,'') || 'output';
-    const fileName = `${firstName}_preview.jpg`;
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, 'image/jpeg', 0.9);
+  canvas.toBlob(
+    blob => {
+      const a = document.createElement('a');
+      const firstName = files[0]?.name?.replace(/\.[^.]+$/, '') || 'output';
+      const fileName = `${firstName}_preview.jpg`;
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+    'image/jpeg',
+    0.9
+  );
 }
