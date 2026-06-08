@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>一周行业资讯 · 2026.06.08</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#f5f6fa;color:#1e293b;font-family:'Noto Sans SC',sans-serif;scroll-behavior:smooth;overflow-x:hidden;}
+:root{
+  --blue:#1a73ff;--cyan:#0284c7;--red:#e74c3c;--gold:#d97706;--green:#16a34a;--purple:#7c3aed;--orange:#ea580c;
+  --muted:#64748b;--card:#ffffff;--card2:#f0f4f8;
+  --f0:.85rem;--f1:.95rem;--f2:1.05rem;--f3:1.18rem;--f4:1.45rem;--f5:clamp(1.6rem,2.8vw,2.2rem);
+}
+#pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--cyan));z-index:9999;transition:width .3s ease;width:0%;box-shadow:0 0 8px var(--cyan);}
+.slide{width:100%;min-height:100vh;padding:clamp(1rem,2.2vh,1.8rem) clamp(1.4rem,3vw,3rem);position:relative;overflow:hidden;display:flex;flex-direction:column;gap:clamp(.7rem,1.4vh,1.2rem);}
+.slide+.slide{border-top:1px solid rgba(0,0,0,.06);}
+.glow{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0;animation:glowPulse 4s ease-in-out infinite;}
+@keyframes glowPulse{0%,100%{opacity:0.25;}50%{opacity:0.5;}}
+.sc-inner{position:relative;z-index:1;display:flex;flex-direction:column;gap:clamp(.7rem,1.4vh,1.2rem);flex:1;}
+.nav{position:fixed;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;z-index:999;}
+.dot{width:4px;height:4px;border-radius:50%;background:rgba(0,0,0,.15);cursor:pointer;transition:.25s;}
+.dot.on{height:16px;border-radius:2px;background:var(--blue);box-shadow:0 0 8px var(--blue);}
+.cap{font-size:var(--f1);color:var(--cyan);letter-spacing:.08em;text-transform:uppercase;}
+.pg-title{font-family:'Noto Serif SC',serif;font-size:var(--f5);font-weight:700;color:#0f172a;line-height:1.2;}
+.sec{font-family:'Noto Serif SC',serif;font-size:var(--f3);font-weight:700;color:#d97706;}
+.body-t{font-size:var(--f2);color:var(--muted);line-height:1.75;}
+.bold{color:#1e293b;font-weight:600;}
+.sbar{display:flex;align-items:center;gap:8px;}
+.sbar-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,.1),transparent);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,20px);}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1.2vw,18px);}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(7px,1vw,16px);}
+.c{background:var(--card);border-radius:14px;padding:clamp(14px,1.8vw,22px);transition:transform .3s,box-shadow .3s;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.05);}
+.c::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--blue),var(--cyan));opacity:0;transition:opacity .3s;}
+.c:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 8px 28px rgba(0,0,0,.09);}
+.c:hover::before{opacity:1;}
+.c2{background:var(--card2);border-radius:10px;padding:clamp(6px,.9vw,10px);border:1px solid rgba(0,0,0,.06);}
+.ct{font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;margin-bottom:6px;line-height:1.5;}
+.cd{font-size:var(--f1);color:var(--muted);line-height:1.75;}
+.hl{border-left:3px solid var(--blue);padding:clamp(8px,1vh,14px) clamp(10px,1.2vw,16px);background:linear-gradient(90deg,rgba(26,115,255,.07),transparent);border-radius:0 10px 10px 0;transition:all .3s;}
+.hl:hover{background:linear-gradient(90deg,rgba(26,115,255,.12),transparent);transform:translateX(4px);}
+.hlt{font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:var(--cyan);margin-bottom:4px;line-height:1.5;}
+.hld{font-size:var(--f1);color:var(--muted);line-height:1.75;}
+.tag{display:inline-block;font-size:.82rem;padding:2px 9px;border-radius:20px;font-weight:600;transition:all .2s;}
+.tag:hover{transform:scale(1.05);}
+.dv{height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,.08),transparent);margin:3px 0;}
+.news-item{padding:12px 16px;border-radius:10px;background:var(--card);border:1px solid rgba(0,0,0,.06);transition:all .3s;cursor:default;}
+.news-item:hover{border-color:rgba(0,0,0,.12);transform:translateX(4px);box-shadow:0 3px 15px rgba(0,0,0,.07);}
+.news-title{font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;margin-bottom:6px;line-height:1.5;}
+.news-body{font-size:var(--f1);color:var(--muted);line-height:1.75;}
+.acc{background:#fff;border-radius:12px;border:1px solid rgba(0,0,0,.07);margin-bottom:10px;overflow:hidden;transition:all .3s;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.acc.open{border-color:rgba(26,115,255,.2);box-shadow:0 3px 15px rgba(26,115,255,.07);}
+.acc-h{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .2s;}
+.acc-h:hover{background:rgba(0,0,0,.02);}
+.acc-icon{font-size:.95rem;}
+.acc-arrow{margin-left:auto;color:rgba(0,0,0,.2);font-size:.85rem;transition:transform .3s,color .2s;}
+.acc.open .acc-arrow{transform:rotate(180deg);color:var(--cyan);}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .5s ease;}
+.acc-bi{padding:6px 18px 18px;}
+.acc-title{font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(15px);}to{opacity:1;transform:translateY(0);}}
+.fi{opacity:0;transform:translateY(15px);transition:opacity .6s,transform .6s;}
+.fi.vis{opacity:1;transform:translateY(0);}
+.stat-num{font-size:clamp(1.4rem,2.6vw,2.2rem);font-weight:700;line-height:1;font-family:'Noto Serif SC',serif;}
+.cat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.circle-deco{position:absolute;border-radius:50%;border:1px solid;opacity:.06;pointer-events:none;}
+.scroll-hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:var(--muted);font-size:12px;z-index:1000;animation:bounce 2s infinite;background:rgba(255,255,255,.9);padding:8px 18px;border-radius:20px;border:1px solid rgba(0,0,0,.08);box-shadow:0 2px 8px rgba(0,0,0,.06);}
+@keyframes bounce{0%,20%,50%,80%,100%{transform:translateX(-50%) translateY(0);}40%{transform:translateX(-50%) translateY(-8px);}60%{transform:translateX(-50%) translateY(-4px);}}
+.gradient-text{background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.gradient-gold{background:linear-gradient(90deg,var(--gold),#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.news-list{display:flex;flex-direction:column;gap:10px;}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;}
+.stat-pill{flex:1;min-width:110px;background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid rgba(0,0,0,.06);text-align:center;transition:all .3s;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.stat-pill:hover{transform:translateY(-3px);box-shadow:0 4px 15px rgba(0,0,0,.09);}
+.stat-pill-num{font-size:1.4rem;font-weight:700;font-family:'Noto Serif SC',serif;line-height:1.1;}
+.stat-pill-label{font-size:var(--f1);color:var(--muted);margin-top:2px;}
+@media(max-width:700px){.g3,.g4{grid-template-columns:1fr 1fr;}.g2{grid-template-columns:1fr;}.nav{display:none;}}
+</style>
+</head>
+<body>
+<div id="pbar"></div>
+<div class="nav" id="nav"></div>
+<div class="scroll-hint" id="scrollHint">↓ 滚动查看全部资讯 ↓</div>
+
+<!-- ══════ S1 封面 ══════ -->
+<div class="slide" id="s1" style="justify-content:center;min-height:100vh;">
+  <div class="glow" style="width:550px;height:550px;background:radial-gradient(circle,rgba(26,115,255,.1) 0%,transparent 70%);top:-160px;right:-80px;"></div>
+  <div class="glow" style="width:300px;height:300px;background:radial-gradient(circle,rgba(2,132,199,.08) 0%,transparent 70%);bottom:-50px;left:5vw;"></div>
+  <div class="circle-deco" style="width:480px;height:480px;top:-140px;right:-140px;border-color:rgba(2,132,199,1);"></div>
+  <div class="circle-deco" style="width:280px;height:280px;bottom:-70px;left:-70px;border-color:rgba(26,115,255,1);"></div>
+
+  <div class="sc-inner" style="justify-content:center;max-width:820px;">
+    <div class="cap fi">行业情报 · 每周资讯汇编 · 2026.06.08</div>
+    <div class="pg-title fi" style="transition-delay:.08s;font-size:clamp(2rem,4vw,3.2rem);">一周行业资讯<br><span class="gradient-text">Industry Weekly</span></div>
+    <div class="body-t fi" style="transition-delay:.14s;max-width:600px;">汇聚本周广告行业 · AI先进工具 · AI头条资讯 · AI硬产品 · 汽车行业五大板块核心动态</div>
+
+    <div class="stat-row fi" style="transition-delay:.2s;margin-top:8px;">
+      <div class="stat-pill" style="border-color:rgba(26,115,255,.18);">
+        <div class="stat-pill-num" style="color:var(--blue);">5</div>
+        <div class="stat-pill-label">行业板块</div>
+      </div>
+      <div class="stat-pill" style="border-color:rgba(2,132,199,.18);">
+        <div class="stat-pill-num" style="color:var(--cyan);">5</div>
+        <div class="stat-pill-label">广告资讯</div>
+      </div>
+      <div class="stat-pill" style="border-color:rgba(124,58,237,.18);">
+        <div class="stat-pill-num" style="color:var(--purple);">14</div>
+        <div class="stat-pill-label">AI工具</div>
+      </div>
+      <div class="stat-pill" style="border-color:rgba(217,119,6,.18);">
+        <div class="stat-pill-num" style="color:var(--gold);">13</div>
+        <div class="stat-pill-label">AI头条</div>
+      </div>
+      <div class="stat-pill" style="border-color:rgba(22,163,74,.18);">
+        <div class="stat-pill-num" style="color:var(--green);">9</div>
+        <div class="stat-pill-label">汽车资讯</div>
+      </div>
+    </div>
+
+    <div class="g3 fi" style="transition-delay:.28s;margin-top:6px;">
+      <div class="c" style="border-color:rgba(26,115,255,.15);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.08);color:var(--blue);">📢</div>
+          <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">广告行业</div>
+        </div>
+        <div class="cd">腾讯AI产业应用大会 · 社媒营销趋势报告 · 知乎盈利 · 百度数字人 · QQ漫剧 · B站AI赛</div>
+      </div>
+      <div class="c" style="border-color:rgba(124,58,237,.15);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.08);color:var(--purple);">🤖</div>
+          <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">AI先进工具</div>
+        </div>
+        <div class="cd">Claude Design · Figma · Canva · Adobe · Qwen3.7 · Codex · WorkBuddy企业版 · Meoo等14条</div>
+      </div>
+      <div class="c" style="border-color:rgba(2,132,199,.15);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.08);color:var(--cyan);">⚡</div>
+          <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">AI头条资讯</div>
+        </div>
+        <div class="cd">ChatGPT 10亿月活 · 微信A2A · 豆包收费 · 千问开放 · Cosmos3 · AI网页流量超人类等13条</div>
+      </div>
+    </div>
+    <div class="g2 fi" style="transition-delay:.34s;">
+      <div class="c" style="border-color:rgba(234,88,12,.15);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.08);color:var(--orange);">💡</div>
+          <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">AI硬产品</div>
+        </div>
+        <div class="cd">微星「龙虾电脑」全息AI助手 · 优世界全尺寸超仿生人形机器人</div>
+      </div>
+      <div class="c" style="border-color:rgba(22,163,74,.15);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.08);color:var(--green);">🚗</div>
+          <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">汽车行业</div>
+        </div>
+        <div class="cd">5月渗透率63% · 新势力+自主品牌成绩 · 合资承压 · 比亚迪机器人 · 东风OpenVAN · 红旗G919</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S2 广告行业 ══════ -->
+<div class="slide" id="s2">
+  <div class="glow" style="width:400px;height:400px;background:radial-gradient(circle,rgba(26,115,255,.08) 0%,transparent 70%);top:-100px;right:-60px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">广告行业</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">行业动态 <span class="gradient-gold">广告 &amp; 媒体</span></div>
+
+    <!-- 腾讯AI大会 -->
+    <div class="fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(26,115,255,.12);background:linear-gradient(135deg,rgba(26,115,255,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.08);color:var(--blue);margin-top:2px;">🏢</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
+              <div class="news-title" style="margin-bottom:0;">腾讯举办2026AI产业应用大会，发布"效率智能体工具集"</div>
+              <span class="tag" style="background:rgba(26,115,255,.08);color:var(--blue);border:1px solid rgba(26,115,255,.15);font-size:.72rem;">腾讯</span>
+            </div>
+            <div class="news-body">首次系统发布"效率智能体工具集"，面向个人、办公、企业三类需求，针对20多个垂直场景提供差异化智能体方案。个人端：QClaw首创微信直连模式，打通腾讯文档、会议、ima、QQ邮箱；职场端：推出"Buddy"家族；企业端：发布<span style="color:#1e293b;font-weight:600;">WorkBuddy企业版 + Agent Suite + ClawPro + ADP 4.0</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 社媒营销趋势报告 -->
+    <div class="fi" style="transition-delay:.13s;">
+      <div class="sec" style="margin-bottom:5px;">AI 重构下的社媒营销五大趋势</div>
+      <div class="g2">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="hl">
+            <div class="hlt">① 用户圈层粉尘化</div>
+            <div class="hld">小红书已沉淀7000+细分文化圈层，B站拥有2500+细分兴趣标签，人群标签正在彻底失效，圈与圈之间在审美、消费、身份、内容四个维度各自筑墙。</div>
+          </div>
+          <div class="hl">
+            <div class="hlt">② AI改变内容生产方式</div>
+            <div class="hld">KOL营销进入「真人信任营销+AI生产力」双引擎时代，内容生产进入RGC时代，从AI写内容到「消费意图实时生成内容」，内容从"作品"变成"反应"。</div>
+          </div>
+          <div class="hl">
+            <div class="hlt">③ 内容资产属性升级</div>
+            <div class="hld">社交内容同时承担「打动人」和「喂养AI」的双重使命。场景型、问题型、对比型、信任型内容最适合沉淀为AI语料。</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="hl">
+            <div class="hlt">④ 品牌竞争焦点迁移</div>
+            <div class="hld">从"会用AI工具"到"拥有可喂养AI的数据资产"。当AI工具走向平民化，全链闭环数据才是品牌真正拿不走的竞争壁垒。</div>
+          </div>
+          <div class="hl">
+            <div class="hlt">⑤ 营销方法论迭代升级</div>
+            <div class="hld">营销范式从「规模化投放」走向「风格化复刻+场景化融合」，未来方向是满足100万人的不同意图，生成100万个不同的回应。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 其他3条 -->
+    <div class="g3 fi" style="transition-delay:.18s;">
+      <div class="news-item">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.08);color:var(--cyan);font-size:1rem;">📊</div>
+          <div>
+            <div class="news-title">知乎一季度净利润同比增长147.2%</div>
+            <div class="news-body">Q1营收6.52亿元；付费内容&amp;IP运营收入4.02亿占比61.7%，环比增长15.8%；营销服务1.91亿占29.4%；经调整净利润1716万，同比+147.2%，环比扭亏。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.08);color:var(--orange);font-size:1rem;">🤖</div>
+          <div>
+            <div class="news-title">百度成立数字人创新业务部</div>
+            <div class="news-body">百度MEG（移动生态事业群组）进行新一轮组织调整：合并商业部与电商事业部，成立大商业事业部，<span style="color:#1e293b;font-weight:600;">数字人创新业务部升级为独立部门</span>。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.08);color:var(--purple);font-size:1rem;">🎬</div>
+          <div>
+            <div class="news-title">腾讯QQ计划推出"QQ漫剧"独立业务</div>
+            <div class="news-body">QQ计划建立独立漫剧播放入口。QQ月活5.08亿，18-35岁用户占比超半数，进一步加码年轻用户内容市场。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fi" style="transition-delay:.22s;">
+      <div class="news-item" style="border-color:rgba(22,163,74,.1);">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.08);color:var(--green);font-size:1rem;">🎮</div>
+          <div>
+            <div class="news-title">B站启动AI创造公开赛</div>
+            <div class="news-body">哔哩哔哩正式启动"build in bilibili · AI创造公开赛"，不设年龄、学历、职业与经验等参赛门槛，<span style="color:#1e293b;font-weight:600;">首次将评选权交给用户</span>——所有B站用户均可通过投币、弹幕等方式参与并选出认可的产品。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S3 AI先进工具·设计与创作 ══════ -->
+<div class="slide" id="s3">
+  <div class="glow" style="width:400px;height:400px;background:radial-gradient(circle,rgba(124,58,237,.07) 0%,transparent 70%);top:-80px;right:-60px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">AI先进工具 · 设计与创作</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">设计 &amp; 创作 <span style="color:var(--purple);">工具矩阵</span></div>
+
+    <div class="g2 fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(124,58,237,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.08);color:var(--purple);font-size:1.1rem;">✏️</div>
+          <div>
+            <div class="news-title">Claude Design 把原型生成推向应用层竞争</div>
+            <div class="news-body">Anthropic推出 Claude Design，可用提示词生成交互原型。<span style="color:#1e293b;font-weight:600;">直接挑战Figma、Canva等工作流入口</span>，把大模型从聊天工具带到设计应用层。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(124,58,237,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.07);color:#8b5cf6;font-size:1.1rem;">🎨</div>
+          <div>
+            <div class="news-title">Figma MCP 强化代码到画布闭环</div>
+            <div class="news-body">Code to Canvas 可把代码生成的UI捕获成设计内容。代理可在画布中创建frame、component、variable和auto layout，<span style="color:#1e293b;font-weight:600;">AI输出正在从截图转向可编辑、可维护的设计文件</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="g2 fi" style="transition-delay:.14s;">
+      <div class="news-item" style="border-color:rgba(234,88,12,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.07);color:var(--orange);font-size:1.1rem;">🖼️</div>
+          <div>
+            <div class="news-title">Canva AI 2.0 加码记忆和排程能力</div>
+            <div class="news-body">强调对话式设计、记忆、排程和分层智能，可生成品牌活动、社媒内容和可编辑素材，更接近<span style="color:#1e293b;font-weight:600;">内容生产工作台</span>。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(234,88,12,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.07);color:#f97316;font-size:1.1rem;">🎬</div>
+          <div>
+            <div class="news-title">Adobe Firefly AI Assistant 聚焦跨应用执行</div>
+            <div class="news-body">已进入公开测试，可用对话方式处理裁切、变体和多步骤创意任务，目标是把<span style="color:#1e293b;font-weight:600;">Photoshop、Premiere等流程串起来</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 四厂商竞争格局小结 -->
+    <div class="c2 fi" style="transition-delay:.18s;">
+      <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:var(--purple);margin-bottom:6px;">设计AI四大力量格局速览</div>
+      <div class="g4">
+        <div style="text-align:center;padding:6px 4px;">
+          <div style="font-size:1.4rem;margin-bottom:3px;">🧠</div>
+          <div style="font-weight:700;font-size:var(--f1);color:#0f172a;">Claude Design</div>
+          <div style="font-size:.82rem;color:var(--muted);">提示词→原型</div>
+        </div>
+        <div style="text-align:center;padding:6px 4px;">
+          <div style="font-size:1.4rem;margin-bottom:3px;">🔗</div>
+          <div style="font-weight:700;font-size:var(--f1);color:#0f172a;">Figma MCP</div>
+          <div style="font-size:.82rem;color:var(--muted);">代码→可编辑设计</div>
+        </div>
+        <div style="text-align:center;padding:6px 4px;">
+          <div style="font-size:1.4rem;margin-bottom:3px;">📱</div>
+          <div style="font-weight:700;font-size:var(--f1);color:#0f172a;">Canva AI 2.0</div>
+          <div style="font-size:.82rem;color:var(--muted);">品牌内容工作台</div>
+        </div>
+        <div style="text-align:center;padding:6px 4px;">
+          <div style="font-size:1.4rem;margin-bottom:3px;">⚡</div>
+          <div style="font-weight:700;font-size:var(--f1);color:#0f172a;">Adobe Firefly</div>
+          <div style="font-size:.82rem;color:var(--muted);">跨应用工作流</div>
+        </div>
+      </div>
+      <div class="hld" style="margin-top:6px;">四者共同将设计AI竞争的核心战场定义为：<span style="color:#1e293b;font-weight:600;">从"生成图片"到"生成可工作的设计资产"</span>。</div>
+    </div>
+
+    <!-- 图片/视频生成新品 -->
+    <div class="g2 fi" style="transition-delay:.22s;">
+      <div class="news-item" style="border-color:rgba(2,132,199,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.07);color:var(--cyan);font-size:1.1rem;">🖼️</div>
+          <div>
+            <div class="news-title">Ideogram 发布 9.3B 开源权重图像模型</div>
+            <div class="news-body">Ideogram 4.0，重点面向文字渲染、版式设计和可控图像生成，<span style="color:#1e293b;font-weight:600;">开源模型排名第一</span>，优于FLUX.2[dev]和Nano Banana 2。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(2,132,199,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.07);color:#0369a1;font-size:1.1rem;">🎥</div>
+          <div>
+            <div class="news-title">xAI 开放图转视频预览模型</div>
+            <div class="news-body">grok-imagine-video-1.5-preview，可将静态图片扩展为带镜头运动和物理效果的视频片段，最高支持720p，支持多镜头序列串联。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="news-item fi" style="transition-delay:.25s;border-color:rgba(2,132,199,.08);">
+      <div style="display:flex;align-items:flex-start;gap:9px;">
+        <div class="cat-icon" style="background:rgba(2,132,199,.06);color:var(--cyan);font-size:1.1rem;">🎙️</div>
+        <div>
+          <div class="news-title">Miso Labs 开源 8B 语音模型 MisoTTS</div>
+          <div class="news-body">80亿参数，面向情感表达更自然、响应延迟更低的语音代理场景。使用残差矢量量化架构，<span style="color:#1e293b;font-weight:600;">每个音频token表示为32个codebook索引</span>，支持提示式声音生成。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S4 AI先进工具·智能体与模型 ══════ -->
+<div class="slide" id="s4">
+  <div class="glow" style="width:380px;height:380px;background:radial-gradient(circle,rgba(2,132,199,.08) 0%,transparent 70%);bottom:-80px;left:-40px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">AI先进工具 · 智能体 &amp; 模型</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">Agent &amp; 模型 <span style="color:var(--cyan);">新动向</span></div>
+
+    <div class="news-list fi" style="transition-delay:.1s;">
+      <!-- Qwen3.7 -->
+      <div class="news-item" style="border-color:rgba(26,115,255,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.07);color:var(--blue);">🌐</div>
+          <div>
+            <div class="news-title">阿里发布多模态智能体模型 Qwen3.7-Plus</div>
+            <div class="news-body">统一视觉与语言能力的智能体基座，在 Vision Arena 中<span style="color:#1e293b;font-weight:600;">跻身全球前五、中国第一</span>。多模态、GUI智能体、视频理解全面提升。</div>
+          </div>
+        </div>
+      </div>
+      <!-- 扣子3.0 -->
+      <div class="news-item" style="border-color:rgba(26,115,255,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.07);color:var(--blue);">🤝</div>
+          <div>
+            <div class="news-title">扣子 3.0 上线，多端组建 Agent 团队</div>
+            <div class="news-body">单个Agent对话扩展为<span style="color:#1e293b;font-weight:600;">项目空间</span>，支持多端协作，本地Claude Code、Codex CLI等Agent可接入，云端Agent面向长期在线协作场景。</div>
+          </div>
+        </div>
+      </div>
+      <!-- Kimi Work -->
+      <div class="news-item" style="border-color:rgba(2,132,199,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.07);color:var(--cyan);">💼</div>
+          <div>
+            <div class="news-title">Kimi 发布桌面端产品 Kimi Work，定位通用本地 Agent</div>
+            <div class="news-body">面向知识工作者，支持<span style="color:#1e293b;font-weight:600;">13小时连续编码、300个子Agent并行、4000余次自主工具调用</span>，深度参与开发文档、表格、PPT等产物交付。</div>
+          </div>
+        </div>
+      </div>
+      <!-- Codex -->
+      <div class="news-item" style="border-color:rgba(124,58,237,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.07);color:var(--purple);">⚡</div>
+          <div>
+            <div class="news-title">OpenAI 扩展 Codex 生态：插件覆盖投行、数据分析等 6 大方向</div>
+            <div class="news-body">上线<span style="color:#1e293b;font-weight:600;">6款角色专属插件</span>，集成62款应用、110项技能，覆盖数据分析、创意生产、销售、产品设计、股权投资及投行等方向；新增Sites（可分享交互页）和标注功能（扩展至文档/表格/幻灯片）。</div>
+          </div>
+        </div>
+      </div>
+      <!-- ChatGPT记忆 -->
+      <div class="news-item" style="border-color:rgba(22,163,74,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.07);color:var(--green);">🧠</div>
+          <div>
+            <div class="news-title">ChatGPT 推出全新记忆系统「做梦」Dreaming</div>
+            <div class="news-body">引入后台持续运行的自动化流程，<span style="color:#1e293b;font-weight:600;">跨多轮对话综合提炼用户信息</span>，随时间推移主动更新记忆状态，过期信息自动更新。</div>
+          </div>
+        </div>
+      </div>
+      <!-- WorkBuddy企业版 -->
+      <div class="news-item" style="border-color:rgba(26,115,255,.12);background:linear-gradient(135deg,rgba(26,115,255,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.1);color:var(--blue);">🏭</div>
+          <div>
+            <div class="news-title">腾讯云发布 WorkBuddy 企业版及 Agent Suite</div>
+            <div class="news-body">行业内首套"AI原生组织进化解决方案"，提供<span style="color:#1e293b;font-weight:600;">7×24专家数字员工 · 人与AI协作"团队"模式 · 企业级管理后台ClawPro + 智能体开发平台ADP 4.0</span>三大核心能力。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 其他工具 -->
+    <div class="g3 fi" style="transition-delay:.2s;">
+      <div class="news-item">
+        <div class="news-title" style="font-size:.95rem;">新浪「啪叽 Paji」AI写实相机</div>
+        <div class="news-body">自研AI肤质识别模型，区分油/干/敏感肌，定点处理痘痘色斑，保留毛孔颗粒感，主打<span style="color:#1e293b;font-weight:600;">写实人像直出</span>。</div>
+      </div>
+      <div class="news-item">
+        <div class="news-title" style="font-size:.95rem;">阿里开源 Open Code Review</div>
+        <div class="news-body">读取Git Diff，通过工具调用智能体生成行级结构化审查意见。设计理念：<span style="color:#1e293b;font-weight:600;">确定性工程 + 智能体混合驱动</span>。</div>
+      </div>
+      <div class="news-item">
+        <div class="news-title" style="font-size:.95rem;">阿里 Meoo 支持对话生成微信小程序</div>
+        <div class="news-body">已打通<span style="color:#1e293b;font-weight:600;">小程序创建→审核→发布全链路</span>，无需精通代码，一句话开发可上线小程序。</div>
+      </div>
+    </div>
+    <div class="g2 fi" style="transition-delay:.24s;">
+      <div class="news-item">
+        <div class="news-title" style="font-size:.95rem;">京东开源 JoyAI-Echo 长音视频生成框架</div>
+        <div class="news-body">引入"导演助理"Director Agent，内置记忆库，多镜头生成中持续保存角色外观与音色信息，代码与权重已全部开源。</div>
+      </div>
+      <div class="news-item">
+        <div class="news-title" style="font-size:.95rem;">千问Agent落地：帮点肯德基疯狂星期四</div>
+        <div class="news-body">用户可对千问说「帮我点附近肯德基的疯狂星期四」，千问自动找门店、匹配套餐，<span style="color:#1e293b;font-weight:600;">自动使用大神卡和优惠券</span>，并展示步行导航。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S5 AI头条·里程碑与格局 ══════ -->
+<div class="slide" id="s5">
+  <div class="glow" style="width:450px;height:450px;background:radial-gradient(circle,rgba(2,132,199,.08) 0%,transparent 70%);top:-100px;right:-80px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">AI头条资讯 · 里程碑 &amp; 格局</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">大事件 <span class="gradient-text">里程碑</span></div>
+
+    <!-- ChatGPT 10亿 -->
+    <div class="fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(2,132,199,.15);background:linear-gradient(135deg,rgba(14,165,233,.05),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.1);color:var(--cyan);font-size:1.3rem;">🏆</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
+              <div class="news-title" style="margin-bottom:0;">ChatGPT 成为全球最快月活超过 10 亿用户的应用</div>
+              <span class="tag" style="background:rgba(2,132,199,.1);color:var(--cyan);border:1px solid rgba(2,132,199,.2);font-size:.7rem;">里程碑</span>
+            </div>
+            <div class="g2" style="gap:8px;margin-top:4px;">
+              <div class="c2" style="padding:8px 10px;">
+                <div style="font-size:1.8rem;font-weight:700;color:var(--blue);font-family:'Noto Serif SC',serif;">10亿</div>
+                <div style="font-size:.85rem;color:var(--muted);">全球月活用户 · 上线约3年</div>
+              </div>
+              <div class="c2" style="padding:8px 10px;">
+                <div style="font-size:1.8rem;font-weight:700;color:var(--purple);font-family:'Noto Serif SC',serif;">640%</div>
+                <div style="font-size:.85rem;color:var(--muted);">Claude同比增幅（ChatGPT同期约62%）</div>
+              </div>
+            </div>
+            <div class="news-body" style="margin-top:6px;">超越Google地图、Instagram和YouTube等产品的增长速度。Claude全球月活5600万，绝对规模差距仍明显，但增速远超ChatGPT。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.15s;">
+      <div class="news-item" style="border-color:rgba(22,163,74,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.07);color:var(--green);">💬</div>
+          <div>
+            <div class="news-title">微信正与手机厂商合作推出 A2A 助手能力</div>
+            <div class="news-body">微信正与华为、荣耀、小米、OPPO、vivo合作推出<span style="color:#1e293b;font-weight:600;">A2A（Agent-to-Agent）助手能力</span>，可通过手机语音助理发起微信音视频通话，荣耀部分机型已支持，YOYO智能体可直接语音下达指令。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(217,119,6,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(217,119,6,.07);color:var(--gold);">💰</div>
+          <div>
+            <div class="news-title">豆包宣布计划推出专业版，基础功能免费</div>
+            <div class="news-body">豆包专业版将包含软件开发、数据分析、专业设计、流程自动化、金融分析等专业服务。搜索问答、写作生图、语音视频对话等<span style="color:#1e293b;font-weight:600;">将保持免费</span>，专业版也将在一定额度内免费。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.18s;">
+      <div class="news-item" style="border-color:rgba(26,115,255,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.07);color:var(--blue);">🏪</div>
+          <div>
+            <div class="news-title">千问宣布全面开放，肯德基瑞幸等首批接入</div>
+            <div class="news-body">企业可在千问中运营自己的品牌Agent，首批测试：瑞幸、肯德基、蜜雪冰城、东方航空。东航Agent可推荐出行方案；瑞幸Agent可提醒提前点单。千问从<span style="color:#1e293b;font-weight:600;">通用聊天入口升级为品牌服务入口</span>。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(124,58,237,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.07);color:var(--purple);">🤖</div>
+          <div>
+            <div class="news-title">OpenAI 官宣造机器人，Robotics 部门招聘扩大</div>
+            <div class="news-body">OpenAI Robotics 正在招聘全栈硬件、运营、系统和机器学习工程师，目标是帮助团队「<span style="color:#1e293b;font-weight:600;">编程并制造对社会有用的机器人</span>」。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.21s;">
+      <div class="news-item" style="border-color:rgba(22,163,74,.12);background:linear-gradient(135deg,rgba(34,197,94,.03),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.08);color:var(--green);">🌐</div>
+          <div>
+            <div class="news-title">英伟达推出全球首款完全开放的全模态物理AI模型 Cosmos 3</div>
+            <div class="news-body">全新混合Transformer架构，打通<span style="color:#1e293b;font-weight:600;">视觉推理、世界生成、动作预测</span>三大核心能力。同步成立Cosmos Coalition全球协作联盟。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(2,132,199,.08);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.07);color:var(--cyan);">🌐</div>
+          <div>
+            <div class="news-title">AI网页流量首次超过人类流量</div>
+            <div class="news-body">Cloudflare Radar数据：过去7天内，全球HTML网页请求中Bot请求占<span style="color:#1e293b;font-weight:600;">57.3%</span>，Human请求占42.7%。自动化程序发起的HTML请求已超过真人用户。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S6 AI头条·产业与趋势 ══════ -->
+<div class="slide" id="s6">
+  <div class="glow" style="width:350px;height:350px;background:radial-gradient(circle,rgba(217,119,6,.06) 0%,transparent 70%);bottom:-60px;right:-40px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">AI头条资讯 · 产业 &amp; 趋势</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">产业洞察 <span class="gradient-gold">深度趋势</span></div>
+
+    <div class="g2 fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(26,115,255,.08);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.06);color:var(--blue);">📋</div>
+          <div>
+            <div class="news-title">中国信通院将启动高质量 Token 服务能力计划</div>
+            <div class="news-body">6月16日北京召开「高质量 Token 服务研讨会」，成立特别研究组，启动<span style="color:#1e293b;font-weight:600;">「高质量 Token 服务能力攀登计划」</span>，推动模型服务产业规范化建设。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(26,115,255,.08);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.06);color:var(--blue);">⚙️</div>
+          <div>
+            <div class="news-title">Codex 将并入 ChatGPT，从 Chatbot 进化为 Agent</div>
+            <div class="news-body">OpenAI宣布未来数周内把 Codex 整合进 ChatGPT。合并意味着 Codex 已从面向开发者的编程工具，演变为<span style="color:#1e293b;font-weight:600;">覆盖全体知识工作者的通用生产力平台</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 能源报告 -->
+    <div class="fi" style="transition-delay:.14s;">
+      <div class="news-item" style="border-color:rgba(234,88,12,.1);">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.07);color:var(--orange);font-size:1.2rem;">⚡</div>
+          <div style="flex:1;">
+            <div class="news-title">联合国大学报告：AI 扩张正在推高能源、水资源压力</div>
+            <div class="g3" style="gap:8px;margin-top:5px;margin-bottom:6px;">
+              <div class="c2" style="padding:7px 10px;text-align:center;">
+                <div style="font-size:1.3rem;font-weight:700;color:var(--red);font-family:'Noto Serif SC',serif;">448<span style="font-size:.8rem;font-weight:400;">太瓦时</span></div>
+                <div style="font-size:.82rem;color:var(--muted);">2025年数据中心耗电</div>
+              </div>
+              <div class="c2" style="padding:7px 10px;text-align:center;">
+                <div style="font-size:1.3rem;font-weight:700;color:var(--orange);font-family:'Noto Serif SC',serif;">945<span style="font-size:.8rem;font-weight:400;">太瓦时</span></div>
+                <div style="font-size:.82rem;color:var(--muted);">2030年预计需求</div>
+              </div>
+              <div class="c2" style="padding:7px 10px;text-align:center;">
+                <div style="font-size:1.3rem;font-weight:700;color:var(--gold);font-family:'Noto Serif SC',serif;">80-90%</div>
+                <div style="font-size:.82rem;color:var(--muted);">推理占AI总能耗</div>
+              </div>
+            </div>
+            <div class="news-body">生成一张AI图像的能耗约为基础文本分类的<span style="color:#1e293b;font-weight:600;">1450倍</span>，生成短视频相当于20万次垃圾邮件分类。到2030年全球数据中心相关用水量将达9.3万亿升。</div>
+            <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">
+              <span class="tag" style="background:rgba(26,115,255,.07);color:var(--blue);border:1px solid rgba(26,115,255,.12);font-size:.72rem;">推理占总能耗80-90%</span>
+              <span class="tag" style="background:rgba(234,88,12,.07);color:var(--orange);border:1px solid rgba(234,88,12,.12);font-size:.72rem;">90%算力集中美中两国</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.18s;">
+      <!-- 字节战略 -->
+      <div class="news-item" style="border-color:rgba(217,119,6,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(217,119,6,.07);color:var(--gold);">🎯</div>
+          <div>
+            <div class="news-title">字节 AI 今年押注世界模型、Coding 和豆包商业化</div>
+            <div class="news-body">四大命题：世界模型（对标Google Genie 3）、视频模型领先、补强Coding数据工程，以及推动<span style="color:#1e293b;font-weight:600;">豆包商业化</span>（6月下旬上线付费，PPT生成为切入点，海外版Dola目标3000万DAU）。</div>
+          </div>
+        </div>
+      </div>
+      <!-- 算力降价 -->
+      <div class="news-item" style="border-color:rgba(22,163,74,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.07);color:var(--green);">📉</div>
+          <div>
+            <div class="news-title">多家供给方下调算力价格，最高降幅接近99%</div>
+            <div class="news-body">随着全国算力基建规模化，DeepSeek与小米MiMo降价尤为显著，最高降幅接近<span style="color:#1e293b;font-weight:600;">99%</span>，让AI应用告别高门槛高成本的制约。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.22s;">
+      <!-- 工信部6G -->
+      <div class="news-item" style="border-color:rgba(2,132,199,.08);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.06);color:var(--cyan);">📡</div>
+          <div>
+            <div class="news-title">工信部：到2029年形成一批自主创新的6G技术方案</div>
+            <div class="news-body">将组织开展6G创新发展部省协同试点专项行动，到2029年<span style="color:#1e293b;font-weight:600;">形成自主创新6G技术方案，培育新型业务应用场景</span>，为6G商用落地提供支撑。</div>
+          </div>
+        </div>
+      </div>
+      <!-- 百度FluxA -->
+      <div class="news-item" style="border-color:rgba(26,115,255,.08);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.06);color:var(--blue);">🔗</div>
+          <div>
+            <div class="news-title">百度智能云与FluxA达成战略合作</div>
+            <div class="news-body">国内OPC（一人公司）可在百度云市场将AI技能封装为商品，经FluxA平台向海外数万个Agent分销，<span style="color:#1e293b;font-weight:600;">跨境结算全程无需人工介入</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="news-item fi" style="transition-delay:.25s;border-color:rgba(2,132,199,.08);">
+      <div style="display:flex;align-items:flex-start;gap:9px;">
+        <div class="cat-icon" style="background:rgba(2,132,199,.06);color:var(--cyan);">🤖</div>
+        <div>
+          <div class="news-title">小米机器人或将亮相小米17T发布会</div>
+          <div class="news-body">视频中出现了小米机器人的手臂，与发布会主讲人TJ一起碰拳加油，疑似<span style="color:#1e293b;font-weight:600;">小米机器人将在发布会中亮相</span>。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S7 AI硬产品 ══════ -->
+<div class="slide" id="s7">
+  <div class="glow" style="width:360px;height:360px;background:radial-gradient(circle,rgba(234,88,12,.06) 0%,transparent 70%);top:-80px;right:-50px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">AI硬产品</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">硬件 &amp; 机器人 <span style="color:var(--orange);">具身智能</span></div>
+
+    <div class="g2 fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(234,88,12,.15);background:linear-gradient(135deg,rgba(234,88,12,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(234,88,12,.1);color:var(--orange);font-size:1.3rem;">🦞</div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
+              <div class="news-title" style="margin-bottom:0;">微星推出「真 · 龙虾电脑」MEG Vision X2 AI+</div>
+              <span class="tag" style="background:rgba(234,88,12,.1);color:var(--orange);border:1px solid rgba(234,88,12,.18);font-size:.7rem;">全息AI</span>
+            </div>
+            <div class="news-body" style="margin-bottom:8px;">机箱前面板集成圆柱形「AI Holostage」，内置专属全息AI助手LuckyClaw，用户通过语音指令可在数秒内自动化完成<span style="color:#1e293b;font-weight:600;">PC性能模式切换、RGB灯光系统调整及系统级设定</span>。</div>
+            <div class="hld">标志着AI应用跨越文本对话与图像生成，正式进入<span style="color:#1e293b;font-weight:600;">实时系统级硬件辅助管控阶段</span>。</div>
+          </div>
+        </div>
+      </div>
+      <div class="news-item" style="border-color:rgba(124,58,237,.12);background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(124,58,237,.1);color:var(--purple);font-size:1.3rem;">🤖</div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
+              <div class="news-title" style="margin-bottom:0;">优世界官宣全球首款全尺寸超仿生人形机器人</div>
+              <span class="tag" style="background:rgba(124,58,237,.1);color:var(--purple);border:1px solid rgba(124,58,237,.18);font-size:.7rem;">6/30上市</span>
+            </div>
+            <div class="news-body" style="margin-bottom:6px;">全球首款全尺寸超仿生人形机器人，提供男女双款，<span style="color:#1e293b;font-weight:600;">6月30日正式上市</span>。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="c2 fi" style="transition-delay:.18s;">
+      <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:var(--orange);margin-bottom:6px;">AI具身化趋势小结</div>
+      <div class="hld">游戏主机级的AI助手和家用人形机器人，共同描绘出<span style="color:#1e293b;font-weight:600;">AI具身化</span>的下一阶段——AI不再只是屏幕上的对话框，而是真实存在于物理空间中的交互实体。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S8 汽车·5月市场 ══════ -->
+<div class="slide" id="s8">
+  <div class="glow" style="width:380px;height:380px;background:radial-gradient(circle,rgba(22,163,74,.06) 0%,transparent 70%);top:-80px;left:-40px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">汽车行业 · 5月市场</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">5月新能源 <span style="color:var(--green);">渗透率63%</span></div>
+
+    <div class="g4 fi" style="transition-delay:.1s;">
+      <div class="c" style="border:1px solid rgba(22,163,74,.15);text-align:center;">
+        <div class="stat-num" style="color:var(--green);">63%</div>
+        <div style="font-size:var(--f1);color:#1e293b;font-weight:600;margin:3px 0;">新能源渗透率</div>
+        <div style="font-size:.82rem;color:var(--muted);">连续两月突破60%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(2,132,199,.15);text-align:center;">
+        <div class="stat-num" style="color:var(--cyan);">154.5万</div>
+        <div style="font-size:var(--f1);color:#1e293b;font-weight:600;margin:3px 0;">乘用车零售</div>
+        <div style="font-size:.82rem;color:var(--muted);">同比↓20% 环比↑12%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(26,115,255,.15);text-align:center;">
+        <div class="stat-num" style="color:var(--blue);">97.4万</div>
+        <div style="font-size:var(--f1);color:#1e293b;font-weight:600;margin:3px 0;">新能源零售</div>
+        <div style="font-size:.82rem;color:var(--muted);">同比↓5%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(217,119,6,.15);text-align:center;">
+        <div class="stat-num" style="color:var(--gold);">136.5万</div>
+        <div style="font-size:var(--f1);color:#1e293b;font-weight:600;margin:3px 0;">新能源批发</div>
+        <div style="font-size:.82rem;color:var(--muted);">同比↑12%</div>
+      </div>
+    </div>
+
+    <div class="sec fi" style="transition-delay:.15s;">三大驱动因素</div>
+    <div class="g3 fi" style="transition-delay:.18s;">
+      <div class="c2">
+        <div style="font-size:1.5rem;text-align:center;margin-bottom:5px;">⛽</div>
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;text-align:center;margin-bottom:4px;">油价高位倒逼切换</div>
+        <div class="cd">油价高位运行叠加车企优化排产，推动5月新能源批售环比涨幅升至7%。</div>
+      </div>
+      <div class="c2">
+        <div style="font-size:1.5rem;text-align:center;margin-bottom:5px;">📅</div>
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;text-align:center;margin-bottom:4px;">5月工作日充足</div>
+        <div class="cd">端午假期落在6月，5月整车生产工作日充足，保障车企产能释放。</div>
+      </div>
+      <div class="c2">
+        <div style="font-size:1.5rem;text-align:center;margin-bottom:5px;">🌍</div>
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;text-align:center;margin-bottom:4px;">海外新能源需求爆发</div>
+        <div class="cd">国际高油价带动海外购车需求，自主品牌新能源车凭借低能耗和性价比，出口规模稳步扩容。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S9 汽车·新势力成绩 ══════ -->
+<div class="slide" id="s9">
+  <div class="glow" style="width:380px;height:380px;background:radial-gradient(circle,rgba(26,115,255,.07) 0%,transparent 70%);bottom:-80px;left:-50px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">汽车行业 · 5月车企成绩</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">新势力 <span style="color:var(--blue);">交付榜</span></div>
+
+    <div class="g3 fi" style="transition-delay:.1s;">
+      <div class="c" style="border:1px solid rgba(22,163,74,.15);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">零跑汽车</div>
+        <div class="stat-num" style="color:var(--green);margin:3px 0;">81,569台</div>
+        <div class="cd">同比增长<span style="color:var(--green);font-weight:600;">81%</span> · 新势力交付榜首</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(2,132,199,.15);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">蔚来</div>
+        <div class="stat-num" style="color:var(--cyan);margin:3px 0;">37,705台</div>
+        <div class="cd">
+          <span class="tag" style="background:rgba(2,132,199,.08);color:var(--cyan);border:1px solid rgba(2,132,199,.15);font-size:.7rem;">同比↑62.3%</span>
+          <span class="tag" style="background:rgba(2,132,199,.06);color:#0369a1;border:1px solid rgba(2,132,199,.1);font-size:.7rem;">环比↑28.4%</span>
+        </div>
+      </div>
+      <div class="c" style="border:1px solid rgba(124,58,237,.12);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">鸿蒙智行</div>
+        <div class="stat-num" style="color:var(--purple);margin:3px 0;">46,122台</div>
+        <div class="cd">
+          <span class="tag" style="background:rgba(124,58,237,.08);color:var(--purple);border:1px solid rgba(124,58,237,.15);font-size:.7rem;">环比↑41%</span>
+        </div>
+      </div>
+      <div class="c">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">小米汽车</div>
+        <div class="stat-num" style="color:var(--orange);margin:3px 0;">3万+台</div>
+        <div class="cd">交付量再超3万台</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(234,88,12,.1);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">理想汽车</div>
+        <div class="stat-num" style="color:var(--orange);margin:3px 0;">33,350台</div>
+        <div class="cd">同比↓18.37% 环比↓2.16%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(2,132,199,.1);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">小鹏汽车</div>
+        <div class="stat-num" style="color:var(--cyan);margin:3px 0;">32,158台</div>
+        <div class="cd">环比↑4% · 连续5个月同比负增长</div>
+      </div>
+    </div>
+
+    <div class="sec fi" style="transition-delay:.2s;">自主品牌</div>
+    <div class="g4 fi" style="transition-delay:.22s;">
+      <div class="c" style="border:1px solid rgba(22,163,74,.15);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">比亚迪</div>
+        <div class="stat-num" style="color:var(--green);font-size:1.5rem;margin:3px 0;">383,453台</div>
+        <div class="cd">同比+0.26%
+          <span class="tag" style="background:rgba(2,132,199,.08);color:var(--cyan);border:1px solid rgba(2,132,199,.12);font-size:.7rem;">出口16万辆</span>
+        </div>
+      </div>
+      <div class="c" style="border:1px solid rgba(26,115,255,.12);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">吉利汽车</div>
+        <div class="stat-num" style="color:var(--blue);font-size:1.5rem;margin:3px 0;">237,637台</div>
+        <div class="cd">极氪5月34,377台 同比+81.8%<br>领克2.07万辆 同比↓25%</div>
+      </div>
+      <div class="c">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">奇瑞集团</div>
+        <div class="stat-num" style="color:var(--orange);font-size:1.5rem;margin:3px 0;">247,823台</div>
+        <div class="cd">同比+20.5% · 出口18.2万辆 同比+80.5%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(124,58,237,.1);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">长城汽车</div>
+        <div class="stat-num" style="color:var(--purple);font-size:1.5rem;margin:3px 0;">100,399台</div>
+        <div class="cd">同比↓1.79% 
+          <span class="tag" style="background:rgba(26,115,255,.07);color:var(--blue);border:1px solid rgba(26,115,255,.12);font-size:.7rem;">海外5.07万辆</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 合资承压 -->
+    <div class="sec fi" style="transition-delay:.28s;">合资品牌承压</div>
+    <div class="g2 fi" style="transition-delay:.3s;">
+      <div class="c" style="border:1px solid rgba(231,76,60,.12);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">本田中国</div>
+        <div class="stat-num" style="color:var(--red);font-size:1.5rem;margin:3px 0;">28,279台</div>
+        <div class="cd">同比↓<span style="color:var(--red);font-weight:700;">48.68%</span> · 连续两月接近腰斩 · 1-5月累计↓32.47%</div>
+      </div>
+      <div class="c" style="border:1px solid rgba(231,76,60,.1);">
+        <div style="font-family:'Noto Serif SC',serif;font-size:var(--f2);font-weight:700;color:#0f172a;">丰田中国</div>
+        <div class="stat-num" style="color:var(--red);font-size:1.5rem;margin:3px 0;">102,300台</div>
+        <div class="cd">同比↓<span style="color:var(--red);font-weight:700;">31.7%</span> · 连续4月低于上年同期 · 但新能源占比升至约7成，纯电↑2倍多</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ S10 汽车·行业动态 ══════ -->
+<div class="slide" id="s10">
+  <div class="glow" style="width:380px;height:380px;background:radial-gradient(circle,rgba(124,58,237,.06) 0%,transparent 70%);top:-60px;right:-60px;"></div>
+  <div class="sc-inner">
+    <div class="cap fi">汽车行业 · 行业动态</div>
+    <div class="pg-title fi" style="transition-delay:.05s;font-size:var(--f4);">车企动向 <span style="color:var(--purple);">战略布局</span></div>
+
+    <!-- 比亚迪机器人 -->
+    <div class="fi" style="transition-delay:.1s;">
+      <div class="news-item" style="border-color:rgba(22,163,74,.12);background:linear-gradient(135deg,rgba(34,197,94,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(22,163,74,.08);color:var(--green);font-size:1.2rem;">🤖</div>
+          <div>
+            <div class="news-title">比亚迪入局人形机器人</div>
+            <div class="news-body">执行副总裁李柯明确表示比亚迪也在开发人形机器人。「<span style="color:#1e293b;font-weight:600;">汽车相关AI能力与机器人有同源性</span>」，可通过经销商网络售卖，可以是开放平台支持合作方接入。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2 fi" style="transition-delay:.14s;">
+      <!-- 东风OpenVAN -->
+      <div class="news-item" style="border-color:rgba(26,115,255,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(26,115,255,.07);color:var(--blue);">🚐</div>
+          <div>
+            <div class="news-title">东风发布无人物流车品牌 OpenVAN</div>
+            <div class="news-body">东风汽车发布「东风 OpenVAN」，亮相四款全场景无人物流车。使用大模型智驾方案「九识智驾 Zelos Inside」，官方称已有<span style="color:#1e293b;font-weight:600;">1.3亿公里真实路况验证</span>。刹车、转向和供电均配备双套系统，支持5G线上看管多台车辆。</div>
+          </div>
+        </div>
+      </div>
+      <!-- 红旗G919 -->
+      <div class="news-item" style="border-color:rgba(231,76,60,.1);">
+        <div style="display:flex;align-items:flex-start;gap:9px;">
+          <div class="cat-icon" style="background:rgba(231,76,60,.07);color:var(--red);">🏴</div>
+          <div>
+            <div class="news-title">红旗首款硬派越野命名"红旗G919"</div>
+            <div class="news-body">「G」承"国车"脊梁、「9」铸旗舰定位、「1」流产品性能、「9」寓全维服务，以<span style="color:#1e293b;font-weight:600;">国脊造越野、以初心赴久途</span>为品牌主张。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宁德换电 -->
+    <div class="fi" style="transition-delay:.18s;">
+      <div class="news-item" style="border-color:rgba(2,132,199,.12);background:linear-gradient(135deg,rgba(14,165,233,.04),rgba(255,255,255,1));">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div class="cat-icon" style="background:rgba(2,132,199,.08);color:var(--cyan);">⚡</div>
+          <div>
+            <div class="news-title">宁德时代巧克力换电累计落站 1650 座</div>
+            <div class="news-body">覆盖127城，半年内平均每月新增超200座。<span style="color:#1e293b;font-weight:600;">计划2027年形成「11纵9横」高速换电网络</span>，全面覆盖通勤与长途出行需求。</div>
+            <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">
+              <span class="tag" style="background:rgba(2,132,199,.08);color:var(--cyan);border:1px solid rgba(2,132,199,.15);font-size:.72rem;">1650座已落地</span>
+              <span class="tag" style="background:rgba(26,115,255,.07);color:var(--blue);border:1px solid rgba(26,115,255,.12);font-size:.72rem;">127城覆盖</span>
+              <span class="tag" style="background:rgba(22,163,74,.07);color:var(--green);border:1px solid rgba(22,163,74,.12);font-size:.72rem;">月均新增200+座</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结语 -->
+    <div class="c fi" style="transition-delay:.22s;border:1px solid rgba(22,163,74,.12);background:linear-gradient(135deg,rgba(22,163,74,.04),rgba(255,255,255,1));">
+      <div style="font-family:'Noto Serif SC',serif;font-size:var(--f3);font-weight:700;color:#0f172a;margin-bottom:6px;">🔮 本周核心趋势</div>
+      <div class="g2" style="gap:10px;">
+        <div>
+          <div style="font-weight:700;color:#1e293b;margin-bottom:3px;font-size:var(--f2);">AI渗透全行业</div>
+          <div class="cd">从广告营销到汽车硬件，AI工具与Agent正在快速改变每个行业的工作流程和竞争格局。</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:#1e293b;margin-bottom:3px;font-size:var(--f2);">新能源供需双旺</div>
+          <div class="cd">渗透率连续两月突破60%，出口成核心增长极，合资品牌份额持续收缩，自主品牌加速全球化。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Nav dots ──
+const slides = document.querySelectorAll('.slide');
+const nav = document.getElementById('nav');
+slides.forEach((s,i)=>{
+  const d=document.createElement('div');
+  d.className='dot';
+  d.title=s.querySelector('.cap')?.textContent||'第'+(i+1)+'页';
+  d.onclick=()=>s.scrollIntoView({behavior:'smooth'});
+  nav.appendChild(d);
+});
+
+// ── Scroll handling ──
+const dots = document.querySelectorAll('.dot');
+const pbar = document.getElementById('pbar');
+const hint = document.getElementById('scrollHint');
+
+function onScroll(){
+  const st=window.scrollY, wh=window.innerHeight, dh=document.documentElement.scrollHeight;
+  pbar.style.width=((st/(dh-wh))*100)+'%';
+  if(st>80){hint.style.opacity='0';}
+  // active dot
+  let cur=0;
+  slides.forEach((s,i)=>{
+    if(s.getBoundingClientRect().top<=wh*0.5)cur=i;
+  });
+  dots.forEach((d,i)=>d.classList.toggle('on',i===cur));
+}
+window.addEventListener('scroll',onScroll,{passive:true});
+onScroll();
+
+// ── Fade in observer ──
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');})},{threshold:0.1});
+document.querySelectorAll('.fi').forEach(el=>io.observe(el));
+
+// ── Accordion ──
+document.querySelectorAll('.acc-h').forEach(h=>{
+  h.onclick=()=>{
+    const a=h.closest('.acc');
+    const isOpen=a.classList.toggle('open');
+    const body=a.querySelector('.acc-body');
+    body.style.maxHeight=isOpen?body.scrollHeight+'px':'0';
+  };
+});
+
+// ── Keyboard navigation ──
+document.addEventListener('keydown',e=>{
+  const wh=window.innerHeight;
+  const st=window.scrollY;
+  if(e.key==='ArrowDown'||e.key===' '){
+    e.preventDefault();
+    window.scrollBy({top:wh,behavior:'smooth'});
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    window.scrollBy({top:-wh,behavior:'smooth'});
+  }
+});
+</script>
+</body>
+</html>
