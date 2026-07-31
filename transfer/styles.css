@@ -63,7 +63,7 @@ body {
   padding: 16px 16px 28px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 10px;
   align-items: start;
 }
 .panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -78,15 +78,15 @@ body {
 .input-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 10px;
   align-items: stretch;
   grid-auto-rows: 400px;   /* 固定列高：左右等高，右列 2fr/1fr 严格生效 */
 }
 /* 右列：转入(2) + 金额(1) 上下网格 */
 .input-right {
   display: grid;
-  grid-template-rows: 3fr 2fr;
-  gap: 16px;
+  grid-template-rows: 7fr 5fr;
+  gap: 10px;
   min-height: 0;
 }
 /* 三个输入卡片统一为列向 flex，让输入框填满卡片剩余空间 */
