@@ -4,6 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>账户转账指令生成器</title>
+  <script>
+    // 兼容无尾斜杠的目录访问（如直接打开 /transfer）：自动修正资源基准路径
+    (function () {
+      var p = location.pathname;
+      var last = p.split('/').pop() || '';
+      var base;
+      if (last.indexOf('.') === -1) {
+        base = location.origin + p.replace(/\/?$/, '/'); // 目录路径补尾斜杠
+      } else {
+        base = location.origin + p.substring(0, p.lastIndexOf('/') + 1); // 取文件所在目录
+      }
+      document.write('<base href="' + base + '">');
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
