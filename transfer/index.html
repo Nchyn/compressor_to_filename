@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>账户转账指令生成器</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <h1 class="app-title">账户转账指令生成器</h1>
+      <span class="header-note">建议反馈请联系pangbo<svg class="foot-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path></svg>adwetec.com</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ 输入区（左右两列：左转出 / 右转入+金额 2:1） ============ -->
+    <section class="panel inputs" aria-label="输入区">
+      <div class="input-split">
+        <div class="panel-card card-source">
+          <div class="section-head">
+            <h2 class="section-label">转出账户</h2>
+            <span class="count" id="sourceChip">0 个</span>
+          </div>
+          <div class="section-body">
+            <textarea id="sourceInput" rows="5" spellcheck="false"
+              placeholder='支持数据自动清洗，当前配置为9-15位数字，可使用逗号、空格或换行分隔账户'></textarea>
+            <div class="hint-row">
+              <div class="hint">9–15 位纯数字 · 重复账户默认保留</div>  
+              <button type="button" class="paste-btn ripple" data-paste="sourceInput">粘贴数据</button>
+            </div>
+            <ul class="msgs" id="sourceMsgs"></ul>
+            <label class="dup-toggle" id="sourceDup" hidden>
+              <input type="checkbox" id="sourceDedupCb" />
+              <span>合并重复账户</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 右列：转入账户（2）+ 转账金额（1） -->
+        <div class="input-right">
+          <div class="panel-card">
+          <div class="section-head">
+            <h2 class="section-label">转入账户</h2>
+            <span class="count" id="targetChip">0 个</span>
+          </div>
+          <div class="section-body">
+            <textarea id="targetInput" rows="5" spellcheck="false"
+              placeholder='支持格式同上，例如：
+51200761413, 51200761420
+或 51200761413
+回车 51200761420'></textarea>
+            <div class="hint-row">
+              <div class="hint">10–15 位纯数字 · 重复账户默认保留</div>
+              <button type="button" class="paste-btn ripple" data-paste="targetInput">粘贴数据</button>
+            </div>
+            <ul class="msgs" id="targetMsgs"></ul>
+            <label class="dup-toggle" id="targetDup" hidden>
+              <input type="checkbox" id="targetDedupCb" />
+              <span>合并重复账户</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 金额：转入列下方（高度比 转入2 : 金额1） -->
+        <div class="panel-card amount-card">
+          <div class="section-head">
+            <h2 class="section-label">转账金额</h2>
+            <span class="count" id="amountChip">0 个</span>
+          </div>
+          <div class="section-body">
+            <textarea id="amountInput" rows="2" spellcheck="false"
+              placeholder='可用回车、空格、逗号分隔金额，例如：300, 500
+金额数量 = 目标数量时一一对应；只有 1 个时全部相同'></textarea>
+            <div class="hint-row">
+              <div class="hint">大于 0 · 最多 2 位小数</div>
+              <button type="button" class="paste-btn ripple" data-paste="amountInput">粘贴数据</button>
+            </div>
+            <ul class="msgs" id="amountMsgs"></ul>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 配对关系（自动判定模式 + 预览 + 金额统计） ============ -->
+    <section class="panel" aria-label="配对关系">
+      <div class="panel-card">
+        <div class="section-head">
+          <h2 class="section-label">配对关系</h2>
+          <span class="count" id="modeChip">自动判断</span>
+        </div>
+        <div class="section-body">
+          <p class="mode-desc" id="modeDesc"></p>
+          <div class="pair-preview" id="pairPreview">
+            <div class="empty-tip">输入账户与金额后，这里将显示配对关系预览</div>
+          </div>
+          <ul class="msgs" id="pairMsgs"></ul>
+          <div class="stat-row">
+            <div class="stat-line" id="statLine"></div>
+            <div class="copied-mark" id="copiedMark" hidden>已复制到剪贴板</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 转账指令 ============ -->
+    <section class="panel outputs" aria-label="展示区">
+
+      <div class="panel-card">
+        <div class="section-head">
+          <h2 class="section-label">转账指令</h2>
+          <div class="head-actions">
+            <span class="count" id="resultChip">0 条</span>
+            <button type="button" class="btn-mini ripple" id="resetBtn">清空重置</button>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="result-box" id="resultText">
+            <div class="empty-tip">输入账户与金额后，这里将生成转账指令</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">© Nchyn, Do whatever</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
