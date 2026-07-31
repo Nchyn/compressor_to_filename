@@ -1,0 +1,415 @@
+/* ============================================================
+   账户转账指令生成器 - 扁平近黑主题
+   设计参考：shabu-91v.pages.dev（火锅涮煮计时器）
+   近黑平面 · 正红强调 · 直角 · 无渐变/毛玻璃/阴影
+   ============================================================ */
+
+:root {
+  --surface: #0D0D0D;        /* 页面背景 */
+  --surface2: #18181B;       /* 卡片背景 */
+  --surface3: #27272A;       /* 边框/分隔线 */
+  --outline: #A1A1AA;        /* 次级文字/占位 */
+  --red: #EE2E28;            /* 主强调色 */
+  --green: #4ADE80;          /* 成功/转入 */
+  --orange: #FB923C;         /* 金额/转出/警告 */
+  --text-primary: #D4D4D8;   /* 主文字 */
+  --text-on-red: #FFF;
+  --mono: "SF Mono", Consolas, "Courier New", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  min-height: 100vh;
+  font-family: var(--sans);
+  color: var(--text-primary);
+  background: var(--surface);
+  overflow-x: hidden;
+  font-size: 13px;
+}
+
+/* ---------- 滚动条（细、贴色） ---------- */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--surface3); }
+*::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* ---------- 顶栏 ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface3);
+}
+.header-inner {
+  max-width: 1360px; margin: 0 auto;
+  height: 56px; padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.app-title {
+  font-size: 18px; font-weight: 800;
+  color: var(--green); letter-spacing: 0.05em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.header-note {
+  flex-shrink: 0;
+  font-size: 10px; letter-spacing: 0.05em; color: var(--outline);
+  border: 1px solid var(--surface3); padding: 3px 8px;
+}
+
+/* ---------- 布局（PC 自上而下：输入行 → 配对关系 → 指令结果） ---------- */
+.layout {
+  max-width: 1360px; margin: 0 auto;
+  padding: 16px 16px 28px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ---------- 平面卡片 ---------- */
+.panel-card {
+  background: var(--surface2);
+  border: 1px solid var(--surface3);
+  padding: 12px 14px;
+}
+/* 输入区：左右两列 —— 左转出（全高）/ 右转入+金额（高度比 2:1） */
+.input-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+  grid-auto-rows: 400px;   /* 固定列高：左右等高，右列 2fr/1fr 严格生效 */
+}
+/* 右列：转入(2) + 金额(1) 上下网格 */
+.input-right {
+  display: grid;
+  grid-template-rows: 3fr 2fr;
+  gap: 16px;
+  min-height: 0;
+}
+/* 三个输入卡片统一为列向 flex，让输入框填满卡片剩余空间 */
+.input-split .panel-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.input-split .section-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.input-split textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  resize: none;   /* 高度由布局控制，禁止手动拉伸 */
+}
+.section-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 10px;
+}
+.section-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--outline); letter-spacing: 0.06em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.count {
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+  color: var(--outline);
+  border: 1px solid var(--surface3);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+  transition: color .2s, border-color .2s;
+}
+.count.ok { color: var(--green); border-color: rgba(74, 222, 128, 0.45); }
+/* 标题栏右侧的统计徽标（resultChip）与 resetBtn 等高对齐 */
+.head-actions .count {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+}
+/* 标题栏右侧操作组（统计 + 清空） */
+.head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* 小号幽灵按钮（清空重置）多状态：
+   默认 red 幽灵 / hover orange 幽灵 / 确认清除、已清除 实色红底白字 */
+.btn-mini {
+  height: 24px; padding: 0 10px;
+  font-family: var(--sans); font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+  background: transparent; color: var(--red);
+  border: 1px solid var(--red);
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s, filter .2s;
+}
+.btn-mini:hover { color: var(--orange); border-color: var(--orange); }
+
+/* 状态三「确认清除？」/ 状态四「已清除」：实色红底 + 白字 */
+.btn-mini.confirm,
+.btn-mini.cleared {
+  background: var(--red); color: var(--text-on-red);
+  border-color: var(--red);
+}
+.btn-mini.confirm:hover,
+.btn-mini.cleared:hover { filter: brightness(1.12); }
+
+/* 涟漪反馈（参考站点同款） */
+.ripple { position: relative; overflow: hidden; }
+.ripple::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.10) 10%, transparent 10%);
+  background-position: center; background-repeat: no-repeat;
+  background-size: 0%; pointer-events: none; opacity: 0;
+  transition: background-size .35s, opacity .3s;
+}
+.ripple:active::after { background-size: 400%; opacity: 1; }
+
+/* 复制后标记（与金额统计同行，靠右显示） */
+.copied-mark {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em; color: var(--green);
+  animation: fadeIn .3s ease both;
+}
+.copied-mark[hidden] { display: none; }
+
+/* ---------- 输入框 ---------- */
+textarea {
+  width: 100%; resize: vertical; min-height: 66px;
+  font-family: var(--sans); font-size: 13px; line-height: 1.7;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--surface3);
+  padding: 10px 12px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .2s;
+}
+textarea:focus { outline: none; border-color: rgba(238, 46, 40, 0.55); }
+textarea::placeholder { color: var(--outline); opacity: .8; }
+
+/* 配对错误 → 对应输入框红色边框（常态 + focus） */
+textarea.err,
+textarea.err:focus { border-color: var(--red); }
+/* 合规且无配对错误 → focus 绿色边框 */
+textarea.ok:focus { border-color: var(--green); }
+
+.hint { margin-top: 8px; font-size: 11px; color: var(--outline); }
+
+/* ---------- 提示行 + 粘贴数据按钮 ---------- */
+.hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.hint-row .hint { margin-top: 0; flex: 1; min-width: 0; }
+/* 粘贴数据按钮三态：
+   idle「粘贴数据」绿描边透明底 / cooling 冷却 orange / ready「继续粘贴」绿实底白字 */
+.paste-btn {
+  flex-shrink: 0;
+  height: 22px; padding: 0 10px;
+  font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  background: transparent; color: var(--green);
+  border: 1px solid var(--green);
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s, filter .2s, opacity .2s;
+}
+.paste-btn:hover { filter: brightness(1.12); }
+.paste-btn:active { filter: brightness(0.92); }
+
+/* 就绪态「继续粘贴」：绿色实底 + surface2 文字 */
+.paste-btn.ready { background: var(--green); color: var(--surface2); }
+
+/* 冷却态：orange 配色 + 禁点 */
+.paste-btn.cooling {
+  background: var(--orange); border-color: var(--orange); color: var(--surface2);
+  opacity: .65; cursor: not-allowed; pointer-events: none;
+}
+
+/* ---------- 重复账户合并开关 ---------- */
+.dup-toggle {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px;
+  font-size: 11px; color: var(--outline);
+  cursor: pointer; user-select: none;
+}
+.dup-toggle[hidden] { display: none; }
+.dup-toggle input {
+  appearance: none; -webkit-appearance: none;
+  width: 14px; height: 14px; margin: 0;
+  border: 1px solid var(--surface3);
+  background: var(--surface);
+  cursor: pointer; position: relative; flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+}
+.dup-toggle input:checked { background: var(--red); border-color: var(--red); }
+.dup-toggle input:checked::after {
+  content: ''; position: absolute; left: 4px; top: 1px;
+  width: 4px; height: 8px;
+  border: solid var(--text-on-red);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.dup-toggle input:focus-visible { outline: 1px solid var(--red); outline-offset: 1px; }
+
+/* ---------- 解析消息 ---------- */
+.msgs { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.msgs li {
+  font-size: 11px; line-height: 1.6;
+  padding-left: 14px; position: relative;
+  animation: fadeIn .3s ease both;
+}
+.msgs li.err { color: var(--red); }
+.msgs li.warn { color: var(--orange); }
+.msgs li::before { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 11px; }
+.msgs li.err::before { content: "!"; }
+.msgs li.warn::before { content: "i"; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 模式描述（自动判定） ---------- */
+.mode-desc { font-size: 11.5px; line-height: 1.8; color: var(--outline); }
+.mode-desc b { color: var(--text-primary); font-weight: 700; }
+
+/* ---------- 金额统计（统计 + 复制标记同一行） ---------- */
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  border-top: 1px solid var(--surface3);
+  padding-top: 10px;
+}
+.stat-line {
+  font-size: 12px; color: var(--outline);
+  font-variant-numeric: tabular-nums;
+}
+.stat-line b { color: var(--orange); font-weight: 700; }
+
+/* ---------- 配对预览 ---------- */
+.pair-preview {
+  margin-top: 10px; max-height: 500px; overflow: auto;
+  display: flex; flex-direction: column; gap: 5px;
+}
+/* 配对行 + 右侧单条复制按钮（同级并排） */
+.row-wrap {
+  display: flex; align-items: stretch; gap: 8px;
+  animation: fadeIn .3s ease both;
+}
+.row-wrap:nth-child(odd) .pair-row { animation: none; }
+.pair-row {
+  flex: 1; min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center; gap: 8px;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--surface3);
+  padding: 5px 10px;
+}
+.pair-row .acc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pair-row .arrow { color: var(--red); font-size: 11px; }
+.pair-row .amt { color: var(--orange); font-weight: 700; font-variant-numeric: tabular-nums; }
+/* 转出=转入时：目标账户以警告样式标注「账户相同」（类似 count.ok 徽标，橙色） */
+.pair-row .acc.acc-warn {
+  justify-self: start;
+  color: var(--orange);
+  border: 1px solid rgba(251, 146, 60, 0.45);
+  padding: 1px 6px;
+}
+
+/* 行内单条复制按钮（红色 → 复制后绿色「已复制」并保持） */
+.row-copy {
+  flex-shrink: 0; width: 62px;
+  font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  background: var(--red); color: var(--text-on-red);
+  border: 1px solid var(--red);
+  cursor: pointer;
+  transition: background .2s, border-color .2s, filter .2s;
+}
+.row-copy:hover { filter: brightness(1.12); }
+.row-copy:active { filter: brightness(0.92); }
+.row-copy.done { background: var(--green); border-color: var(--green); color: var(--text-on-red); }
+
+/* ---------- 空状态 ---------- */
+.empty-tip {
+  color: var(--outline); font-size: 12px; letter-spacing: 0.03em; text-align: center;
+  padding: 24px 10px;
+  border: 1px dashed var(--surface3);
+}
+
+/* ---------- 指令结果 ---------- */
+.result-box {
+  background: var(--surface);
+  border: 1px solid var(--surface3);
+  max-height: 460px; overflow: auto;
+  font-size: 13px; line-height: 1.9;
+}
+.result-box .empty-tip { border: none; }
+.code-line { display: grid; grid-template-columns: 44px 1fr; transition: background .15s; }
+.code-line:hover { background: rgba(238, 46, 40, 0.05); }
+.code-line .ln {
+  color: var(--outline); opacity: .6;
+  font-size: 11px; text-align: right; padding-right: 12px;
+  border-right: 1px solid var(--surface3); user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.code-line .txt { padding-left: 12px; white-space: pre-wrap; word-break: break-all; }
+.gap-row { height: 12px; }
+.code-line .key { color: var(--outline); }
+.code-line .val { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.code-line .amt-v { color: var(--orange); font-weight: 700; font-variant-numeric: tabular-nums; }
+.code-line .remark { color: var(--green); }
+
+/* 涟漪反馈（参考站点同款） */
+.ripple { position: relative; overflow: hidden; }
+.ripple::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.10) 10%, transparent 10%);
+  background-position: center; background-repeat: no-repeat;
+  background-size: 0%; pointer-events: none; opacity: 0;
+  transition: background-size .35s, opacity .3s;
+}
+.ripple:active::after { background-size: 400%; opacity: 1; }
+
+/* ---------- 页脚 ---------- */
+.foot {
+  text-align: center; font-size: 10px; letter-spacing: 0.04em; color: var(--outline);
+  padding: 0 16px 20px;
+}
+/* @ 图标：与 10px 文字对齐 */
+.foot-icon {
+  display: inline-block;
+  width: 11px; height: 11px;
+  vertical-align: -1.5px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+  .input-split {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;   /* 取消固定列高 */
+  }
+  .input-right { display: flex; flex-direction: column; }
+  .input-split .panel-card { display: block; }
+  .input-split .section-body { display: block; }
+  .input-split textarea {
+    flex: none;
+    min-height: 120px;
+    resize: vertical;
+  }
+}
+@media (max-width: 640px) {
+  .header-inner { padding: 0 12px; }
+  .app-title { font-size: 16px; }
+  .layout { padding: 12px 12px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001s !important; transition-duration: 0.001s !important; }
+}
