@@ -114,6 +114,38 @@
       color: var(--color-text-secondary);
       white-space: nowrap;
     }
+    /* 充值方式按钮组（Radio.Button 风格） */
+    .segmented-group {
+      display: inline-flex;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .segmented-btn {
+      height: 32px;
+      padding: 0 15px;
+      background: var(--color-bg-container);
+      border: none;
+      border-left: 1px solid var(--color-border);
+      color: var(--color-text);
+      font-size: var(--font-size);
+      cursor: pointer;
+      transition: all 0.2s;
+      line-height: 32px;
+    }
+    .segmented-btn:first-child {
+      border-left: none;
+    }
+    .segmented-btn:hover {
+      color: var(--color-primary);
+    }
+    .segmented-btn.active {
+      background: var(--color-primary);
+      color: #fff;
+    }
+    .segmented-btn.active:hover {
+      color: #fff;
+    }
     .form-hint {
       margin-top: 4px;
       font-size: 12px;
@@ -312,6 +344,15 @@
       </div>
 
       <div class="form-item">
+        <label class="form-label">充值方式</label>
+        <div class="segmented-group" id="payMethodGroup">
+          <button type="button" class="segmented-btn active" data-value="临时垫付单">临时垫付单</button>
+          <button type="button" class="segmented-btn" data-value="收款单">收款单</button>
+          <button type="button" class="segmented-btn" data-value="预算">预算</button>
+        </div>
+      </div>
+
+      <div class="form-item">
         <label class="form-label" for="docNo">关联单据编号</label>
         <input class="form-control" type="text" id="docNo" placeholder="请输入关联单据编号" />
       </div>
@@ -334,6 +375,7 @@
     const contractArrow = document.getElementById('contractArrow');
     const contractDropdown = document.getElementById('contractDropdown');
     const docNoInput = document.getElementById('docNo');
+    const payMethodGroup = document.getElementById('payMethodGroup');
     const preview = document.getElementById('preview');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
@@ -428,6 +470,15 @@
       contractDropdownCtl.render();
     }
 
+    // 充值方式按钮组切换
+    payMethodGroup.querySelectorAll('.segmented-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        payMethodGroup.querySelectorAll('.segmented-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        updatePreview();
+      });
+    });
+
     // ---------- 必填校验 ----------
     const requiredFields = [
       { el: accountInput, label: '充值账户名称' },
@@ -487,13 +538,14 @@
       const account = accountInput.value.trim();
       const contract = contractInput.value.trim();
       const docNo = docNoInput.value.trim();
+      const payMethod = payMethodGroup.querySelector('.segmented-btn.active').dataset.value;
 
       return [
         `充值账户名称：${account}`,
         `充值账显金额：${displayAmount}`,
         '期望充值日期：',
         `媒体合同号：${contract}`,
-        '充值方式：临时垫付单',
+        `充值方式：${payMethod}`,
         `关联单据编号：${docNo}`,
         '百度充值 @小致(小致）',
       ].join('\n');
