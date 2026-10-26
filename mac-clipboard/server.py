@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Loopback file clipboard bridge. No image codec; Python stdlib + Swift helper."""
+import sys
+from pairing import Pairing
 import argparse, base64, hashlib, json, os, re, secrets, shutil, subprocess, threading, time, webbrowser
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -15,6 +17,7 @@ FILES = {}
 EXTRA_ORIGIN = None
 ALLOW_FILE = False
 LAST_ACTIVITY = 0
+PAIRING = None
 def emit(event, **values):
     print(json.dumps({'event':event, **values}), flush=True)
 def url_origin(value):
@@ -30,6 +33,11 @@ ALLOWED = {'/': RAIL, '/'+RAIL: RAIL, '/jpeg-clipboard.html':'jpeg-clipboard.htm
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     def log_message(self, *_): pass  # no URLs, tokens, filenames, or picture data in logs
+    def pairable_origin(self):
+        origin=self.headers.get("Origin", "")
+        if origin=="null": return ALLOW_FILE
+        try: return url_origin(origin)==origin
+        except (ValueError,TypeError): return False
     def allowed_origin(self):
         origin=self.headers.get('Origin')
         return bool(origin) and (origin==f'http://127.0.0.1:{self.server.server_port}' or origin==EXTRA_ORIGIN or (ALLOW_FILE and origin=='null'))
@@ -39,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(body, bytes): body = json.dumps(body, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header('Content-Type', kind)
-        if self.allowed_origin():
+        if self.allowed_origin() or (PAIRING is not None and self.pairable_origin()):
             self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])
             self.send_header('Vary', 'Origin')
         self.send_header('Content-Length', str(len(body)))
@@ -53,9 +61,10 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError): pass
     def authorized(self):
         expected = f'http://127.0.0.1:{self.server.server_port}'
-        return self.valid_host() and self.allowed_origin() and secrets.compare_digest(self.headers.get('Authorization', ''), 'Bearer ' + TOKEN)
+        bearer=self.headers.get('Authorization','').removeprefix('Bearer ') if sys.version_info >= (3,9) else self.headers.get('Authorization','')[7:]
+        return self.valid_host() and ((self.allowed_origin() and secrets.compare_digest(bearer,TOKEN)) or (PAIRING is not None and self.pairable_origin() and PAIRING.valid(self.headers.get('Origin',''),bearer)))
     def do_OPTIONS(self):
-        if not self.valid_host() or not self.allowed_origin():
+        if not self.valid_host() or not (self.allowed_origin() or (PAIRING is not None and self.pairable_origin())):
             return self.respond(403, {'error':'Origin denied'})
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])
@@ -82,6 +91,16 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(200,content,'text/html; charset=utf-8' if path.endswith('.html') else 'text/javascript; charset=utf-8')
     def do_POST(self):
         self.close_connection=True
+        if self.path.startswith('/api/pair/'):
+            if not self.valid_host() or not self.pairable_origin() or PAIRING is None: return self.respond(403,{'error':'Pairing denied'})
+            try:
+                n=int(self.headers.get('Content-Length','0'))
+                if not 0<n<=2048: raise ValueError('Invalid body')
+                self.connection.settimeout(10);body=json.loads(self.rfile.read(n));origin=self.headers['Origin']
+                if self.path=='/api/pair/request': return self.respond(200,PAIRING.request(origin))
+                if self.path=='/api/pair/poll': return self.respond(200,PAIRING.poll(body.get('requestId'),origin))
+                return self.respond(404,{'error':'Not found'})
+            except Exception as e: return self.respond(400,{'error':str(e)})
         if not self.authorized(): return self.respond(403, {'error':'Origin or session token invalid. Reopen the client page.'})
         try:
             size=int(self.headers.get('Content-Length','-1'))
@@ -132,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e: return self.respond(400,{'error':str(e)})
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=0);parser.add_argument('--no-open',action='store_true');parser.add_argument('--cache-dir',type=Path);parser.add_argument('--origin');parser.add_argument('--allow-file',action='store_true');parser.add_argument('--json-events',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=48731);parser.add_argument('--no-open',action='store_true');parser.add_argument('--cache-dir',type=Path);parser.add_argument('--origin');parser.add_argument('--allow-file',action='store_true');parser.add_argument('--json-events',action='store_true');args=parser.parse_args()
     if args.origin: EXTRA_ORIGIN=url_origin(args.origin)
     ALLOW_FILE=args.allow_file
     if args.cache_dir: CACHE=args.cache_dir.resolve()
@@ -141,6 +160,17 @@ if __name__=='__main__':
     os.umask(0o077)
     HELPER=Path(__file__).resolve().parent/'clipboard-helper'
     if not HELPER.is_file(): raise SystemExit('Compile helper first: ./start.command')
+    if args.json_events:
+        PAIRING=Pairing(CACHE/'pairings.json',emit)
+        emit('grants',origins=list(PAIRING.grants))
+        def commands():
+            for line in sys.stdin:
+                try:
+                    c=json.loads(line)
+                    if c.get('action')=='decide': PAIRING.decide(c.get('requestId'),c.get('allow') is True)
+                    elif c.get('action')=='revoke': PAIRING.revoke()
+                except Exception: pass
+        threading.Thread(target=commands,daemon=True).start()
     server=ThreadingHTTPServer(('127.0.0.1',args.port),Handler)
     url=f'http://127.0.0.1:{server.server_port}/{RAIL}#client=http://127.0.0.1:{server.server_port}&token={TOKEN}'
     if args.json_events: emit('ready', endpoint=f'http://127.0.0.1:{server.server_port}', token=TOKEN)

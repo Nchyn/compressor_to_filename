@@ -1,7 +1,7 @@
 import Cocoa
 
 final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    var window:NSWindow!, statusItem:NSStatusItem!, process:Process?, pipe:Pipe?
+    var window:NSWindow!, statusItem:NSStatusItem!, process:Process?, pipe:Pipe?, input:Pipe?
     var endpoint="", token="", buffer=Data(), lastSeen:Date?
     let state=NSTextField(labelWithString:"服务未启动")
     let connection=NSTextField(labelWithString:"网页未连接")
@@ -31,10 +31,10 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let custom=UserDefaults.standard.bool(forKey:"external");local.state=custom ? .off:.on;external.state=custom ? .on:.off
         stack.addArrangedSubview(local);stack.addArrangedSubview(external);url.placeholderString="https://example.com/compressor.html";stack.addArrangedSubview(url);url.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         fileAccess.state=UserDefaults.standard.bool(forKey:"allowFile") ? .on:.off;stack.addArrangedSubview(fileAccess)
-        let help=NSTextField(wrappingLabelWithString:"授权URL所在的完整来源（协议＋主机＋端口），不限制路径。仅信任的站点可添加；网页需集成client/token连接协议。授权后重新打开网页，旧令牌立即失效。")
+        let help=NSTextField(wrappingLabelWithString:"授权URL所在的完整来源（协议＋主机＋端口），不限制路径。仅信任的站点可添加；首次普通打开网页会请求配对；客户端确认后自动重连。打开压缩器只是快捷入口。")
         help.textColor = .secondaryLabelColor;help.font = .systemFont(ofSize:12);stack.addArrangedSubview(help);help.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         let buttons=NSStackView();buttons.spacing=10
-        for (title,action) in [("保存授权并重启",#selector(save)),("打开压缩器",#selector(openPage)),("停止服务",#selector(stop)),("打开缓存",#selector(openCache))] {let b=NSButton(title:title,target:self,action:action);buttons.addArrangedSubview(b)}
+        for (title,action) in [("保存授权并重启",#selector(save)),("打开压缩器",#selector(openPage)),("停止服务",#selector(stop)),("打开缓存",#selector(openCache)),("撤销全部配对",#selector(revoke))] {let b=NSButton(title:title,target:self,action:action);buttons.addArrangedSubview(b)}
         stack.addArrangedSubview(buttons);stack.addArrangedSubview(activity);activity.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         let note=NSTextField(wrappingLabelWithString:"客户端不编解码、不上传云端。只保存网页生成的JPEG并写文件剪贴板。关闭窗口仍在菜单栏运行。")
         note.textColor = .secondaryLabelColor;stack.addArrangedSubview(note);note.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
@@ -58,11 +58,11 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func start(){
         guard process==nil else{return}
-        let p=Process(),output=Pipe();p.executableURL=URL(fileURLWithPath:"/usr/bin/python3")
+        let p=Process(),output=Pipe(),commands=Pipe();p.executableURL=URL(fileURLWithPath:"/usr/bin/python3")
         var args=["-u","-B",root.appendingPathComponent("mac-clipboard/server.py").path,"--no-open","--json-events"]
         if fileAccess.state == .on{args.append("--allow-file")}
         if let u=validatedURL(),u.scheme != "file" {args += ["--origin",u.absoluteString]}
-        p.arguments=args;p.standardOutput=output;p.standardError=output
+        p.arguments=args;p.standardOutput=output;p.standardError=output;p.standardInput=commands;input=commands
         buffer=Data();process=p;pipe=output;state.stringValue="启动中…"
         output.fileHandleForReading.readabilityHandler={[weak self,weak p] handle in let data=handle.availableData;if data.isEmpty{return};DispatchQueue.main.async{guard let self=self,self.process===p else{return};self.receive(data)}}
         p.terminationHandler={[weak self,weak p] _ in DispatchQueue.main.async{guard let self=self,self.process===p else{return};self.process=nil;self.endpoint="";self.token="";self.state.stringValue="服务已退出，请保存授权重启";self.connection.stringValue="网页未连接"}}
@@ -74,6 +74,10 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
             guard let object=(try? JSONSerialization.jsonObject(with:line)) as? [String:Any],let event=object["event"] as? String else {continue}
             if event=="ready" {endpoint=object["endpoint"] as? String ?? "";token=object["token"] as? String ?? "";state.stringValue="● 服务运行中 · \(endpoint)";state.textColor = .systemGreen;connection.stringValue="等待网页连接"}
             else if event=="connected" {lastSeen=Date();connection.stringValue="● 网页已连接 · \(object["origin"] as? String ?? "")";connection.textColor = .systemGreen}
+            else if event=="pair", let id=object["requestId"] as? String {
+                show();let a=NSAlert();a.messageText="允许此网页操作文件剪贴板？";a.informativeText=(object["origin"] as? String ?? "未知来源")+"\n允许后持续有效，可在客户端撤销。同一来源下所有路径共享权限。";a.addButton(withTitle:"允许并记住");a.addButton(withTitle:"拒绝");let allowed=a.runModal()==NSApplication.ModalResponse.alertFirstButtonReturn;send(["action":"decide","requestId":id,"allow":allowed])
+            }
+            else if event=="grants" {let origins=object["origins"] as? [String] ?? [];activity.stringValue="已配对来源："+(origins.isEmpty ? "无":origins.joined(separator:", "))}
             else if event=="clipboard" {activity.stringValue="已复制：\(object["name"] as? String ?? "")\n\(object["bytes"] ?? 0) 字节 · \(DateFormatter.localizedString(from:Date(),dateStyle:.none,timeStyle:.medium))"}
         }
     }
@@ -83,13 +87,10 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard !endpoint.isEmpty else {alert("服务尚未就绪，请先保存授权并启动");return}
         var target:URL
         if external.state == .on {guard let u=validatedURL() else{alert("授权URL无效");return};target=u}else{target=URL(string:endpoint+"/indexv2.html")!}
-        // Fragments are not sent in HTTP requests. Never log the resulting URL.
-        var parts=URLComponents(url:target,resolvingAgainstBaseURL:false)!
-        let query=URLComponents(string:"http://localhost")!;var fragment=query
-        fragment.queryItems=[URLQueryItem(name:"client",value:endpoint),URLQueryItem(name:"token",value:token)]
-        parts.percentEncodedFragment=fragment.percentEncodedQuery
-        if let u=parts.url{NSWorkspace.shared.open(u)}
+        NSWorkspace.shared.open(target)
     }
+    func send(_ value:[String:Any]){if let data=try? JSONSerialization.data(withJSONObject:value){try? input?.fileHandleForWriting.write(contentsOf:data+Data([10]))}}
+    @objc func revoke(){send(["action":"revoke"])}
     @objc func openCache(){let folder=FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/LocalJPEGClipboard");try? FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true);NSWorkspace.shared.open(folder)}
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
     @objc func quit(){stop();NSApp.terminate(nil)}

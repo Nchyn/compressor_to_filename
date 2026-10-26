@@ -1908,10 +1908,11 @@ self.onmessage=async({data:{file,options}})=>{
 <script>
 (()=>{
 // Included inline in the file-openable rail variant; secrets stay in this main-thread closure.
-const bridgeConfig=(()=>{
+let bridgeConfig=(()=>{
  const params=new URLSearchParams(location.hash.slice(1));
  let endpoint=params.get('client'),token=params.get('token');
- try{if(endpoint&&token)sessionStorage.setItem('rail-client',JSON.stringify({endpoint,token}));else({endpoint,token}=JSON.parse(sessionStorage.getItem('rail-client')||'{}'));}catch{}
+ try{if(!token)({endpoint,token}=JSON.parse(localStorage.getItem('rail-pair')||'{}'));}catch{}
+ endpoint ||= 'http://127.0.0.1:48731';
  if(params.has('token')){try{history.replaceState(null,'',location.href.split('#')[0]);}catch{}}
  if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint||''))return null;
  return {endpoint,token};
@@ -1919,13 +1920,30 @@ const bridgeConfig=(()=>{
 let bridgeConnected=false,bridgePasteQueue=Promise.resolve();
 async function bridgeRequest(path,body,type='application/json'){
  if(!bridgeConfig)throw Error('客户端未连接');
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),path==='/api/health'?3000:90000);
  try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{Authorization:'Bearer '+bridgeConfig.token,'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
 }
 async function bridgeCheck(){
  try{await bridgeRequest('/api/health',{});bridgeConnected=true;}catch{bridgeConnected=false;}
  const dot=document.getElementById('clientDot');dot.style.background=bridgeConnected?'#22c55e':'#aaa';dot.title=bridgeConnected?'客户端已连接':'客户端未连接';dot.setAttribute('aria-label',dot.title);
 }
+let pairingBusy=false,pairAttempted=false;
+async function pairClient(){
+ if(pairingBusy)return;pairingBusy=true;
+ const endpoint='http://127.0.0.1:48731';
+ async function request(path,body){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);try{const response=await fetch(endpoint+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const result=await response.json();if(!response.ok)throw Error(result.error||'配对失败');return result;}finally{clearTimeout(timer);}}
+ try{
+  const pending=await request('/api/pair/request',{});pairAttempted=true;showToast('请在客户端确认配对');
+  for(let i=0;i<60;i++){
+   await new Promise(resolve=>setTimeout(resolve,1500));const answer=await request('/api/pair/poll',{requestId:pending.requestId});
+   if(answer.status==='approved'&&answer.token){bridgeConfig={endpoint,token:answer.token};try{localStorage.setItem('rail-pair',JSON.stringify(bridgeConfig));}catch{}await bridgeCheck();return;}
+   if(['denied','expired','consumed'].includes(answer.status))throw Error('配对已拒绝或过期；点击状态点重试');
+  }
+ }catch(e){document.getElementById('clientDot').title=e.message;}finally{pairingBusy=false;}
+}
+document.getElementById('clientDot').style.cursor='pointer';
+document.getElementById('clientDot').onclick=()=>{pairAttempted=false;pairClient();};
+async function autoConnect(){await bridgeCheck();if(!bridgeConnected&&!pairAttempted)await pairClient();}
 function bridgeEncode(file,onStage){return new Promise((resolve,reject)=>{
  const source=document.getElementById('jpegWorkerSource').textContent,url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
  const worker=new Worker(url);const timer=setTimeout(()=>finish(Error('JPEG编码超时')),180000);
@@ -1961,7 +1979,7 @@ document.addEventListener('keydown',async e=>{
  if(!e.ctrlKey||e.metaKey||e.code!=='KeyV'||e.repeat)return;e.preventDefault();
  try{const items=await navigator.clipboard.read(),blobs=[];for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type)blobs.push(await item.getType(type));}if(!blobs.length)throw Error('剪贴板没有图片');bridgePasteQueue=bridgePasteQueue.then(()=>bridgePaste(blobs)).catch(e=>showToast(e.message));}catch(err){showToast(err.message);}
 },true);
-bridgeCheck();setInterval(bridgeCheck,15000);
+autoConnect();setInterval(autoConnect,15000);
 
 })();
 </script>
