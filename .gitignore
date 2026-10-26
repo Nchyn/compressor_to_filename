@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.pyc
+.module-cache/
+*.part
+.env
+.env.*
+.dev.vars
+.wrangler/
+mac-clipboard/clipboard-helper
+mac-clipboard/*.app/

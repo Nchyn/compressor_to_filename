@@ -5,201 +5,211 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
-  <title>批量图片压缩器</title>
+  <title>压缩 · 右栏设置（原版配色）</title>
+  <script>
+    // file:// 直接打开时 origin 为 null，浏览器会拒绝 manifest.json（CORS）；仅在 HTTP(S) 下挂载
+    if (/^https?:$/.test(location.protocol)) {
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = 'manifest.json';
+      document.head.appendChild(manifestLink);
+    }
+  </script>
   <style>
-    :root {
-      --bg-light: #fff;
-      --text-light: #000;
-      --bg-dark: #121212;
-      --text-dark: #f0f0f0;
-      --primary-color: #007bff;
-      --primary-hover: #0069d9;
-      --border: #ccc;
-      --border-dark: #444;
+
+    :root { --bg: #ffffff;
+      --text: #000000;
+      --card: #ffffff;
+      --card2: #f9f9f9;
+      --border: #cccccc;
+      --muted: #888888;
+      --accent: #007bff;
+      --accent2: #0069d9;
+      --onaccent: #ffffff;
+      --ok: #0a7a32;
+      --skip: #8a6d1a;
+      --err: #b23b3b;
+      --hoverbg: rgba(0,0,0,.06);
+      --dragbg: #e0f7ff;
+      --shadow: rgba(0,0,0,.12);
+      --panel: rgba(255,255,255,.9); }
+    html[data-theme='dark'] { --bg: #121212;
+      --text: #f0f0f0;
+      --card: #1f1f1f;
+      --card2: #2a2a2a;
+      --border: #444444;
+      --muted: #bbbbbb;
+      --accent: #007bff;
+      --accent2: #0069d9;
+      --onaccent: #ffffff;
+      --ok: #6ee7a0;
+      --skip: #d9b45c;
+      --err: #f08a8a;
+      --hoverbg: rgba(255,255,255,.16);
+      --dragbg: #2a3a4a;
+      --shadow: rgba(0,0,0,.5);
+      --panel: rgba(31,31,31,.9); }
+    html[data-theme='light'] { background: var(--bg); color: var(--text); }
+    html[data-theme='dark'] { background: var(--bg); color: var(--text); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.6 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+    button, input { font: inherit; color: inherit; }
+    code { background: var(--card2); padding: .1em .4em; border-radius: 5px; font-size: .92em; }
+    #themeToggle { background: none; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: .3em .55em; font-size: 1.05em; color: inherit; }
+
+    .btn { padding: .5em .95em; border: 1px solid var(--border); border-radius: 9px; background: transparent; cursor: pointer; transition: .15s; color: inherit; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--onaccent); }
+    .btn.primary:hover { background: var(--accent2); border-color: var(--accent2); color: var(--onaccent); }
+    .btn.warning { background: var(--err); border-color: var(--err); color: #fff; }
+    html[data-theme='dark'] .btn:not(.primary):not(.warning) { background: var(--hoverbg); color: var(--text); }
+
+    .input-group { display: inline-flex; align-items: center; gap: .45em; flex-wrap: wrap; }
+    .input-group.disabled { opacity: .45; }
+    input[type="number"] { width: 6.5em; padding: .45em .6em; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); }
+    input[type="checkbox"] { accent-color: var(--accent); width: 1.05em; height: 1.05em; }
+
+    .mode-switch { display: inline-flex; align-items: center; gap: .55em; padding: .45em .7em; border: 1px solid var(--border); border-radius: 999px; background: var(--card2); }
+    .mode-label { font-size: 13px; color: var(--muted); transition: .15s; white-space: nowrap; }
+    .mode-label.active { color: var(--accent); font-weight: 700; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .2s; cursor: pointer; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+
+    #dropZone { border: 2px dashed var(--border); border-radius: 12px; background: var(--card); padding: 1.6em 1em; text-align: center; cursor: pointer; color: var(--muted); transition: .2s; }
+    #dropZone:hover, #dropZone.dragover { border-color: var(--accent); background: var(--dragbg); color: var(--accent); }
+    #dropZone strong { color: inherit; }
+
+    details.ref summary { cursor: pointer; color: var(--accent); font-size: 13.5px; user-select: none; }
+    .resolution-grid { display: flex; flex-wrap: wrap; gap: .4em; padding-top: .6em; }
+    .resolution-item { font-size: 12px; padding: .22em .6em; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--card); cursor: pointer; transition: border-color .15s, color .15s; }
+    .resolution-item:hover { border-color: var(--accent); color: var(--accent); }
+    .resolution-item b { font-weight: 600; color: var(--text); }
+
+    .panel-title { font-weight: 700; font-size: 13px; margin: 0 0 .6em; }
+
+    .log-header { padding: .65em 1em; font-weight: 700; font-size: 13px; background: var(--card2); border-bottom: 1px solid var(--border); position: relative; z-index: 3; }
+    .log-body { overflow: auto; padding: 0 .6em .3em; min-width: 0; }
+    .log-empty { padding: 2.4em 1em; text-align: center; color: var(--muted); }
+    .log-row { display: grid; grid-template-columns: 2fr .85fr .6fr .6fr .72fr 1.9fr; gap: .55em; padding: .55em .5em; border-bottom: 1px solid var(--border); font-size: 13px; align-items: center; min-width: 680px; }
+    .log-row.header { font-weight: 700; font-size: 12px; color: var(--muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; background: var(--card); z-index: 2; }
+    .log-row:hover { background: var(--hoverbg); }
+    .file-link { color: var(--accent); text-decoration: none; cursor: zoom-in; word-break: break-all; }
+    .file-link:hover { text-decoration: underline; }
+    .resolution-hit { color: var(--ok); font-weight: 700; }
+    .badge { display: inline-block; padding: .05em .55em; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+    .badge.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+    .badge.skip { background: color-mix(in srgb, var(--skip) 16%, transparent); color: var(--skip); }
+    .badge.err { background: color-mix(in srgb, var(--err) 16%, transparent); color: var(--err); }
+    .badge.pending { background: color-mix(in srgb, var(--accent, #007bff) 18%, transparent); color: var(--accent, #007bff); }
+
+    #imgPreview { position: fixed; top: 0; left: 0; transform: translate(-9999px, -9999px); z-index: 900; pointer-events: none; }
+    #imgPreview img { width: 200px; height: 200px; object-fit: contain; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px var(--shadow); }
+
+    #toast { position: fixed; top: 1.1em; left: 50%; transform: translateX(-50%) translateY(-10px); opacity: 0; transition: all .25s; z-index: 9999; background: var(--text); color: var(--bg); padding: .6em 1.2em; border-radius: 999px; font-size: 13.5px; max-width: min(92vw, 640px); box-shadow: 0 8px 24px var(--shadow); }
+    #toast.show { opacity: 1; }
+    body.dragging #dropZone { border-color: var(--accent); background: var(--dragbg); color: var(--accent); }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 40%, rgba(0,0,0,.5)); z-index: 1000; align-items: center; justify-content: center; padding: 1em; backdrop-filter: blur(3px); }
+    .modal-overlay.show { display: flex; }
+    .modal-content { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1.3em 1.5em; width: min(420px, 94vw); max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px var(--shadow); }
+    .modal-content .input-group input { padding: .45em; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: .7em; margin-top: .4em; }
+
+    .image-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.82); z-index: 1100; align-items: center; justify-content: center; padding: 2em; }
+    .image-modal-overlay.show { display: flex; }
+    .image-modal { background: var(--card); border-radius: 14px; overflow: hidden; max-width: min(94vw, 1000px); display: flex; flex-direction: column; }
+    .image-modal .modal-bar { display: flex; align-items: center; justify-content: space-between; gap: 1em; padding: .6em .9em; border-bottom: 1px solid var(--border); }
+    .image-modal .name { font-size: 13px; word-break: break-all; }
+    .image-modal .close { border: none; background: none; font-size: 17px; cursor: pointer; color: inherit; }
+    .image-modal img { display: block; max-width: 100%; max-height: 74vh; }
+
+    .dir-help-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1200; align-items: center; justify-content: center; padding: 1em; backdrop-filter: blur(3px); }
+    .dir-help-overlay.show { display: flex; }
+    .dir-help-card { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1.3em 1.5em; width: min(560px, 94vw); max-height: 88vh; overflow-y: auto; }
+    .dir-help-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6em; }
+    .dir-help-head h3 { margin: 0; font-size: 16px; }
+    .dir-help-close { border: none; background: none; font-size: 16px; cursor: pointer; }
+    .dir-help-meta { display: flex; gap: .5em; flex-wrap: wrap; margin-bottom: .7em; }
+    .dir-help-chip { font-size: 12px; padding: .18em .7em; border-radius: 999px; background: var(--card2); }
+    .dir-help-chip.bad { background: color-mix(in srgb, var(--err) 16%, transparent); color: var(--err); }
+    .dir-help-chip.warn { background: color-mix(in srgb, var(--skip) 16%, transparent); color: var(--skip); }
+    .dir-help-summary { color: var(--muted); font-size: 13.5px; }
+    .dir-help-steps { margin: .8em 0; padding-left: 1.4em; color: var(--muted); font-size: 13px; }
+    .dir-help-steps code { background: var(--card2); padding: .1em .4em; border-radius: 5px; }
+    .dir-help-actions { display: flex; gap: .6em; flex-wrap: wrap; }
+    .dir-help-actions .btn { text-decoration: none; display: inline-block; }
+    .dir-help-foot { color: var(--muted); font-size: 12.5px; margin: .9em 0 0; }
+
+
+    .shell { display: grid; grid-template-columns: minmax(0, 1fr) 270px; min-height: 100vh; }
+    .main { padding: 1.1em; display: flex; flex-direction: column; gap: 1em; min-width: 0; height: calc(100vh - 2.2em); }
+    .main .hd { display: flex; align-items: center; justify-content: space-between; }
+    .main .hd h1 { margin: 0; font-size: 18px; }
+    .main #dropZone { padding: 2.6em 1em; font-size: 15px; }
+    .logwrap { flex: 1; display: flex; flex-direction: column; min-height: 320px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .logwrap .log-body { flex: 1; min-height: 0; }
+    .rail { border-left: 1px solid var(--border); background: var(--card2); padding: 1.1em .95em; display: flex; flex-direction: column; gap: 1em; }
+    .rail .box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: .85em .95em; }
+    .rail h3 { margin: 0 0 .55em; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .rail .row { display: flex; flex-wrap: wrap; gap: .5em; align-items: center; }
+    .box-head { display: flex; align-items: center; justify-content: space-between; gap: .5em; margin-bottom: .55em; }
+    .box-head h3 { margin: 0; }
+    .box-head .btn { padding: .3em .7em; font-size: 12.5px; }
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      .main { height: auto; }
+      .rail { border-left: none; border-top: 1px solid var(--border); }
+      .logwrap { flex: none; }
+      .logwrap .log-body { flex: none; max-height: 60vh; }
     }
 
-    html[data-theme='dark'] { background-color: var(--bg-dark); color: var(--text-dark); }
-    html[data-theme='light'] { background-color: var(--bg-light); color: var(--text-light); }
-
-    body { font-family: sans-serif; padding: 2em; max-width: 1440px; margin: auto; transition: background .3s, color .3s; }
-
-    #dropZone { border: 2px dashed var(--border); padding: 1.5em; text-align: center; margin: 1em 0; border-radius: 10px; background: #f9f9f9; cursor: pointer; transition: background-color .3s, border-color .3s; }
-    html[data-theme='dark'] #dropZone { background: #1f1f1f; border-color: var(--border-dark); }
-    #dropZone.dragover, #dropZone:hover { background-color: #e0f7ff; border-color: var(--primary-color); }
-    html[data-theme='dark'] #dropZone.dragover, html[data-theme='dark'] #dropZone:hover { background-color: #2a3a4a; border-color: var(--primary-color); }
-
-    .toolbar { display: flex; gap: .75em; align-items: center; flex-wrap: wrap; }
-    .toolbar button, .toolbar input[type="number"], .toolbar label { font-size: 14px; }
-    .btn { padding: .6em 1em; border: 1px solid var(--border); border-radius: 8px; background: transparent; cursor: pointer; }
-    .btn.primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
-    .btn.primary:hover { background: var(--primary-hover); }
-    .btn.warning { background: #f44336; color: #fff; border-color: #f44336; }
-    .btn.warning:hover { background: #e53935; }
-
-    #themeToggle { background: none; border: none; font-size: 1.2em; cursor: pointer; color: inherit; }
-
-    .input-group { display: flex; align-items: center; gap: .5em; }
-    .input-group input[type="number"] { width: 7em; padding: .45em; border: 1px solid var(--border); border-radius: 6px; }
-    html[data-theme='dark'] .input-group input[type="number"] { background: #2a2a2a; border-color: var(--border-dark); color: var(--text-dark); }
-
-    .log { margin-top: 1em; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-    html[data-theme='dark'] .log { border-color: var(--border-dark); }
-    .log-header { padding: .7em 1em; font-weight: bold; background: rgba(0,0,0,.05); }
-    html[data-theme='dark'] .log-header { background: rgba(255,255,255,.06); }
-    .log-body { overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; max-height: 50vh; }
-    .log-row { display: grid; grid-template-columns: 2fr .6fr .6fr .6fr 1.5fr; gap: .5em; padding: .6em 1em; border-top: 1px dashed var(--border); align-items: center; word-break: break-all; }
-    html[data-theme='dark'] .log-row { border-color: var(--border-dark); }
-    .log-row.header { font-weight: 600; position: sticky; top: 0; background: inherit; border-top: none; }
-    .badge { padding: .15em .5em; border-radius: 999px; font-weight: 700; font-size: 12px; display: inline-block; }
-    .ok { background: #e7f8ec; color: #0a7a32; }
-    .skip { background: #fff6e5; color: #915e00; }
-    .err { background: #ffe8e6; color: #982222; }
-
-    .file-link { color: inherit; text-decoration: underline dotted; cursor: zoom-in; }
-
-    /* 结果预览小图（跟随鼠标） */
-    #imgPreview {
-      position: fixed;
-      top: 0; left: 0;
-      transform: translate(-9999px, -9999px);
-      background: var(--bg-light);
-      border-radius: 8px;
-      padding: 6px;
-      z-index: 1500;
-      pointer-events: none;
-      box-shadow: 0 4px 18px rgba(0,0,0,.15);
-    }
-    html[data-theme='dark'] #imgPreview {
-      background: var(--bg-dark);
-      border: 1px solid var(--primary-color);
-    }
-    #imgPreview img { max-width: 180px; max-height: 180px; display: block; }
-
-/* 大图弹窗 */
-.image-modal-overlay {
-  position: fixed; 
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  display: flex;
-  align-items: center; 
-  justify-content: center;
-  z-index: 2000;
-  /* 初始状态：完全透明且不可见 */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .3s ease, visibility .3s ease;
-}
-
-/* 当添加 .show 类时，弹窗变得可见且不透明 */
-.image-modal-overlay.show { 
-  opacity: 1; 
-  visibility: visible; 
-}
-
-.image-modal {
-  background: var(--bg-light);
-  border-radius: 12px;
-  padding: 12px;
-  max-width: 90vw;
-  max-height: 90vh;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  /* 默认的边框样式，使用通用边框颜色 */
-  border: 1px solid var(--border);
-}
-
-html[data-theme='dark'] .image-modal {
-  /* 深色模式下的背景色和边框色 */
-  background: #222;
-  border-color: var(--primary-color);
-}
-    .image-modal img { max-width: 86vw; max-height: 80vh; display: block; border-radius: 8px; }
-    .image-modal .modal-bar { display:flex; align-items:center; justify-content:space-between; gap:1em; margin-bottom:8px; }
-    .image-modal .modal-bar .name { font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70vw; }
-    .image-modal .close { border:none; background:transparent; font-size:22px; cursor:pointer; line-height:1; color: inherit; }
-
-    /* 自定义确认弹窗（保留原有样式） */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      display: none;
-      align-items: center; justify-content: center;
-      z-index: 2000; opacity: 0; transition: opacity .2s ease-in-out;
-    }
-    .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content {
-      background: var(--bg-light);
-      padding: 2em; border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      max-width: 450px; width: 90%; text-align: center;
-      transform: scale(0.95); transition: transform .2s ease-in-out;
-    }
-    .modal-overlay.show .modal-content { transform: scale(1); }
-    html[data-theme='dark'] .modal-content { background: #282828; }
-    .modal-content p { margin: 0 0 1.5em; font-size: 16px; line-height: 1.6; white-space: pre-wrap; }
-    .modal-buttons { display: flex; gap: 1em; justify-content: center; }
-
-    .toast {
-      position: fixed; top: 20px; left: 50%;
-      transform: translateX(-50%) translateY(-10px);
-      background: #333; color: #fff;
-      padding: 12px 16px; border-radius: 8px;
-      z-index: 1000; opacity: 0; pointer-events: none;
-      transition: opacity 0.3s, transform 0.3s;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-    @keyframes fadeInDown { from{opacity:0; transform:translate(-50%,-10px);} to{opacity:1; transform:translate(-50%,0);} }
-    .toast.show { animation: fadeInDown .25s; }
-    .toast.hide { opacity:0; transform:translate(-50%,-10px); }
   </style>
 </head>
-<body>
-  <header style="display:flex;align-items:center;justify-content:space-between;gap:1em;flex-wrap:wrap;">
-    <h2>📦 图片压缩器</h2>
-    <button id="themeToggle" title="深浅色切换">🌓</button>
-  </header>
 
-  <div class="toolbar">
-    <button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button>
-
-    <label class="input-group" style="gap:.4em">
-      <input type="checkbox" id="forceUseDefault" /> 手动设置
-    </label>
-    <div id="defaultSizeGroup" class="input-group" style="display:none">
-      <label for="defaultSizeInput">目标（KB）：</label>
-      <input type="number" id="defaultSizeInput" value="160" min="1" />
+  <div class="shell">
+    <div class="main">
+      <div class="hd"><h1>📐 压缩区</h1><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div id="dropZone">把 <strong>图片 / 文件夹</strong> 拖进这块主区域（整页任意位置均可拖入 · 支持 Ctrl+V 粘贴）</div>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+      <div class="logwrap">
+        <div class="log-header">处理日志</div>
+        <div class="log-body" id="logBody"></div>
+      </div>
     </div>
+    <aside class="rail">
+      <div class="box"><h3>模式 <span id="clientDot" title="客户端未连接" aria-label="客户端未连接" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle"></span></h3><div class="row"><div class="mode-switch" title="文件名优先：优先使用文件名中的 -160KB 参数；手动控制：统一使用下方目标大小">
+          <span class="mode-label active" id="modeFilenameLabel">文件名优先</span>
+          <label class="switch">
+            <input type="checkbox" id="manualModeToggle" role="switch" aria-label="当前为文件名优先，点击切换为手动控制" />
+            <span class="slider"></span>
+          </label>
+          <span class="mode-label" id="modeManualLabel">手动控制</span>
+        </div></div><div class="row" style="margin-top:.55em"><div id="defaultSizeGroup" class="input-group" style="display:none">
+          <label for="defaultSizeInput">目标（KB）：</label>
+          <input type="number" id="defaultSizeInput" value="160" min="1" />
+        </div></div><div class="row" style="margin-top:.55em"><label class="input-group" id="autoResolutionGroup" style="gap:.4em" title="按图片实际分辨率匹配已知目标大小（仅文件名优先模式可用）">
+          <input type="checkbox" id="autoResolutionCheckbox" checked /> 分辨率自动识别
+        </label></div></div>
+      <div class="box"><h3>快速目标</h3><div class="row"><span class="input-group presets">
 
-    <div class="input-group">
-      <span>快速目标：</span>
-      <button class="btn primary" data-preset="300">300KB</button>
-      <button class="btn primary" data-preset="500">500KB</button>
-      <button class="btn primary" data-preset="1000">1000KB</button>
-    </div>
-
-    <label class="input-group" style="gap:.4em">
-      <input type="checkbox" id="pngToJpgCheckbox" /> PNG优先转为高质量JPG再压缩
-    </label>
-
-    <label class="input-group" style="gap:.4em">
-      <input type="checkbox" id="removeParamCheckbox" /> 删除文件名中的参数
-    </label>
+          <button class="btn primary" data-preset="300">300KB</button>
+          <button class="btn primary" data-preset="500">500KB</button>
+          <button class="btn primary" data-preset="1000">1000KB</button>
+        </span></div></div>
+      <div class="box"><h3>选项</h3><div class="row"><label class="input-group"><input id="bridgeHalf" type="checkbox" /> 超过40MB宽高减半</label></div><div class="row"><label class="input-group" style="gap:.4em"><input type="checkbox" id="pngToJpgCheckbox" /> PNG优先转为高质量JPG</label></div><div class="row"><label class="input-group" style="gap:.4em"><input type="checkbox" id="removeParamCheckbox" /> 删除文件名中的参数</label></div></div>
+      <div class="box">
+        <div class="box-head"><h3>参考</h3><button class="btn primary" id="submitConfigBtn" title="手动提交：图片分辨率 + 目标大小配置（会记录到 D1）">📨 提交配置</button></div>
+        <details class="ref" open>
+        <summary>📐 已知分辨率 → 目标大小（<span id="resolutionCount">0</span> 条）</summary>
+        <div class="resolution-grid" id="resolutionGrid"></div>
+      </details>
+      </div>
+    </aside>
   </div>
-
-  <p style="margin:.6em 0 .2em">拖入 <strong>文件或文件夹</strong> 开始。文件名可包含大小参数，如 <code>xxx-160KB.jpg</code>。</p>
-  <div id="dropZone">📂 点击上传图片或将 <strong>文件夹</strong> 拖拽到此区域</div>
-  <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
-
-  <section class="log">
-    <div class="log-header">处理日志</div>
-    <div class="log-body" id="logBody"></div>
-  </section>
 
   <div id="imgPreview"><img alt=""></div>
 
@@ -213,19 +223,80 @@ html[data-theme='dark'] .image-modal {
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div id="toast"></div>
 
-  <script src="/res/jszip.min.js"></script>
-  <script src="/res/FileSaver.min.js"></script>
+  <div class="modal-overlay" id="submitModal">
+    <div class="modal-content" style="text-align:left">
+      <p style="margin-bottom:.8em"><strong>📨 提交图片压缩配置</strong></p>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subW" style="min-width:7.5em">分辨率宽 (px)</label>
+        <input type="number" id="subW" min="1" placeholder="如 1600" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subH" style="min-width:7.5em">分辨率高 (px)</label>
+        <input type="number" id="subH" min="1" placeholder="如 900" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subKB" style="min-width:7.5em">目标大小 (KB)</label>
+        <input type="number" id="subKB" min="1" placeholder="如 300" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.9em">
+        <label for="subNote" style="min-width:7.5em">备注（可选）</label>
+        <input type="text" id="subNote" maxlength="200" placeholder="如：官网横幅" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="modal-buttons">
+        <button id="subCancel" class="btn">取消</button>
+        <button id="subSend" class="btn primary">提交</button>
+      </div>
+      <p id="subMsg" style="margin:.8em 0 0;font-size:13px;color:var(--err);min-height:1.2em"></p>
+      <button id="subClose" style="display:none">关闭</button>
+    </div>
+  </div>
+
+  <div class="dir-help-overlay" id="dirHelpOverlay" role="dialog" aria-modal="true"
+       aria-labelledby="dirHelpTitle" aria-describedby="dirHelpSummary">
+    <div class="dir-help-card">
+      <div class="dir-help-head">
+        <h3 id="dirHelpTitle">📁 文件夹写回不可用</h3>
+        <button class="dir-help-close" id="dirHelpClose" type="button" title="关闭" aria-label="关闭目录访问指引">✕</button>
+      </div>
+      <div class="dir-help-meta">
+        <span class="dir-help-chip" id="dirHelpBrowser">正在检测浏览器…</span>
+        <span class="dir-help-chip bad" id="dirHelpStatus">目录访问：不可用</span>
+      </div>
+      <p class="dir-help-summary" id="dirHelpSummary"></p>
+      <ol class="dir-help-steps" id="dirHelpSteps"></ol>
+      <div class="dir-help-actions">
+        <button class="btn" id="dirHelpCopy" type="button">复制当前链接</button>
+        <a class="btn" id="dirHelpChrome" href="https://www.google.com/chrome/" target="_blank"
+           rel="noopener noreferrer" style="display:none">下载 Chrome</a>
+        <a class="btn" id="dirHelpEdge" href="https://www.microsoft.com/edge" target="_blank"
+           rel="noopener noreferrer" style="display:none">下载 Edge</a>
+        <button class="btn" id="dirHelpRetry" type="button" style="display:none">重新检测</button>
+        <button class="btn primary" id="dirHelpContinue" type="button">继续使用 ZIP 模式</button>
+      </div>
+      <p class="dir-help-foot" id="dirHelpFoot">继续使用 ZIP 模式时，压缩功能完全正常，只是结果会打包成 ZIP 下载，不会直接覆盖原文件夹。</p>
+    </div>
+  </div>
+
+
+  <script src="res/jszip.min.js"></script>
+  <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.3.2';
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const chooseDirBtn = document.getElementById('chooseDirBtn');
     const defaultSizeInput = document.getElementById('defaultSizeInput');
-    const forceUseDefault = document.getElementById('forceUseDefault');
+    const manualModeToggle = document.getElementById('manualModeToggle');
     const defaultSizeGroup = document.getElementById('defaultSizeGroup');
+    const autoResolutionCheckbox = document.getElementById('autoResolutionCheckbox');
+    const autoResolutionGroup = document.getElementById('autoResolutionGroup');
+    const modeFilenameLabel = document.getElementById('modeFilenameLabel');
+    const modeManualLabel = document.getElementById('modeManualLabel');
+    const resolutionGrid = document.getElementById('resolutionGrid');
+    const resolutionCount = document.getElementById('resolutionCount');
     const themeToggle = document.getElementById('themeToggle');
     const removeParamCheckbox = document.getElementById('removeParamCheckbox');
     const pngToJpgCheckbox = document.getElementById('pngToJpgCheckbox');
@@ -237,8 +308,115 @@ html[data-theme='dark'] .image-modal {
     const imgModalImg = document.getElementById('imgModalImg');
     const imgModalName = document.getElementById('imgModalName');
     const imgModalClose = document.getElementById('imgModalClose');
+    const dirHelpOverlay = document.getElementById('dirHelpOverlay');
+    const dirHelpBrowser = document.getElementById('dirHelpBrowser');
+    const dirHelpStatus = document.getElementById('dirHelpStatus');
+    const dirHelpSummary = document.getElementById('dirHelpSummary');
+    const dirHelpSteps = document.getElementById('dirHelpSteps');
+    const dirHelpCopy = document.getElementById('dirHelpCopy');
+    const dirHelpChrome = document.getElementById('dirHelpChrome');
+    const dirHelpEdge = document.getElementById('dirHelpEdge');
+    const dirHelpRetry = document.getElementById('dirHelpRetry');
+    const dirHelpContinue = document.getElementById('dirHelpContinue');
+    const dirHelpClose = document.getElementById('dirHelpClose');
+    const dirHelpFoot = document.getElementById('dirHelpFoot');
+
+    let dirHelpErrorShown = false;
+    let dirHelpLastFocus = null;
 
     const zip = new JSZip();
+
+    const DEFAULT_FALLBACK_KB = 160; // 文件名优先模式下未识别时的默认目标
+
+    // ====== 剪贴板粘贴：独立的目标规则（不跟随模式开关）======
+    // 原图 > 20MB：压至 20MB 以内；≤ 20MB：命中分辨率表用该值，否则 300KB。
+    const PASTE_MAX_BYTES = 20 * 1000 * 1000; // 20MB（1000 进制，与目标 KB 口径一致）
+    const PASTE_DEFAULT_KB = 300;
+
+    // ====== 批量压缩记录（自动上报 Cloudflare Worker + D1）======
+    // 后端已上线：Worker compressor-records，绑定 D1，自定义域名 cpr-api.nchyn.net
+    // （workers.dev 域名国内被 DNS 污染，勿改回）。置 KV_SIMULATE = true 可临时回退本地模拟。
+    const KV_ENDPOINT = 'https://cpr-api.nchyn.net/records';
+    const KV_SIMULATE = false;  // true = 本地 localStorage 模拟；false = 上报真实接口
+    const KV_LOCAL_KEY = 'compressorRecords';
+    let sessionRecords = [];   // 本次批量处理产生的记录
+    let sessionMode = 'manual'; // 本次处理模式：folder / zip / manual / paste
+    let suppressRecording = false; // 为 true 时只写日志、不产生上报记录（粘贴场景）
+
+    // ---------------- 分辨率识别规则 ----------------
+    // 已知「图片分辨率 → 目标大小」。匹配时忽略横竖方向（宽高互换视为同一分辨率）。
+    const RESOLUTION_TARGETS = [
+      { width: 1140, height: 640,  kb: 300 },
+      { width: 370,  height: 245,  kb: 100 },
+      { width: 1080, height: 1920, kb: 500 },
+      { width: 3840, height: 652,  kb: 900 },
+      { width: 3840, height: 778,  kb: 900 },
+      { width: 1242, height: 1249, kb: 160 },
+      { width: 1242, height: 1242, kb: 160 },
+      { width: 384,  height: 216,  kb: 40 },
+      { width: 5040, height: 1020, kb: 3800 },
+      { width: 5040, height: 1214, kb: 3800 },
+      { width: 4000, height: 1020, kb: 3800 },
+      { width: 4000, height: 1214, kb: 3800 },
+      { width: 1080, height: 608,  kb: 150 },
+      { width: 380, height: 254,  kb: 40 }
+    ];
+
+    const RESOLUTION_INDEX = new Map();
+    RESOLUTION_TARGETS.forEach(item => {
+      RESOLUTION_INDEX.set(resolutionKey(item.width, item.height), item);
+    });
+
+    function resolutionKey(width, height){ return `${Math.max(width, height)}x${Math.min(width, height)}`; }
+
+    function lookupResolutionTarget(width, height){
+      if (!width || !height) return null;
+      return RESOLUTION_INDEX.get(resolutionKey(width, height)) || null;
+    }
+
+    resolutionCount.textContent = RESOLUTION_TARGETS.length;
+    resolutionGrid.innerHTML = RESOLUTION_TARGETS
+      .map(item => `<span class="resolution-item" data-kb="${item.kb}" data-res="${item.width}×${item.height}" title="点击设为手动目标 ${item.kb}KB"><b>${item.width}×${item.height}</b> → ${item.kb}KB</span>`)
+      .join('');
+
+    // 点击参考条目：切换为手动控制并回填目标大小
+    resolutionGrid.addEventListener('click', (e) => {
+      const item = e.target.closest('.resolution-item');
+      if (!item) return;
+      manualModeToggle.checked = true;
+      updateModeUI();
+      defaultSizeInput.value = item.dataset.kb;
+      showToast(`已切换为手动控制：${item.dataset.res} → 目标 ${item.dataset.kb}KB`);
+    });
+
+    // ---------------- 模式状态 ----------------
+    function isManualMode(){ return manualModeToggle.checked; }
+    function isAutoResolutionEnabled(){ return autoResolutionCheckbox.checked; }
+
+    function updateModeUI(){
+      const manual = isManualMode();
+      modeFilenameLabel.classList.toggle('active', !manual);
+      modeManualLabel.classList.toggle('active', manual);
+      manualModeToggle.setAttribute('aria-label', manual
+        ? '当前为手动控制，点击切换为文件名优先'
+        : '当前为文件名优先，点击切换为手动控制');
+      // 手动控制：显示统一目标输入；分辨率识别在两种模式下均可用（命中时优先于手动值）
+      defaultSizeGroup.style.display = manual ? 'flex' : 'none';
+      autoResolutionGroup.title = '按图片实际分辨率匹配已知目标大小（命中时优先于当前模式的目标值）';
+    }
+
+    manualModeToggle.addEventListener('change', updateModeUI);
+    updateModeUI();
+
+    // 快速目标按钮 = 切换到手动控制并填入目标
+    document.querySelectorAll('[data-preset]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        manualModeToggle.checked = true;
+        updateModeUI();
+        defaultSizeInput.value = btn.dataset.preset;
+        showToast(`已切换为手动控制，目标 ${btn.dataset.preset}KB`);
+      });
+    });
 
     // 用于管理预览URL，避免内存泄漏
     let currentPreviewURLs = [];
@@ -246,30 +424,15 @@ html[data-theme='dark'] .image-modal {
       // 回收旧的 objectURL
       currentPreviewURLs.forEach(url => URL.revokeObjectURL(url));
       currentPreviewURLs = [];
-      // 重置日志，仅有表头（修复“表头重复在底部”的问题）
+      dirHelpErrorShown = false;
+      // 重置日志，仅有表头（修复“表头重复在底部”的问题）+ 空态占位
       logBody.innerHTML = `
         <div class="log-row header">
-          <div>文件</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div>
-        </div>`;
+          <div>文件</div><div>分辨率</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div>
+        </div>
+        <div class="log-empty">暂无处理记录 — 拖入图片、点击上方区域，或按 Ctrl+V 粘贴截图</div>`;
     }
     resetLog();
-
-    // 兼容性检查 + 显示/隐藏按钮
-    window.addEventListener('DOMContentLoaded', () => {
-      if (!('showDirectoryPicker' in window)) {
-        const modalText = document.getElementById('modalText');
-        modalText.textContent = '⚠️当前浏览器不支持文件直接修改⚠️\n✅️将使用文件拖拽打包为ZIP下载✅️\n推荐使用Chrome/Edge浏览器。';
-        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
-        const modalCancelBtn = document.getElementById('modalCancelBtn');
-        modalConfirmBtn.style = 'display:none';
-        modalCancelBtn.textContent = '继续使用打包模式处理图片';
-        const modal = document.getElementById('modalOverlay');
-        modal.classList.add('show');
-        modalCancelBtn.addEventListener('click', () => modal.classList.remove('show'));
-      } else {
-        // chooseDirBtn.style.display = 'inline-block'; // 如需启用目录写回，可放开
-      }
-    });
 
     function showToast(msg, ms = 5000){
       toast.textContent = msg;
@@ -303,176 +466,754 @@ html[data-theme='dark'] .image-modal {
       });
     }
 
-    function updateDefaultSizeVisibility(){ defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none'; }
-    forceUseDefault.addEventListener('change', updateDefaultSizeVisibility);
-    updateDefaultSizeVisibility();
+    // ---------------- 目录访问浏览器指引 ----------------
+    const EMBEDDED_BROWSER_NAMES = {
+      wxwork: '企业微信内置浏览器',
+      wechat: '微信内置浏览器',
+      qq: 'QQ 内置浏览器',
+      dingtalk: '钉钉内置浏览器',
+      feishu: '飞书内置浏览器',
+      alipay: '支付宝内置浏览器',
+      weibo: '微博内置浏览器',
+      douyin: '抖音内置浏览器',
+      baiduapp: '百度 App 内置浏览器',
+      toutiao: '今日头条内置浏览器',
+      xhs: '小红书内置浏览器',
+      electron: '桌面应用内置浏览器（Electron）',
+      webview: '应用内置 WebView'
+    };
 
-    // 预设按钮
-    document.querySelectorAll('[data-preset]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        forceUseDefault.checked = true;
-        updateDefaultSizeVisibility();
-        defaultSizeInput.value = btn.dataset.preset;
-        showToast(`已设置目标为 ${btn.dataset.preset}KB，并启用手动设置`);
+    function detectBrowserInfo(){
+      const ua = navigator.userAgent || '';
+      const brands = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+      const hasBrand = (...names) => brands.some(item =>
+        names.some(name => (item.brand || '').toLowerCase().includes(name))
+      );
+
+      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/.test(ua);
+      const mobile = isIOS || isAndroid || /Mobile/.test(ua);
+
+      const embedded = /wxwork/i.test(ua) ? 'wxwork'
+        : /MicroMessenger/i.test(ua) ? 'wechat'
+        : /DingTalk/i.test(ua) ? 'dingtalk'
+        : /Lark|Feishu/i.test(ua) ? 'feishu'
+        : /AlipayClient/i.test(ua) ? 'alipay'
+        : /Weibo/i.test(ua) ? 'weibo'
+        : /aweme|BytedanceWebview/i.test(ua) ? 'douyin'
+        : /baiduboxapp/i.test(ua) ? 'baiduapp'
+        : /NewsArticle/i.test(ua) ? 'toutiao'
+        : /xhs/i.test(ua) ? 'xhs'
+        : (/\bQQ\//.test(ua) && !/QQBrowser/i.test(ua)) ? 'qq'
+        : /Electron/i.test(ua) ? 'electron'
+        : /; wv\)/i.test(ua) ? 'webview'
+        : null;
+
+      const isEdge = /Edg(?:iOS|A)?\//.test(ua) || hasBrand('microsoft edge');
+      const isOpera = /OPR\//.test(ua) || hasBrand('opera');
+      const isSamsung = /SamsungBrowser/i.test(ua);
+      const isQQBrowser = /QQBrowser/i.test(ua);
+      const isUC = /UCBrowser|UBrowser/i.test(ua);
+      const isQuark = /Quark/i.test(ua);
+      const isBaidu = /BIDUBrowser|baidubrowser|BaiduBrowser/i.test(ua);
+      const isFirefox = /Firefox\/|FxiOS\//.test(ua) || hasBrand('firefox');
+      const isChromeIOS = /CriOS\//.test(ua);
+      const isChrome = (/Chrome\/|CriOS\//.test(ua) || hasBrand('google chrome', 'chromium')) &&
+        !isEdge && !isOpera && !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu;
+      const isBrave = !!(navigator.brave && navigator.brave.isBrave);
+      const isVivaldi = /Vivaldi\//.test(ua);
+      const isSafari = !isChrome && !isChromeIOS && !isEdge && !isFirefox && !isOpera &&
+        !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu && /Safari\//.test(ua);
+
+      let brand = '未知浏览器';
+      if (EMBEDDED_BROWSER_NAMES[embedded]) brand = EMBEDDED_BROWSER_NAMES[embedded];
+      else if (isQQBrowser) brand = 'QQ 浏览器';
+      else if (isUC) brand = 'UC 浏览器';
+      else if (isQuark) brand = '夸克浏览器';
+      else if (isBaidu) brand = '百度浏览器';
+      else if (isSamsung) brand = '三星浏览器';
+      else if (isEdge) brand = 'Edge';
+      else if (isOpera) brand = 'Opera';
+      else if (isBrave) brand = 'Brave';
+      else if (isVivaldi) brand = 'Vivaldi';
+      else if (isChromeIOS) brand = 'Chrome iOS';
+      else if (isChrome) brand = 'Chrome';
+      else if (isFirefox) brand = 'Firefox';
+      else if (isSafari) brand = 'Safari';
+
+      // 内置浏览器/旧内核的版本号意义不大，只显示品牌和平台
+      let version = '';
+      if (!embedded && !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu){
+        const versionMatch =
+          ua.match(/Edg(?:iOS|A)?\/([\d.]+)/) ||
+          ua.match(/OPR\/([\d.]+)/) ||
+          ua.match(/FxiOS\/([\d.]+)/) ||
+          ua.match(/Firefox\/([\d.]+)/) ||
+          ua.match(/CriOS\/([\d.]+)/) ||
+          ua.match(/Chrome\/([\d.]+)/) ||
+          ua.match(/Version\/([\d.]+)/);
+        version = versionMatch ? versionMatch[1] : '';
+      }
+      const major = parseInt(version, 10) || 0;
+
+      const platform = isIOS ? 'iOS'
+        : isAndroid ? 'Android'
+        : /Windows/.test(ua) ? 'Windows'
+        : /Macintosh|Mac OS X/.test(ua) ? 'macOS'
+        : /CrOS/.test(ua) ? 'ChromeOS'
+        : /Linux/.test(ua) ? 'Linux'
+        : '未知系统';
+
+      let engine = 'unknown';
+      if (isIOS) engine = 'webkit'; // iOS 上所有浏览器都基于 WebKit
+      else if (isFirefox) engine = 'gecko';
+      else if (isSafari) engine = 'webkit';
+      else if (isEdge || isChrome || isOpera || isSamsung || isBrave || isVivaldi ||
+               isQQBrowser || isUC || isQuark || isBaidu) engine = 'chromium';
+
+      return {
+        ua, brand, version, major, platform, mobile, embedded, engine,
+        isEdge, isOpera, isSamsung, isQQBrowser, isUC, isQuark, isBaidu,
+        isFirefox, isChrome, isChromeIOS, isBrave, isVivaldi, isSafari
+      };
+    }
+
+    function getDirectoryAccessAdvice(error = null){
+      const b = detectBrowserInfo();
+      const apiAvailable = typeof window.showDirectoryPicker === 'function';
+      const isFile = location.protocol === 'file:';
+      const host = location.hostname;
+      const isLocalHost = host === 'localhost' || host.endsWith('.localhost') ||
+        /^127\./.test(host) || host === '::1' || host === '[::1]';
+      const httpInsecure = location.protocol === 'http:' && !isLocalHost;
+      const inIframe = (() => {
+        try { return window.top !== window.self; } catch (e) { return true; }
+      })();
+      const chromiumDesktop = b.engine === 'chromium' && !b.mobile;
+      const knownUnsupported = b.isSamsung || b.isQQBrowser || b.isUC || b.isQuark || b.isBaidu;
+      const errorName = error && error.name ? error.name : '';
+      const errorMessage = error && error.message ? String(error.message) : '';
+      const zipStep = '也可以直接继续使用 ZIP 模式，压缩功能不受影响。';
+
+      let reason = '';
+      let steps = [];
+      let showChrome = false;
+      let showEdge = false;
+      let showCopy = !isFile;
+      let showRetry = false;
+      let statusText = '目录访问：不可用';
+      let statusClass = 'bad';
+
+      if (b.embedded === 'electron'){
+        reason = '当前页面在桌面应用的嵌入式浏览器（Electron）中打开，通常不提供文件夹写回权限。';
+        steps = [
+          '点击「复制当前链接」，粘贴到独立的 Chrome / Edge 标签页中打开。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并在浏览器弹窗中允许访问。',
+          zipStep
+        ];
+      } else if (b.embedded){
+        reason = `当前页面在${EMBEDDED_BROWSER_NAMES[b.embedded]}中打开，内置 WebView 通常不支持文件夹写回。`;
+        steps = [
+          '点击「复制当前链接」，或在右上角「…」/「···」菜单中选择「在浏览器中打开」/「在系统浏览器中打开」。',
+          '在系统浏览器中重新打开本站，再重试文件夹写回。',
+          '手机端即使切换到系统浏览器也可能不支持，请改用电脑版 Chrome / Edge。',
+          zipStep
+        ];
+        statusText = '目录访问：不支持';
+      } else if (b.mobile){
+        reason = b.isIOS
+          ? 'iOS / iPadOS 上的浏览器都基于 WebKit，暂不支持文件夹写回。'
+          : '手机浏览器暂不支持 File System Access API 的文件夹写回。';
+        steps = [
+          '请改用电脑版 Chrome 或 Edge（Windows / macOS）打开本站。',
+          '在电脑上把文件夹拖入页面，并在浏览器弹窗中允许访问。',
+          '手机上仍可选择多张图片，结果会打包为 ZIP 下载。'
+        ];
+        statusText = '目录访问：不支持';
+      } else if (b.isFirefox){
+        reason = 'Firefox 尚未实现 File System Access API（showDirectoryPicker），无法直接写回文件夹。';
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站（Chrome / Edge 86+ 支持，105+ 更完整）。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (b.isSafari){
+        reason = 'Safari 尚未实现文件夹写回所需的 File System Access API。';
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (knownUnsupported){
+        reason = `${b.brand} 当前内核未提供文件夹写回所需的目录选择 API。`;
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (isFile){
+        reason = '页面以 file:// 直接打开，浏览器对本地目录的写权限限制较多，目录访问可能被拒绝。';
+        steps = [
+          '推荐通过 HTTPS 地址打开本站（例如线上部署地址）。',
+          '本地调试请在项目目录运行 <code>python3 -m http.server 8000</code>，然后打开 <code>http://localhost:8000/indexv2.html</code>。',
+          '在 Chrome / Edge 中重新把文件夹拖入页面，并在权限提示中允许访问。',
+          zipStep
+        ];
+        showCopy = false;
+        statusText = apiAvailable ? '目录访问：可能受限' : '目录访问：不可用';
+        statusClass = apiAvailable ? 'warn' : 'bad';
+      } else if (httpInsecure){
+        reason = '当前页面通过普通 http:// 打开，不属于安全上下文，浏览器会禁用目录访问 API。';
+        steps = [
+          '改用 https:// 地址访问本站。',
+          '本地调试请使用 <code>http://localhost</code> 或 <code>http://127.0.0.1</code>，浏览器会把它们视为安全上下文。',
+          '重新把文件夹拖入页面并重试。',
+          zipStep
+        ];
+        statusText = '目录访问：需要 HTTPS';
+        statusClass = 'warn';
+      } else if (b.isOpera && b.major && b.major < 72){
+        reason = `当前 Opera ${b.version} 版本过低，文件夹写回需要 Opera 72+。`;
+        steps = [
+          '把 Opera 升级到最新版。',
+          '升级后重新打开本站并重试。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+      } else if (chromiumDesktop && b.major && b.major < 86 && !b.isOpera){
+        reason = `当前 ${b.brand} ${b.version} 版本过低，文件夹写回需要 Chrome / Edge 86+。`;
+        steps = [
+          '把浏览器升级到最新版（105+ 支持更完整）。',
+          '升级后重新打开本站并重试。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+      } else if (chromiumDesktop && !apiAvailable){
+        reason = '浏览器没有提供文件夹选择 API，可能是版本过低、被安全策略禁用，或当前处于受限环境。';
+        steps = [
+          '确认地址栏是 <code>https://</code> 或 <code>localhost</code>，不要使用 <code>file://</code> 或普通 <code>http://</code>。',
+          '升级到最新版 Chrome / Edge（86+ 支持，105+ 更完整）。',
+          '如果使用公司或学校统一管理的浏览器，可能被企业策略禁用，请联系管理员。',
+          '关闭可能拦截文件系统权限的扩展后重试。',
+          zipStep
+        ];
+        if (inIframe) steps.unshift('当前页面可能嵌在 iframe 中，请点击「复制当前链接」在新标签页打开。');
+        showChrome = true;
+        showEdge = true;
+        showCopy = true;
+      } else if (apiAvailable){
+        reason = errorName
+          ? `浏览器提供了目录访问 API，但本次授权失败：${errorName}${errorMessage ? `（${errorMessage}）` : ''}。`
+          : '浏览器提供了目录访问 API，但当前无法完成授权。';
+        statusText = errorName ? '目录访问：授权失败' : '目录访问：需要授权';
+        statusClass = 'warn';
+        if (errorName === 'NotAllowedError'){
+          steps = [
+            '在浏览器弹出的权限提示中选择「允许」/「编辑文件」。',
+            '如果之前选择了拒绝，请刷新页面后重新把文件夹拖入页面。',
+            '确认地址栏为 HTTPS 或 localhost。',
+            '仍失败请升级浏览器，或继续使用 ZIP 模式。'
+          ];
+          showRetry = true;
+        } else if (errorName === 'SecurityError'){
+          steps = [
+            '请直接在页面中操作，不要在 iframe、预览窗口或脚本中自动触发。',
+            '确认页面是顶层标签页，并且地址为 HTTPS 或 localhost。',
+            '刷新页面后重试；仍失败请升级 Chrome / Edge。',
+            zipStep
+          ];
+          if (inIframe) steps.unshift('当前页面嵌在 iframe 中，请复制链接到独立标签页打开。');
+          showRetry = true;
+        } else {
+          steps = [
+            '请直接在页面中操作，并在浏览器弹窗中允许访问文件夹。',
+            '确认地址栏为 HTTPS 或 localhost。',
+            '升级到最新版桌面 Chrome / Edge 后重试。',
+            zipStep
+          ];
+          if (inIframe) steps.unshift('当前页面可能嵌在 iframe 中，请复制链接到独立标签页打开。');
+          showRetry = true;
+        }
+      } else {
+        reason = '当前浏览器未提供文件夹写回能力。';
+        steps = [
+          '请使用最新版桌面 Chrome 或 Edge，并通过 HTTPS 或 localhost 打开本站。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      }
+
+      return {
+        b, apiAvailable, isFile, httpInsecure, inIframe,
+        reason, steps, showChrome, showEdge, showCopy, showRetry,
+        statusText, statusClass
+      };
+    }
+
+    function renderDirectoryHelp(advice){
+      const b = advice.b;
+      dirHelpBrowser.textContent = `${b.brand}${b.version ? ' ' + b.version : ''} · ${b.platform}${b.mobile ? ' · 移动端' : ''}`;
+      dirHelpStatus.textContent = advice.statusText;
+      dirHelpStatus.className = 'dir-help-chip ' + advice.statusClass;
+      dirHelpSummary.textContent = advice.reason;
+
+      dirHelpSteps.innerHTML = '';
+      advice.steps.forEach(step => {
+        const li = document.createElement('li');
+        li.innerHTML = step;
+        dirHelpSteps.appendChild(li);
       });
+
+      dirHelpCopy.style.display = advice.showCopy ? '' : 'none';
+      dirHelpChrome.style.display = advice.showChrome ? '' : 'none';
+      dirHelpEdge.style.display = advice.showEdge ? '' : 'none';
+      dirHelpRetry.style.display = advice.showRetry ? '' : 'none';
+
+      const chromiumDesktop = b.engine === 'chromium' && !b.mobile && !b.embedded;
+      dirHelpFoot.textContent = (chromiumDesktop && !advice.isFile && !advice.httpInsecure)
+        ? '提示：Chrome / Edge 没有单独的“目录访问”开关；把文件夹拖入页面并开始写回时，浏览器会询问是否允许。继续使用 ZIP 模式时压缩功能完全正常。'
+        : '继续使用 ZIP 模式时，压缩功能完全正常，只是结果会打包成 ZIP 下载，不会直接覆盖原文件夹。';
+    }
+
+    function showDirectoryHelp({ error = null } = {}){
+      const advice = getDirectoryAccessAdvice(error);
+      renderDirectoryHelp(advice);
+      dirHelpLastFocus = document.activeElement;
+      dirHelpOverlay.classList.add('show');
+      setTimeout(() => {
+        if (!dirHelpOverlay.classList.contains('show')) return;
+        try { dirHelpContinue.focus(); } catch (e) {}
+      }, 30);
+    }
+
+    function hideDirectoryHelp(){
+      dirHelpOverlay.classList.remove('show');
+      if (dirHelpLastFocus && typeof dirHelpLastFocus.focus === 'function'){
+        try { dirHelpLastFocus.focus(); } catch (e) {}
+      }
+    }
+
+    function notifyDirectoryWriteError(err){
+      if (!err) return;
+      if (!['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(err.name)) return;
+      if (dirHelpErrorShown) return;
+      dirHelpErrorShown = true;
+      showDirectoryHelp({ error: err });
+    }
+
+    dirHelpClose.addEventListener('click', hideDirectoryHelp);
+    dirHelpContinue.addEventListener('click', hideDirectoryHelp);
+    dirHelpOverlay.addEventListener('click', e => {
+      if (e.target === dirHelpOverlay) hideDirectoryHelp();
+    });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && dirHelpOverlay.classList.contains('show')) hideDirectoryHelp();
+    });
+    dirHelpRetry.addEventListener('click', () => location.reload());
+    dirHelpCopy.addEventListener('click', async () => {
+      const text = location.href;
+      try {
+        if (!navigator.clipboard || !window.isSecureContext) throw new Error('clipboard unavailable');
+        await navigator.clipboard.writeText(text);
+        showToast('链接已复制，可粘贴到 Chrome / Edge 打开');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (err) {}
+        ta.remove();
+        showToast(ok ? '链接已复制，可粘贴到 Chrome / Edge 打开' : '复制失败，请手动复制地址栏链接');
+      }
+    });
+
+    // 不支持目录选择时，进入页面即展示按浏览器区分的指引
+    function maybeShowDirectoryHelpOnLoad(){
+      // 样式预览页不希望被目录访问指引遮挡
+      if (new URLSearchParams(location.search).get('preview') === '1') return;
+      const host = location.hostname;
+      const isLocalHost = host === 'localhost' || host.endsWith('.localhost') ||
+        /^127\./.test(host) || host === '::1' || host === '[::1]';
+      const insecureHttp = location.protocol === 'http:' && !isLocalHost;
+      if (typeof window.showDirectoryPicker !== 'function' || insecureHttp){
+        showDirectoryHelp();
+      }
+    }
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', maybeShowDirectoryHelpOnLoad, { once: true });
+    } else {
+      maybeShowDirectoryHelpOnLoad();
+    }
+
+    // ====== 批量压缩记录：收集 / 上报 / 手动提交弹窗 ======
+    function addRecord(rec){
+      if (suppressRecording) return;
+      sessionRecords.push({
+        name: rec.name,
+        width: rec.width || null,
+        height: rec.height || null,
+        targetKB: rec.targetInfo ? rec.targetInfo.kb : null,
+        targetSource: rec.targetInfo ? rec.targetInfo.source : null,
+        origSize: rec.orig == null ? null : rec.orig,
+        resultSize: rec.result == null ? null : rec.result,
+        status: rec.status || null,
+        note: rec.note || '',
+        at: new Date().toISOString(),
+        mode: sessionMode
+      });
+    }
+
+    async function flushRecords(){
+      if (!sessionRecords.length) return;
+      const payload = {
+        mode: sessionMode,
+        count: sessionRecords.length,
+        batchAt: new Date().toISOString(),
+        records: sessionRecords
+      };
+      const useKV = !KV_SIMULATE && KV_ENDPOINT;
+      const done = () => {
+        showToast('已记录 ' + payload.count + ' 条处理记录' +
+          (useKV ? '（已上报 KV）' : '（本地模拟存储，部署 KV 接口后自动上报）'));
+        sessionRecords = [];
+      };
+      if (!useKV){
+        // localStorage 模拟：按批次追加保存
+        try {
+          const all = JSON.parse(localStorage.getItem(KV_LOCAL_KEY) || '[]');
+          all.push(payload);
+          localStorage.setItem(KV_LOCAL_KEY, JSON.stringify(all));
+        } catch(e){}
+        done();
+        return;
+      }
+      try {
+        const res = await fetch(KV_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.ok !== false){
+          done();
+        } else {
+          showToast('记录上报失败：' + ((data && data.error) || ('HTTP ' + res.status)) + '，已保留在本机');
+        }
+      } catch(err){
+        showToast('记录上报网络错误：' + err.message + '，已保留在本机');
+      }
+    }
+
+    // ---- 手动提交配置弹窗 ----
+    const submitModal = document.getElementById('submitModal');
+    function openSubmitModal(){ submitModal.classList.add('show'); }
+    function closeSubmitModal(){ submitModal.classList.remove('show'); }
+
+    function submitConfigFromDialog(){
+      const w = parseInt(document.getElementById('subW').value, 10);
+      const h = parseInt(document.getElementById('subH').value, 10);
+      const k = parseInt(document.getElementById('subKB').value, 10);
+      const note = (document.getElementById('subNote').value || '').slice(0, 200);
+      const msg = document.getElementById('subMsg');
+      if (!(w > 0 && h > 0 && k > 0)){
+        msg.textContent = '请填写正整数：分辨率宽、分辨率高、目标大小(KB)。';
+        msg.style.color = '#982222';
+        return;
+      }
+      addRecord({ name: '(手动提交)', width: w, height: h,
+        targetInfo: { kb: k, source: 'manual-submit' },
+        status: 'submitted', note });
+      closeSubmitModal();
+      flushRecords();
+      msg.textContent = '';
+    }
+
+    document.getElementById('submitConfigBtn').addEventListener('click', openSubmitModal);
+    document.getElementById('subCancel').addEventListener('click', closeSubmitModal);
+    document.getElementById('subClose').addEventListener('click', closeSubmitModal);
+    document.getElementById('subSend').addEventListener('click', submitConfigFromDialog);
+    submitModal.addEventListener('click', e => { if (e.target === submitModal) closeSubmitModal(); });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && submitModal.classList.contains('show')) closeSubmitModal();
     });
 
     function formatKB(n){ return (n/1000).toFixed(1) + 'KB'; } // 1000 进制
     function ext(name){ return name.split('.').pop().toLowerCase(); }
     function isImageName(name){ return /\.(jpe?g|png|webp)$/i.test(name); }
-    function getTargetSizeFromName(name){
-      const fallback = parseInt(defaultSizeInput.value);
-      const force = forceUseDefault.checked;
-      if (force) return Math.max(1, fallback) * 1000;
-      const m = name.match(/-(\d+)KB/i);
-      if (m) return parseInt(m[1]) * 1000;
-      return Math.max(1, fallback) * 1000;
-    }
     function getCleanFileName(name){ return name.replace(/-\d+KB(?=\.[^.]+$)/i, ''); }
     function replaceExt(name, newExt){ return name.replace(/\.[^.]+$/, '.'+newExt); }
     function getOutputFileName(origName, outExt){
       let base = removeParamCheckbox.checked ? getCleanFileName(origName) : origName;
       return replaceExt(base, outExt);
     }
-
-    function row(status, filePath, orig, target, result, note, previewURL, previewName){
-      const div = document.createElement('div'); div.className = 'log-row';
-      const badge = `<span class="badge ${status}">${status.toUpperCase()}</span>`;
-      const nameHTML = previewURL
-        ? `<a href="#" class="file-link" data-url="${previewURL}" data-name="${previewName||filePath}">${filePath}</a>`
-        : `<span>${filePath}</span>`;
-      div.innerHTML = `<div>${nameHTML}</div><div>${formatKB(orig)}</div><div>${formatKB(target)}</div><div>${formatKB(result)} ${badge}</div><div>${note||''}</div>`;
-      logBody.appendChild(div);
-      logBody.scrollTop = logBody.scrollHeight;
+    function getFilenameTargetKB(name){
+      const m = name.match(/-(\d+)KB/i);
+      if (!m) return null;
+      const kb = parseInt(m[1], 10);
+      return Number.isFinite(kb) && kb > 0 ? kb : null;
+    }
+    function getFallbackKB(){
+      // 文件名优先：未匹配文件名参数/分辨率时固定回退 160KB
+      // 手动控制：使用输入框中的统一目标
+      if (!isManualMode()) return DEFAULT_FALLBACK_KB;
+      const v = parseInt(defaultSizeInput.value, 10);
+      return Number.isFinite(v) && v > 0 ? v : DEFAULT_FALLBACK_KB;
     }
 
+    /**
+     * 计算目标大小及来源。
+     * 优先级：文件名参数（仅文件名优先模式）> 分辨率识别（复选框启用时，两种模式均生效）> 模式默认值。
+     * 文件名优先模式默认 160KB；手动控制模式默认为输入框统一目标。
+     */
+    function resolveTarget(name, width, height){
+      const fallbackKB = getFallbackKB();
+      const filenameKB = getFilenameTargetKB(name);
+      const resolution = lookupResolutionTarget(width, height);
+      const base = { width, height, filenameKB, resolution, fallbackKB };
+
+      if (isManualMode()){
+        if (isAutoResolutionEnabled() && resolution){
+          return { ...base, source: 'resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+        }
+        return { ...base, source: 'manual', kb: fallbackKB, bytes: fallbackKB * 1000 };
+      }
+      if (filenameKB != null){
+        return { ...base, source: 'filename', kb: filenameKB, bytes: filenameKB * 1000 };
+      }
+      if (isAutoResolutionEnabled() && resolution){
+        return { ...base, source: 'resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+      }
+      return { ...base, source: 'default', kb: fallbackKB, bytes: fallbackKB * 1000 };
+    }
+
+    /**
+     * 粘贴图片的目标大小：优先保证不超过 20MB 上限，其次按分辨率表，最后 300KB。
+     */
+    function resolvePasteTarget(name, width, height, fileSize){
+      const resolution = lookupResolutionTarget(width, height);
+      const base = { width, height, filenameKB: null, resolution, fallbackKB: PASTE_DEFAULT_KB, fileSize };
+
+      if (fileSize > PASTE_MAX_BYTES){
+        return { ...base, source: 'paste-limit', kb: PASTE_MAX_BYTES / 1000, bytes: PASTE_MAX_BYTES };
+      }
+      if (resolution){
+        return { ...base, source: 'paste-resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+      }
+      return { ...base, source: 'paste-default', kb: PASTE_DEFAULT_KB, bytes: PASTE_DEFAULT_KB * 1000 };
+    }
+
+    // 生成“目标来源”说明，供日志标注
+    function describeTargetSource(info){
+      const notes = [];
+      const resText = `${info.width}×${info.height}`;
+
+      if (info.source === 'filename'){
+        notes.push(`目标来源：文件名参数 ${info.kb}KB`);
+        if (info.resolution){
+          notes.push(info.resolution.kb === info.kb
+            ? `分辨率 ${resText} 与规则一致（${info.resolution.kb}KB）`
+            : `注意：分辨率 ${resText} 对应 ${info.resolution.kb}KB，按文件名优先`);
+        } else if (isAutoResolutionEnabled()){
+          notes.push(`分辨率 ${resText} 未在识别表中`);
+        }
+      } else if (info.source === 'resolution'){
+        notes.push(`目标来源：分辨率识别 ${resText} → ${info.resolution.kb}KB`);
+      } else if (info.source === 'manual'){
+        notes.push(`目标来源：手动控制 ${info.kb}KB`);
+        if (info.resolution){
+          notes.push(`分辨率 ${resText} 对应 ${info.resolution.kb}KB（分辨率识别未启用，已用手动值）`);
+        }
+      } else if (info.source === 'paste-limit'){
+        notes.push(`目标来源：粘贴图片 · 原文件 ${(info.fileSize / 1e6).toFixed(1)}MB 超过 20MB 上限`);
+        notes.push('按上限压至 20MB 以内');
+      } else if (info.source === 'paste-resolution'){
+        notes.push(`目标来源：粘贴图片 · 分辨率识别 ${resText} → ${info.kb}KB`);
+      } else if (info.source === 'paste-default'){
+        notes.push(`目标来源：粘贴图片 · 默认 ${info.kb}KB（原文件 ≤ 20MB）`);
+        notes.push(`分辨率 ${resText} 未在识别表中`);
+      } else {
+        notes.push(`目标来源：默认值 ${info.kb}KB（文件名无参数）`);
+        notes.push(isAutoResolutionEnabled()
+          ? `分辨率 ${resText} 未在识别表中`
+          : '分辨率识别未启用');
+      }
+      return notes;
+    }
+
+    function row({ status, filePath, width, height, orig, target, result, note, previewURL, previewName, rowEl, localOnly }){
+      const empty = logBody.querySelector('.log-empty');
+      if (empty) empty.remove();
+      const div = rowEl || document.createElement('div');
+      div.className = 'log-row';
+      div.innerHTML = '';
+
+      // 仅在非 pending 状态收集记录（每条日志 = 一条记录），批次结束时一并上报 KV
+      if (status !== 'pending' && !localOnly){
+        addRecord({
+          name: previewName || filePath,
+          width, height,
+          targetInfo: { kb: target == null ? null : Math.round(target / 1000),
+                        source: (note || '').match(/目标来源：([^\s；]+)/) ? note.match(/目标来源：([^\s；]+)/)[1] : null },
+          orig, result, status, note
+        });
+      }
+
+      const nameCell = document.createElement('div');
+      if (previewURL){
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'file-link';
+        a.dataset.url = previewURL;
+        a.dataset.name = previewName || filePath;
+        a.textContent = filePath;
+        nameCell.appendChild(a);
+      } else {
+        nameCell.textContent = filePath;
+      }
+
+      const resCell = document.createElement('div');
+      if (width && height){
+        resCell.textContent = `${width}×${height}`;
+        const hit = lookupResolutionTarget(width, height);
+        if (hit){
+          resCell.classList.add('resolution-hit');
+          resCell.title = `匹配规则：${hit.width}×${hit.height} → ${hit.kb}KB`;
+        } else {
+          resCell.title = '未匹配到已知分辨率';
+        }
+      } else {
+        resCell.textContent = status === 'pending' ? '计算中...' : '—';
+      }
+
+      const origCell = document.createElement('div');
+      origCell.textContent = orig == null ? '—' : formatKB(orig);
+
+      const targetCell = document.createElement('div');
+      targetCell.textContent = target == null ? (status === 'pending' ? '计算中...' : '—') : formatKB(target);
+
+      const resultCell = document.createElement('div');
+      if (status === 'pending'){
+        resultCell.innerHTML = `<span class="badge pending">处理中 ⏳</span>`;
+      } else {
+        resultCell.innerHTML = `${result == null ? '—' : formatKB(result)} <span class="badge ${status}">${status.toUpperCase()}</span>`;
+      }
+
+      const noteCell = document.createElement('div');
+      noteCell.textContent = note || '';
+
+      div.append(nameCell, resCell, origCell, targetCell, resultCell, noteCell);
+      if (!rowEl){
+        logBody.appendChild(div);
+      }
+      logBody.scrollTop = logBody.scrollHeight;
+      return div;
+    }
+
+    // 主线程让出机制：让浏览器有空隙刷新 UI 与渲染动画，杜绝超大计算卡死页面
+    function yieldToUI(){
+      return new Promise(resolve => {
+        if (typeof requestAnimationFrame === 'function'){
+          requestAnimationFrame(() => setTimeout(resolve, 0));
+        } else {
+          setTimeout(resolve, 0);
+        }
+      });
+    }
+
+    // data URL → Blob
     function dataURLToBlob(dataURL){
       const [header, base64] = dataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
+      const mime = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
       const binary = atob(base64);
+      if (!binary.length) throw new Error('浏览器无法编码该图片');
       const array = Uint8Array.from(binary, c => c.charCodeAt(0));
       return new Blob([array], { type: mime });
     }
 
-// 辅助函数：将 data URL 转换为 Blob
-function dataURLToBlob(dataurl) {
-  const arr = dataurl.split(',');
-  const mime = arr[0].match(/:(.*?);/)[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mime });
-}
+    function loadImage(url){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('图片无法解码'));
+        img.src = url;
+      });
+    }
 
-// 辅助函数：获取文件扩展名
-function getFileExtension(filename) {
-  return filename.split('.').pop().toLowerCase();
-}
+    function resolveOutputFormat(sourceExt, pngToJpg){
+      if (sourceExt === 'webp') return { mime: 'image/webp', outExt: 'webp' };
+      if (sourceExt === 'png' && !pngToJpg) return { mime: 'image/png', outExt: 'png' };
+      return { mime: 'image/jpeg', outExt: 'jpg' };
+    }
 
-/**
- * 使用二分法将图像压缩到目标大小。
- * @param {File} file 要压缩的图像文件。
- * @param {number} targetSize 目标大小，单位为字节。
- * @param {object} [options] 可选设置。
- * @param {boolean} [options.pngToJpg=false] 是否将 PNG 转换为 JPG。
- * @returns {Promise<{blob: Blob, outExt: string}>} 一个 Promise，解析为压缩后的 Blob 及其扩展名。
- */
-async function compressImageToTarget(file, targetSize, options = {}) {
-  const { pngToJpg = false } = options;
-  const img = new Image();
-  const reader = new FileReader();
+    /**
+     * 将已解码的图片压缩到目标大小。
+     * @param {HTMLImageElement} img 已加载的图片。
+     * @param {string} sourceExt 原扩展名。
+     * @param {number} targetSize 目标字节数。
+     * @param {{pngToJpg?: boolean}} options
+     * @returns {{blob: Blob, outExt: string, quality: number|null, reached: boolean}}
+     */
+    function compressToTarget(img, sourceExt, targetSize, options = {}){
+      const { pngToJpg = false } = options;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  reader.readAsDataURL(file);
-  await new Promise(res => {
-    reader.onload = () => {
-      img.src = reader.result;
-      img.onload = res;
-    };
-  });
+      const { mime, outExt } = resolveOutputFormat(sourceExt, pngToJpg);
 
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-
-  const inExt = getFileExtension(file.name);
-  let outMime = 'image/jpeg';
-  let outExt = 'jpg';
-
-  if (inExt === 'webp') {
-    outMime = 'image/webp';
-    outExt = 'webp';
-  }
-  if (inExt === 'png' && !pngToJpg) {
-    outMime = 'image/png';
-    outExt = 'png';
-  }
-
-  // 如果输出格式为 PNG，则无法使用质量参数进行压缩。
-  // 我们将直接返回重新编码的图像。
-  if (outMime === 'image/png') {
-    const dataUrl = canvas.toDataURL('image/png');
-    const blob = dataURLToBlob(dataUrl);
-    return {
-      blob,
-      outExt
-    };
-  }
-
-  // 对 JPG/WEBP 压缩使用二分法
-  let low = 0.0;
-  let high = 1.0;
-  let bestBlob = null;
-  let bestDiff = Infinity;
-
-  // 二分法搜索逻辑现在最多运行 10 次。
-  for (let i = 0; i < 10; i++) {
-    const q = (low + high) / 2;
-    const dataUrl = canvas.toDataURL(outMime, q);
-    const blob = dataURLToBlob(dataUrl);
-    const size = blob.size;
-
-    // 我们寻找小于或等于目标大小的尺寸。
-    if (size <= targetSize) {
-      bestBlob = blob;
-      low = q;
-
-      // 检查提前退出条件
-      if (Math.abs(size - targetSize) <= targetSize * 0.1) {
-        break; // 如果大小在目标值的 10% 以内，则提前退出
+      // PNG 无法用质量参数压缩，只能重新编码
+      if (mime === 'image/png'){
+        const blob = dataURLToBlob(canvas.toDataURL('image/png'));
+        return { blob, outExt, quality: null, reached: blob.size <= targetSize };
       }
-    } else {
-      high = q;
-    }
 
-    // 始终记录目前找到的最接近的 blob，以防我们超出目标
-    const diff = Math.abs(size - targetSize);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestBlob = blob;
-    }
-  }
+      // JPG / WEBP：对质量做二分搜索，始终保留“不超过目标且尽量大”的结果
+      let low = 0;
+      let high = 1;
+      let bestUnder = null;   // 小于等于目标的候选
+      let smallest = null;    // 兜底：整体最小的候选
 
-  // 最终检查，确保我们返回的是小于等于目标大小的最佳结果。
-  // 我们使用 "low" 值再循环一次，以确保得到的结果
-  // 小于或等于目标大小（如果找到了一个）。
-  if (bestBlob && bestBlob.size > targetSize) {
-    const finalDataUrl = canvas.toDataURL(outMime, low);
-    const finalBlob = dataURLToBlob(finalDataUrl);
-    if (finalBlob.size <= targetSize) {
-      return { blob: finalBlob, outExt };
-    }
-  }
+      for (let i = 0; i < 10; i++){
+        const q = (low + high) / 2;
+        const blob = dataURLToBlob(canvas.toDataURL(mime, q));
+        if (!smallest || blob.size < smallest.blob.size) smallest = { blob, q };
+        if (blob.size <= targetSize){
+          bestUnder = { blob, q };
+          if (targetSize - blob.size <= targetSize * 0.05) break;
+          low = q;
+        } else {
+          high = q;
+        }
+      }
 
-  return {
-    blob: bestBlob,
-    outExt
-  };
-}
+      const chosen = bestUnder || smallest;
+      return {
+        blob: chosen.blob,
+        outExt,
+        quality: chosen.q,
+        reached: chosen.blob.size <= targetSize
+      };
+    }
 
 
     // 统计目录内图片数量
@@ -490,73 +1231,149 @@ async function compressImageToTarget(file, targetSize, options = {}) {
 
     function createZipAndDownload(name){ zip.generateAsync({type:'blob'}).then(b => saveAs(b, name)); }
 
-async function processFileLike(readFile, writeBack, displayPath){
+async function processFileLike(readFile, writeBack, displayPath, opts = {}){
       const {file, name} = await readFile();
       if (!isImageName(name)) return;
 
-      const target = getTargetSizeFromName(name);
-      const pngToJpg = pngToJpgCheckbox.checked;
+      const rowEl = opts.rowEl || null;
       const fileExt = ext(name);
+      const pngScale = !!opts.pngScale;   // 粘贴模式：产物固定为 PNG，靠缩放达标
+      const pngToJpg = !pngScale && (pngToJpgCheckbox.checked || !!opts.forceJpeg);
 
       // 预览（默认用原文件，若之后有压缩会替换为新blob）
       let previewURL = URL.createObjectURL(file);
       currentPreviewURLs.push(previewURL);
-      let outName = name;
-      let compressed, outExt, noteParts;
 
-      // 新增逻辑: 如果是PNG且勾选了转JPG，无视大小直接压缩
-      if (fileExt === 'png' && pngToJpg) {
-        // 直接执行压缩和转换
-        ({ blob: compressed, outExt } = await compressImageToTarget(file, target, { pngToJpg }));
-        noteParts = [`扩展名 ${fileExt}→${outExt}`];
-      } else if (file.size <= target && !removeParamCheckbox.checked) {
-        // 如果原始文件小于目标且不需要改名，则直接跳过
-        row('skip', displayPath, file.size, target, file.size, '原始文件小于目标，跳过', previewURL, name);
+      // 先解码一次，拿到真实分辨率（分辨率识别与压缩共用）
+      let img;
+      try {
+        img = await loadImage(previewURL);
+      } catch (err) {
+        row({ status: 'err', filePath: displayPath, orig: file.size, target: null, result: null,
+              note: '图片无法解码，已跳过', previewURL, previewName: name, rowEl });
         return;
-      } else {
-        // 否则，尝试压缩
-        ({ blob: compressed, outExt } = await compressImageToTarget(file, target, { pngToJpg }));
-        noteParts = [];
       }
 
-      // 处理文件名修改的情况
-      if (!compressed || compressed.size >= file.size) {
-        // 如果压缩失败或结果更大，则仅修改文件名（如果勾选了）
-        if (removeParamCheckbox.checked) {
-          const finalName = getOutputFileName(name, fileExt);
-          outName = finalName;
-          await writeBack(file, finalName);
-          row('skip', displayPath, file.size, target, file.size, '未压缩，仅修改文件名', previewURL, finalName);
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      const targetInfo = opts.targetResolver
+        ? opts.targetResolver(name, width, height, file.size)
+        : resolveTarget(name, width, height);
+      const target = targetInfo.bytes;
+      const sourceNotes = describeTargetSource(targetInfo);
+      const rowBase = { filePath: displayPath, width, height, orig: file.size, target, rowEl };
+      const renamedName = getOutputFileName(name, fileExt);
+      const needsRename = removeParamCheckbox.checked && renamedName !== name;
+
+      let converted = null;
+
+      // 1) PNG 且勾选转 JPG：优先转换，即使原文件已小于目标
+      // 2) 原文件已小于目标：不再重编码，必要时只改文件名
+      // 3) 其他情况：正常压缩到目标
+      if (fileExt === 'png' && pngToJpg){
+        try {
+          converted = compressToTarget(img, fileExt, target, { pngToJpg });
+        } catch (err) {
+          row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, `压缩失败：${err.message}`].join('；') });
+          return;
+        }
+      } else if (!pngScale && file.size <= target){
+        if (needsRename){
+          try {
+            await writeBack(file, renamedName);
+          } catch (err) {
+            notifyDirectoryWriteError(err);
+            row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                  note: [...sourceNotes, `重命名失败：${err.message}`].join('；') });
+            return;
+          }
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: renamedName,
+                note: [...sourceNotes, '原始文件已小于目标，仅修改文件名'].join('；') });
         } else {
-          // 否则，跳过处理
-          row('skip', displayPath, file.size, target, file.size, '压缩后更大，跳过', previewURL, name);
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, '原始文件小于目标，跳过'].join('；') });
+        }
+        return;
+      }
+
+      if (!converted){
+        try {
+          converted = pngScale
+            ? await compressPngToTarget(img, target, { origSize: file.size, rowEl })
+            : compressToTarget(img, fileExt, target, { pngToJpg });
+        } catch (err) {
+          row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, `压缩失败：${err.message}`].join('；') });
+          return;
+        }
+      }
+
+      const compressed = converted.blob;
+      const outExt = converted.outExt;
+
+      // 压缩没有变小：不写回压缩结果，仅在需要时修改文件名（PNG 缩放模式下产物是目标格式，照常输出）
+      if (!compressed || (!pngScale && compressed.size >= file.size)){
+        if (needsRename){
+          try {
+            await writeBack(file, renamedName);
+          } catch (err) {
+            notifyDirectoryWriteError(err);
+            row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                  note: [...sourceNotes, `重命名失败：${err.message}`].join('；') });
+            return;
+          }
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: renamedName,
+                note: [...sourceNotes, '压缩后未变小，仅修改文件名'].join('；') });
+        } else {
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, '压缩后未变小，已跳过'].join('；') });
         }
         return;
       }
 
       // 正常写回（压缩成功）
       const finalName = getOutputFileName(name, outExt);
-      outName = finalName;
-
       const resultURL = URL.createObjectURL(compressed);
       currentPreviewURLs.push(resultURL);
       previewURL = resultURL;
 
-      await writeBack(compressed, finalName);
+      try {
+        await writeBack(compressed, finalName);
+      } catch (err) {
+        notifyDirectoryWriteError(err);
+        row({ ...rowBase, status: 'err', result: compressed.size, previewURL, previewName: finalName,
+              note: [...sourceNotes, `写回失败：${err.message}`].join('；') });
+        return;
+      }
 
-      noteParts.push(compressed.size > target ? '已减小但未达目标' : `压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
-      row('ok', displayPath, file.size, target, compressed.size, noteParts.join('；'), previewURL, finalName);
+      const detailNotes = [...sourceNotes];
+      if (outExt !== fileExt) detailNotes.push(`格式 ${fileExt}→${outExt}`);
+      if (converted.quality != null) detailNotes.push(`质量 ${Math.round(converted.quality * 100)}%`);
+      if (converted.scaled) detailNotes.push(`尺寸缩放 ${width}×${height} → ${converted.width}×${converted.height}`);
+      detailNotes.push(compressed.size > target
+        ? `已减小但未达 ${targetInfo.kb}KB 目标`
+        : `压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
+
+      row({ ...rowBase, status: 'ok', result: compressed.size, previewURL, previewName: finalName,
+            note: detailNotes.join('；') });
     }
 
     // 目录模式（覆盖保存 + 可重命名/改后缀）
     async function chooseAndProcessDirectory(handle){
       try{
         if (!handle){
-          if (!window.showDirectoryPicker){
-            alert('当前浏览器不支持目录访问，请使用 Chrome/Edge 或改用拖拽文件压缩为 ZIP 下载。');
+          if (typeof window.showDirectoryPicker !== 'function'){
+            showDirectoryHelp();
             return;
           }
-          handle = await showDirectoryPicker();
+          try {
+            handle = await showDirectoryPicker();
+          } catch (err) {
+            if (err && err.name === 'AbortError') return; // 用户取消选择
+            showDirectoryHelp({ error: err });
+            return;
+          }
         }
 
         const imageCount = await countImageFiles(handle);
@@ -568,6 +1385,8 @@ async function processFileLike(readFile, writeBack, displayPath){
         if (!ok) return;
 
         resetLog();
+        sessionMode = 'folder';
+        sessionRecords = [];
 
         async function walk(dirHandle, prefix=''){
           for await (const [name, entry] of dirHandle.entries()){
@@ -594,10 +1413,15 @@ async function processFileLike(readFile, writeBack, displayPath){
         }
 
         await walk(handle);
+        await flushRecords();
         showToast('🎉 全部处理完成（文件夹模式）');
       }catch(e){
         console.error(e);
-        showToast('处理出错：' + e.message);
+        if (e && ['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(e.name)){
+          showDirectoryHelp({ error: e });
+        } else {
+          showToast('处理出错：' + e.message);
+        }
       }
     }
 
@@ -605,6 +1429,8 @@ async function processFileLike(readFile, writeBack, displayPath){
     async function handleFilesToZip(files){
       zip.files = {}; // 重置ZIP
       resetLog();     // 清空上次日志（满足需求#2）
+      sessionMode = 'zip';
+      sessionRecords = [];
       let any = false;
       for (const file of files){
         const displayName = file.name;
@@ -623,18 +1449,278 @@ async function processFileLike(readFile, writeBack, displayPath){
         const now = new Date();
         const zipName = `compressed_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}.zip`;
         createZipAndDownload(zipName);
+        await flushRecords();
         showToast('🎉 全部处理完成（已生成 ZIP）');
       } else {
         showToast('未处理任何文件');
       }
     }
 
-    // 拖拽交互（单文件夹或多个文件）
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', async e => {
+    // ====== 剪贴板粘贴图片 ======
+    // 目标规则见 resolvePasteTarget：>20MB 压到上限内；否则按分辨率表；再否则 300KB。
+    function pasteFileName(blob, index, total){
+      const t = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      const stamp = `${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}`;
+      const type = (blob.type || '').toLowerCase();
+      const outExt = /jpe?g/.test(type) ? 'jpg' : /webp/.test(type) ? 'webp' : 'png';
+      return `粘贴图片-${stamp}${total > 1 ? '-' + (index + 1) : ''}.${outExt}`;
+    }
+
+    // ==== 按体积缩放 PNG（剪贴板只接受 PNG，只能靠减小尺寸控制体积）====
+    async function encodePngAtScale(img, scale){
+      const sw = img.naturalWidth || img.width;
+      const sh = img.naturalHeight || img.height;
+      const w = Math.max(1, Math.round(sw * scale));
+      const h = Math.max(1, Math.round(sh * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      const blob = await new Promise((res, rej) => {
+        canvas.toBlob(b => b ? res(b) : rej(new Error('PNG 编码失败')), 'image/png');
+      });
+      // 及时清空 Canvas 像素数据以释放浏览器显存/内存
+      canvas.width = 0;
+      canvas.height = 0;
+      return { blob, width: w, height: h, scale, outExt: 'png', quality: null };
+    }
+
+    /**
+     * 智能二分搜索缩放比例，取「PNG 体积 ≤ 目标」的最大尺寸。
+     * 优化：
+     * 1. 避免对超大图片无意义地先压缩 100% 全尺寸（若原图很大，100% 极耗时且注定超标）
+     * 2. 基于面积与体积关系预估合理的初始 scale
+     * 3. 循环间隙让出主线程（yieldToUI），杜绝浏览器页面无响应
+     * 4. 逼近目标 ≤8% 容差或步长 <0.035 时提前退出，大幅降低迭代编码次数
+     * @returns {{blob, outExt:'png', width, height, scale, reached, scaled}}
+     */
+    async function compressPngToTarget(img, targetSize, options = {}){
+      const minScale = options.minScale || 0.1;
+      const origSize = options.origSize || 0;
+      const sw = img.naturalWidth || img.width;
+      const sh = img.naturalHeight || img.height;
+      const totalPixels = sw * sh;
+
+      // 若原图明显远大于目标（>1.6倍目标），或像素数极大（>220万像素）且目标要求较高，
+      // 避免花费数秒在 100% 原始尺寸上做一次注定超标的 Canvas PNG 编码
+      const mustBeOversized = (origSize > targetSize * 1.6) ||
+        (origSize === 0 && totalPixels > 2200000 && targetSize < 600000);
+
+      let full = null;
+      let smallest = null;
+      let best = null;
+      let low = minScale;
+      let high = 1.0;
+
+      if (!mustBeOversized){
+        await yieldToUI();
+        full = await encodePngAtScale(img, 1);
+        smallest = full;
+        if (full.blob.size <= targetSize){
+          return { ...full, reached: true, scaled: false };
+        }
+        high = 1.0;
+      } else {
+        // 根据面积平方比预估一个合理且留有余量的初始测试 scale
+        const estimatedScale = origSize > 0
+          ? Math.min(0.9, Math.max(minScale + 0.05, Math.sqrt(targetSize / origSize) * 1.3))
+          : Math.min(0.85, Math.max(minScale + 0.05, Math.sqrt(targetSize / (totalPixels * 1.5)) * 1.3));
+
+        await yieldToUI();
+        const firstTry = await encodePngAtScale(img, estimatedScale);
+        smallest = firstTry;
+        if (firstTry.blob.size <= targetSize){
+          best = firstTry;
+          low = estimatedScale;
+          high = Math.min(1.0, estimatedScale * 1.4);
+        } else {
+          high = estimatedScale;
+        }
+      }
+
+      // 二分查找：最多 4 次迭代，接近目标（容差 ≤ 8%）时提前终止
+      for (let i = 0; i < 4; i++){
+        if (high - low < 0.035) break;
+        if (best && (targetSize - best.blob.size) <= targetSize * 0.08) break;
+
+        await yieldToUI();
+        const mid = (low + high) / 2;
+        const cand = await encodePngAtScale(img, mid);
+        if (!smallest || cand.blob.size < smallest.blob.size) smallest = cand;
+
+        if (cand.blob.size <= targetSize){
+          best = cand;
+          low = mid;
+          if (targetSize - cand.blob.size <= targetSize * 0.08) break;
+        } else {
+          high = mid;
+        }
+      }
+
+      if (!best){
+        await yieldToUI();
+        const lim = await encodePngAtScale(img, minScale);
+        if (!smallest || lim.blob.size < smallest.blob.size) smallest = lim;
+        if (lim.blob.size <= targetSize) best = lim;
+      }
+
+      const chosen = best || smallest;
+      return {
+        ...chosen,
+        reached: !!best,
+        scaled: chosen.width !== sw || chosen.height !== sh
+      };
+    }
+
+    // 把任意图片 blob 转成 PNG（浏览器剪贴板仅支持写 image/png）
+    async function blobToPngBlob(blob){
+      if (/^image\/png$/i.test(blob.type)) return blob;
+      const url = URL.createObjectURL(blob);
+      try {
+        const img = await loadImage(url);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        return await new Promise((res, rej) => {
+          canvas.toBlob(b => b ? res(b) : rej(new Error('PNG 编码失败')), 'image/png');
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    async function writeImagesToClipboard(blobs){
+      if (!(navigator.clipboard && window.ClipboardItem)){
+        throw new Error('当前浏览器不支持剪贴板写入（需 Chrome / Edge）');
+      }
+      const pngs = [];
+      for (const b of blobs){
+        pngs.push(await blobToPngBlob(b));
+        await yieldToUI();
+      }
+      const build = (arr) => arr.map(p => new ClipboardItem({ 'image/png': p }));
+      try {
+        await navigator.clipboard.write(build(pngs));
+        return { pngs, copied: pngs.length, fallback: false };
+      } catch (err) {
+        if (pngs.length <= 1) throw err;
+        // 多数平台一次只接受一张图片，退回第一张
+        await navigator.clipboard.write(build(pngs.slice(0, 1)));
+        return { pngs, copied: 1, fallback: true };
+      }
+    }
+
+    function appendRowNote(rowEl, text){
+      if (!rowEl) return;
+      const cell = rowEl.lastElementChild;
+      if (!cell) return;
+      cell.textContent = cell.textContent ? cell.textContent + '；' + text : text;
+    }
+
+    async function handlePastedImages(blobs){
+      if (!blobs.length) return;
+      sessionMode = 'paste';
+      sessionRecords = [];
+
+      const items = blobs.map((b, i) => {
+        const name = pasteFileName(b, i, blobs.length);
+        return { file: new File([b], name, { type: b.type || 'image/png' }), name };
+      });
+
+      const outputs = [];
+      const rowEls = [];
+      // 粘贴只写日志、不产生上报记录（不入 D1）
+      suppressRecording = true;
+      try {
+        for (const item of items){
+          // 立即创建占位行，UI 即时显示处理中状态
+          const placeholderRow = row({
+            status: 'pending',
+            filePath: item.name,
+            width: null,
+            height: null,
+            orig: item.file.size,
+            target: null,
+            result: null,
+            note: '正在读取并计算压缩尺寸...',
+            previewURL: null,
+            previewName: item.name
+          });
+          rowEls.push(placeholderRow);
+          await yieldToUI();
+
+          const before = outputs.length;
+          await processFileLike(
+            async () => ({ file: item.file, name: item.name }),
+            async (blob, suggestedName) => { outputs.push({ blob, name: suggestedName || item.name }); },
+            item.name,
+            {
+              targetResolver: resolvePasteTarget,
+              // 产物必须是 PNG 才能进剪贴板，体积靠缩放控制
+              pngScale: true,
+              rowEl: placeholderRow
+            }
+          );
+          // 被跳过（原图已达标 / 压缩无收益）时，仍把原图交还
+          if (outputs.length === before) outputs.push({ blob: item.file, name: item.name });
+          await yieldToUI();
+        }
+      } finally {
+        suppressRecording = false;
+      }
+
+      try {
+        const { pngs, copied } = await writeImagesToClipboard(outputs.map(o => o.blob));
+        rowEls.forEach((el, i) => {
+          if (!el) return;
+          const png = pngs[i];
+          const tag = (copied < outputs.length)
+            ? '已复制到剪贴板（多张时仅第一张可粘贴）'
+            : `已复制到剪贴板 PNG ${(png.size / 1000).toFixed(1)}KB`;
+          appendRowNote(el, tag);
+        });
+        showToast(copied === outputs.length
+          ? `✅ 已复制 ${copied} 张图片到剪贴板`
+          : `已复制 ${copied} 张（共 ${outputs.length} 张；多数应用一次只能粘贴第一张）`);
+      } catch (err) {
+        rowEls.forEach(el => appendRowNote(el, `写入剪贴板失败：${err.message}`));
+        showToast('写入剪贴板失败：' + err.message + '（请先点击页面使其获得焦点，并使用 HTTPS 或 localhost 访问）');
+      }
+    }
+
+    document.addEventListener('paste', async (e) => {
+      const isInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+      const dt = e.clipboardData;
+      if (!dt) return;
+      const blobs = [];
+      Array.from(dt.items || []).forEach(item => {
+        if (item.kind === 'file' && /^image\//i.test(item.type)){
+          const f = item.getAsFile();
+          if (f) blobs.push(f);
+        }
+      });
+      if (!blobs.length){
+        if (!isInput){
+          showToast('剪贴板中未检测到图片');
+        }
+        return;
+      }
+      e.preventDefault();
+      showToast(`📋 已捕获 ${blobs.length} 张剪贴板图片，正在处理...`);
+      await yieldToUI();
+      handlePastedImages(blobs).catch(err => showToast('粘贴处理失败：' + err.message));
+    });
+
+    // 拖拽交互（单文件夹或多个文件）—— 整页任意位置均可拖入
+    async function handleDrop(e){
       e.preventDefault();
       dropZone.classList.remove('dragover');
+      document.body.classList.remove('dragging');
 
       const items = e.dataTransfer.items;
       const files = e.dataTransfer.files;
@@ -649,7 +1735,14 @@ async function processFileLike(readFile, writeBack, displayPath){
               await chooseAndProcessDirectory(handle);
               return;
             }
-          }catch(err){}
+          }catch(err){
+            // 目录句柄获取失败时，如果确认是文件夹，给出对应的浏览器指引，再回退到 ZIP
+            const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+            if (entry && entry.isDirectory && err &&
+                ['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(err.name)){
+              showDirectoryHelp({ error: err });
+            }
+          }
         }
         // 旧 webkit API（只读，转ZIP）
         if (item.webkitGetAsEntry){
@@ -681,7 +1774,15 @@ async function processFileLike(readFile, writeBack, displayPath){
       if (files && files.length) {
         await handleFilesToZip(Array.from(files));
       }
-    });
+    }
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', handleDrop);
+    // 整页拖入：任意位置松手都接收；拖动经过页面时高亮拖放区
+    window.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+    window.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+    window.addEventListener('drop', handleDrop);
 
     // 点击选择文件（ZIP 模式）
     dropZone.addEventListener('click', () => fileInput.click());
@@ -698,8 +1799,10 @@ async function processFileLike(readFile, writeBack, displayPath){
       html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', html.dataset.theme);
     });
+    const themeOverride = new URLSearchParams(location.search).get('theme');
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    if (themeOverride === 'light' || themeOverride === 'dark') document.documentElement.dataset.theme = themeOverride;
+    else if (savedTheme) document.documentElement.dataset.theme = savedTheme;
     else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
 
     // 简单版本缓存清理
@@ -750,6 +1853,8 @@ async function processFileLike(readFile, writeBack, displayPath){
     imgModalClose.addEventListener('click', ()=> imgModal.classList.remove('show'));
     imgModal.addEventListener('click', (e)=>{ if (e.target === imgModal) imgModal.classList.remove('show'); });
     window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') imgModal.classList.remove('show'); });
+
+
   </script>
 
   <!-- 统计脚本（可选） -->
@@ -773,5 +1878,92 @@ async function processFileLike(readFile, writeBack, displayPath){
       </div>
     </div>
   </div>
+<script id="jpegWorkerSource" type="text/plain">
+self.onmessage=async({data:{file,options}})=>{
+ const start=performance.now();let image,canvas;
+ const stage=text=>postMessage({type:'stage',text});
+ try{
+  stage('解码图片');image=await createImageBitmap(file);
+  const origWidth=image.width,origHeight=image.height;
+  const half=options.preHalf&&file.size>40000000;
+  const width=Math.max(1,Math.floor(origWidth*(half?.5:1))),height=Math.max(1,Math.floor(origHeight*(half?.5:1)));
+  canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);image.close();image=null;
+  const decodeDrawMs=Math.round(performance.now()-start),attempts=[];let chosen=null,low=.45,high=.98,q=.92;
+  for(let i=0;i<5;i++){
+   stage(`JPEG编码 ${i+1}/5 · 质量参数 ${q.toFixed(3)}`);const t=performance.now();
+   const blob=await canvas.convertToBlob({type:'image/jpeg',quality:q});
+   if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
+   attempts.push({quality:q,bytes:blob.size,ms:Math.round(performance.now()-t)});
+   if(blob.size<20000000){chosen={blob,quality:q};low=q;if(!options.qualityFirst||high-low<.02)break;q=(low+high)/2;}
+   else{high=q;if(low===.45&&!chosen){q=Math.max(.45,q-.15);if(attempts.some(a=>a.quality===q))break;}else q=(low+high)/2;}
+  }
+  if(!chosen)throw Error('5轮预算内未达到20MB；未自动降低分辨率。可主动开启40MB减半后重试。');
+  postMessage({type:'result',result:{...chosen,width,height,origWidth,origHeight,half,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});
+ }catch(e){postMessage({type:'error',message:e.message});}
+ finally{image?.close();if(canvas)canvas.width=canvas.height=0;}
+};
+
+</script>
+<script>
+(()=>{
+// Included inline in the file-openable rail variant; secrets stay in this main-thread closure.
+const bridgeConfig=(()=>{
+ const params=new URLSearchParams(location.hash.slice(1));
+ let endpoint=params.get('client'),token=params.get('token');
+ try{if(endpoint&&token)sessionStorage.setItem('rail-client',JSON.stringify({endpoint,token}));else({endpoint,token}=JSON.parse(sessionStorage.getItem('rail-client')||'{}'));}catch{}
+ if(params.has('token')){try{history.replaceState(null,'',location.href.split('#')[0]);}catch{}}
+ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint||''))return null;
+ return {endpoint,token};
+})();
+let bridgeConnected=false,bridgePasteQueue=Promise.resolve();
+async function bridgeRequest(path,body,type='application/json'){
+ if(!bridgeConfig)throw Error('客户端未连接');
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+ try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{Authorization:'Bearer '+bridgeConfig.token,'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
+}
+async function bridgeCheck(){
+ try{await bridgeRequest('/api/health',{});bridgeConnected=true;}catch{bridgeConnected=false;}
+ const dot=document.getElementById('clientDot');dot.style.background=bridgeConnected?'#22c55e':'#aaa';dot.title=bridgeConnected?'客户端已连接':'客户端未连接';dot.setAttribute('aria-label',dot.title);
+}
+function bridgeEncode(file,onStage){return new Promise((resolve,reject)=>{
+ const source=document.getElementById('jpegWorkerSource').textContent,url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+ const worker=new Worker(url);const timer=setTimeout(()=>finish(Error('JPEG编码超时')),180000);
+ function finish(error,result){clearTimeout(timer);worker.terminate();URL.revokeObjectURL(url);error?reject(error):resolve(result);}
+ worker.onmessage=({data})=>{if(data.type==='stage')onStage(data.text);else if(data.type==='error')finish(Error(data.message));else finish(null,data.result);};
+ worker.onerror=e=>finish(Error(e.message));
+ worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,qualityFirst:false,background:'#ffffff'}});
+});}
+async function bridgePaste(blobs){
+ for(let i=0;i<blobs.length;i++){
+  const file=blobs[i],name=file.name||`剪贴板-${Date.now()}.jpg`;
+  const entry=row({localOnly:true,status:'pending',filePath:name,orig:file.size,target:20000000,note:'JPEG编码中'});
+  try{
+   const r=await bridgeEncode(file,text=>{entry.lastElementChild.textContent=text;});
+   const preview=URL.createObjectURL(r.blob);
+   row({localOnly:true,rowEl:entry,status:'ok',filePath:name,width:r.width,height:r.height,orig:file.size,target:20000000,result:r.blob.size,note:`JPEG · ${r.ms}ms${r.half?' · 宽高减半':''}`,previewURL:preview,previewName:name});
+   const cell=entry.lastElementChild,status=document.createElement('span'),button=document.createElement('button');button.className='btn';button.textContent='复制文件';cell.append(' ',button,' ',status);
+   let id=null,busy=false;
+   async function copy(){if(busy)return;busy=true;button.disabled=true;try{status.textContent='写入中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');status.textContent='已复制';}catch(e){status.textContent=e.message;}finally{busy=false;button.disabled=false;}}
+   button.onclick=copy;await copy();
+  }catch(e){row({localOnly:true,rowEl:entry,status:'err',filePath:name,orig:file.size,target:20000000,note:e.message});}
+ }
+}
+// Capture before the classic paste handler; folder and ZIP workflows are unchanged.
+document.addEventListener('paste',e=>{
+ const dt=e.clipboardData;let blobs=Array.from(dt?.files||[]).filter(f=>f.type.startsWith('image/'));
+ if(!blobs.length)blobs=Array.from(dt?.items||[]).filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);
+ if(!blobs.length)return;e.preventDefault();e.stopImmediatePropagation();
+ showToast(`已捕获 ${blobs.length} 张图片`);
+ bridgePasteQueue=bridgePasteQueue.then(()=>bridgePaste(blobs)).catch(e=>showToast(e.message));
+},true);
+document.addEventListener('keydown',async e=>{
+ if(!e.ctrlKey||e.metaKey||e.code!=='KeyV'||e.repeat)return;e.preventDefault();
+ try{const items=await navigator.clipboard.read(),blobs=[];for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type)blobs.push(await item.getType(type));}if(!blobs.length)throw Error('剪贴板没有图片');bridgePasteQueue=bridgePasteQueue.then(()=>bridgePaste(blobs)).catch(e=>showToast(e.message));}catch(err){showToast(err.message);}
+},true);
+bridgeCheck();setInterval(bridgeCheck,15000);
+
+})();
+</script>
 </body>
 </html>
