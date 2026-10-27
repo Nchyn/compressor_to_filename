@@ -1923,26 +1923,18 @@ self.onmessage=async({data:{file,options}})=>{
 <script>
 (()=>{
 // Included inline in the file-openable rail variant; secrets stay in this main-thread closure.
-let bridgeConfig=(()=>{
- const params=new URLSearchParams(location.hash.slice(1));
- let endpoint=params.get('client'),token=params.get('token');
- try{if(!token)({endpoint,token}=JSON.parse(localStorage.getItem('rail-pair')||'{}'));}catch{}
- endpoint ||= 'http://127.0.0.1:48731';
- if(params.has('token')){try{history.replaceState(null,'',location.href.split('#')[0]);}catch{}}
- if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint||''))return null;
- return {endpoint,token};
-})();
+let bridgeConfig={endpoint:'http://127.0.0.1:48731'};
 let bridgeConnected=false,bridgePasteQueue=Promise.resolve();
 async function bridgeRequest(path,body,type='application/json'){
  if(!bridgeConfig)throw Error('客户端未连接');
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),path==='/api/health'?3000:90000);
- try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{Authorization:'Bearer '+bridgeConfig.token,'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
+ try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
 }
 let pairingBusy=false,connectBusy=false,retryAt=0,pairMessage='';
 const connectionDot=document.getElementById('clientDot');
 function connectionStatus(message){
  connectionDot.style.background=bridgeConnected?'#22c55e':pairingBusy?'#f59e0b':'#aaa';
- connectionDot.title=message+'\n本机服务：127.0.0.1:48731\n点击重新检查连接；未授权时申请配对。客户端服务退出时，请先在客户端重启。';
+ connectionDot.title=message+'\n本机服务：127.0.0.1:48731\n点击重新连接；请在客户端保存此压缩器URL。服务退出时，请先重启客户端。';
  connectionDot.setAttribute('aria-label',message);
 }
 function connectionError(e){
@@ -1954,36 +1946,13 @@ async function bridgeCheck(){
  try{await bridgeRequest('/api/health',{});bridgeConnected=true;pairMessage='';connectionStatus('客户端已连接');}
  catch(e){bridgeConnected=false;connectionStatus(pairingBusy?'等待客户端确认配对':pairMessage||connectionError(e));}
 }
-async function pairClient(){
- if(pairingBusy)return;pairingBusy=true;connectionStatus('正在申请配对');
- const endpoint='http://127.0.0.1:48731';
- async function request(path,body){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);try{const response=await fetch(endpoint+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const result=await response.json();if(!response.ok)throw Error(result.error||'配对失败');return result;}finally{clearTimeout(timer);}}
- try{
-  const pending=await request('/api/pair/request',{});pairMessage='等待客户端确认配对';connectionStatus(pairMessage);showToast('请在客户端确认配对');
-  for(let i=0;i<60;i++){
-   await new Promise(resolve=>setTimeout(resolve,1500));const answer=await request('/api/pair/poll',{requestId:pending.requestId});
-   if(answer.status==='approved'&&answer.token){bridgeConfig={endpoint,token:answer.token};try{localStorage.setItem('rail-pair',JSON.stringify(bridgeConfig));}catch{}await bridgeCheck();return;}
-   if(['denied','expired','consumed'].includes(answer.status))throw Error('配对已拒绝或过期，点击状态点重试');
-  }
-  throw Error('配对等待超时，点击状态点重试');
- }catch(e){pairMessage=connectionError(e);retryAt=Date.now()+30000;}
- finally{pairingBusy=false;connectionStatus(bridgeConnected?'客户端已连接':pairMessage);}
-}
 connectionDot.style.cursor='pointer';connectionDot.tabIndex=0;connectionDot.setAttribute('role','button');
 connectionDot.onclick=()=>autoConnect(true);
 connectionDot.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();autoConnect(true);}};
 async function autoConnect(manual=false){
- if(connectBusy||pairingBusy){if(manual)connectionStatus('正在连接或等待客户端确认，请勿重复批准');return;}
- connectBusy=true;
- try{
-  // Read the latest grant so another tab's successful pairing is reused.
-  try{const saved=JSON.parse(localStorage.getItem('rail-pair')||'null');if(saved?.token&&/^http:\/\/127\.0\.0\.1:\d+$/.test(saved.endpoint))bridgeConfig=saved;}catch{}
-  if(manual){pairMessage='';retryAt=0;connectionStatus('正在检查客户端连接');}
-  await bridgeCheck();
-  if(!bridgeConnected&&Date.now()>=retryAt)await pairClient();
- }finally{connectBusy=false;}
+ if(connectBusy)return;connectBusy=true;
+ try{if(manual)connectionStatus('正在检查客户端连接');await bridgeCheck();}finally{connectBusy=false;}
 }
-window.addEventListener('storage',e=>{if(e.key==='rail-pair')autoConnect(true);});
 window.addEventListener('focus',()=>autoConnect());
 window.addEventListener('online',()=>autoConnect());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoConnect();});

@@ -25,11 +25,11 @@ with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
  bridge.ALLOW_FILE=False
  bridge.EXTRA_ORIGIN=bridge.url_origin('https://compress.example/path')
  assert request('/api/health',origin='https://compress.example')[0]==200
- assert request('/api/health',origin='https://compress.example',token=False)[0]==403
+ assert request('/api/health',origin='https://compress.example',token=False)[0]==200
  assert request('/api/health',origin='https://other.example')[0]==403
  bridge.EXTRA_ORIGIN=None
  assert request('/api/health',token=False,origin='null')[0]==403
- assert request('/api/health',token=False)[0]==403
+ assert request('/api/health',token=False)[0]==200
  assert request('/api/health',origin='https://evil.example')[0]==403
  assert request('/api/files',b'not-jpeg',kind='image/jpeg')[0]==400
  code,result=request('/api/files',b'\xff\xd8\xffTEST\xff\xd9',kind='image/jpeg')
