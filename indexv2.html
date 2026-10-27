@@ -1936,27 +1936,55 @@ async function bridgeRequest(path,body,type='application/json'){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),path==='/api/health'?3000:90000);
  try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{Authorization:'Bearer '+bridgeConfig.token,'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
 }
-async function bridgeCheck(){
- try{await bridgeRequest('/api/health',{});bridgeConnected=true;}catch{bridgeConnected=false;}
- const dot=document.getElementById('clientDot');dot.style.background=bridgeConnected?'#22c55e':'#aaa';dot.title=bridgeConnected?'客户端已连接':'客户端未连接';dot.setAttribute('aria-label',dot.title);
+let pairingBusy=false,connectBusy=false,retryAt=0,pairMessage='';
+const connectionDot=document.getElementById('clientDot');
+function connectionStatus(message){
+ connectionDot.style.background=bridgeConnected?'#22c55e':pairingBusy?'#f59e0b':'#aaa';
+ connectionDot.title=message+'\n本机服务：127.0.0.1:48731\n点击重新检查连接；未授权时申请配对。客户端服务退出时，请先在客户端重启。';
+ connectionDot.setAttribute('aria-label',message);
 }
-let pairingBusy=false,pairAttempted=false;
+function connectionError(e){
+ if(e.name==='AbortError')return '连接超时：请检查客户端运行状态及浏览器本地网络权限';
+ if(e instanceof TypeError)return '无法访问客户端：请检查服务是否启动、48731端口及浏览器本地网络权限';
+ return e.message||'连接失败';
+}
+async function bridgeCheck(){
+ try{await bridgeRequest('/api/health',{});bridgeConnected=true;pairMessage='';connectionStatus('客户端已连接');}
+ catch(e){bridgeConnected=false;connectionStatus(pairingBusy?'等待客户端确认配对':pairMessage||connectionError(e));}
+}
 async function pairClient(){
- if(pairingBusy)return;pairingBusy=true;
+ if(pairingBusy)return;pairingBusy=true;connectionStatus('正在申请配对');
  const endpoint='http://127.0.0.1:48731';
  async function request(path,body){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);try{const response=await fetch(endpoint+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const result=await response.json();if(!response.ok)throw Error(result.error||'配对失败');return result;}finally{clearTimeout(timer);}}
  try{
-  const pending=await request('/api/pair/request',{});pairAttempted=true;showToast('请在客户端确认配对');
+  const pending=await request('/api/pair/request',{});pairMessage='等待客户端确认配对';connectionStatus(pairMessage);showToast('请在客户端确认配对');
   for(let i=0;i<60;i++){
    await new Promise(resolve=>setTimeout(resolve,1500));const answer=await request('/api/pair/poll',{requestId:pending.requestId});
    if(answer.status==='approved'&&answer.token){bridgeConfig={endpoint,token:answer.token};try{localStorage.setItem('rail-pair',JSON.stringify(bridgeConfig));}catch{}await bridgeCheck();return;}
-   if(['denied','expired','consumed'].includes(answer.status))throw Error('配对已拒绝或过期；点击状态点重试');
+   if(['denied','expired','consumed'].includes(answer.status))throw Error('配对已拒绝或过期，点击状态点重试');
   }
- }catch(e){document.getElementById('clientDot').title=e.message;}finally{pairingBusy=false;}
+  throw Error('配对等待超时，点击状态点重试');
+ }catch(e){pairMessage=connectionError(e);retryAt=Date.now()+30000;}
+ finally{pairingBusy=false;connectionStatus(bridgeConnected?'客户端已连接':pairMessage);}
 }
-document.getElementById('clientDot').style.cursor='pointer';
-document.getElementById('clientDot').onclick=()=>{pairAttempted=false;pairClient();};
-async function autoConnect(){await bridgeCheck();if(!bridgeConnected&&!pairAttempted)await pairClient();}
+connectionDot.style.cursor='pointer';connectionDot.tabIndex=0;connectionDot.setAttribute('role','button');
+connectionDot.onclick=()=>autoConnect(true);
+connectionDot.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();autoConnect(true);}};
+async function autoConnect(manual=false){
+ if(connectBusy||pairingBusy){if(manual)connectionStatus('正在连接或等待客户端确认，请勿重复批准');return;}
+ connectBusy=true;
+ try{
+  // Read the latest grant so another tab's successful pairing is reused.
+  try{const saved=JSON.parse(localStorage.getItem('rail-pair')||'null');if(saved?.token&&/^http:\/\/127\.0\.0\.1:\d+$/.test(saved.endpoint))bridgeConfig=saved;}catch{}
+  if(manual){pairMessage='';retryAt=0;connectionStatus('正在检查客户端连接');}
+  await bridgeCheck();
+  if(!bridgeConnected&&Date.now()>=retryAt)await pairClient();
+ }finally{connectBusy=false;}
+}
+window.addEventListener('storage',e=>{if(e.key==='rail-pair')autoConnect(true);});
+window.addEventListener('focus',()=>autoConnect());
+window.addEventListener('online',()=>autoConnect());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoConnect();});
 function bridgeEncode(file,onStage){return new Promise((resolve,reject)=>{
  const source=document.getElementById('jpegWorkerSource').textContent,url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
  const worker=new Worker(url);const timer=setTimeout(()=>finish(Error('JPEG编码超时')),180000);
