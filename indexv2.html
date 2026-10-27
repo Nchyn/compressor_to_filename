@@ -159,6 +159,13 @@
     .box-head { display: flex; align-items: center; justify-content: space-between; gap: .5em; margin-bottom: .55em; }
     .box-head h3 { margin: 0; }
     .box-head .btn { padding: .3em .7em; font-size: 12.5px; }
+    .rail .presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+    .rail .presets .btn { min-width: 0; padding: .6em .2em; font-size: 12px; white-space: nowrap; text-align: center; }
+    .rail details.ref summary { font-size: 12px; line-height: 1.6; white-space: nowrap; }
+    .rail .resolution-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+    .rail .resolution-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-radius: 6px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+    .rail .resolution-item .resolution-target { white-space: nowrap; text-align: right; }
+    .rail .box { min-width: 0; }
     @media (max-width: 900px) {
       .shell { grid-template-columns: 1fr; }
       .main { height: auto; }
@@ -176,12 +183,12 @@
       <div id="dropZone">把 <strong>图片 / 文件夹</strong> 拖进这块主区域（整页任意位置均可拖入 · 支持 Ctrl+V 粘贴）</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
-        <div class="log-header">处理日志</div>
+        <div class="log-header" style="display:flex;align-items:center;justify-content:space-between">处理日志<button type="button" id="clearLogButton" class="btn">清空日志</button></div>
         <div class="log-body" id="logBody"></div>
       </div>
     </div>
     <aside class="rail">
-      <div class="box"><h3>模式 <span id="clientDot" title="客户端未连接" aria-label="客户端未连接" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle"></span></h3><div class="row"><div class="mode-switch" title="文件名优先：优先使用文件名中的 -160KB 参数；手动控制：统一使用下方目标大小">
+      <div class="box"><h3>模式 <span id="clientDot" title="客户端未连接" aria-label="客户端未连接" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle"></span></h3><div class="row"><div class="mode-switch" title="文件名优先：优先使用文件名中的 -300KB / -0.5MB 参数；手动控制：统一使用下方目标大小">
           <span class="mode-label active" id="modeFilenameLabel">文件名优先</span>
           <label class="switch">
             <input type="checkbox" id="manualModeToggle" role="switch" aria-label="当前为文件名优先，点击切换为手动控制" />
@@ -190,7 +197,7 @@
           <span class="mode-label" id="modeManualLabel">手动控制</span>
         </div></div><div class="row" style="margin-top:.55em"><div id="defaultSizeGroup" class="input-group" style="display:none">
           <label for="defaultSizeInput">目标（KB）：</label>
-          <input type="number" id="defaultSizeInput" value="160" min="1" />
+          <input type="number" id="defaultSizeInput" value="300" min="1" />
         </div></div><div class="row" style="margin-top:.55em"><label class="input-group" id="autoResolutionGroup" style="gap:.4em" title="按图片实际分辨率匹配已知目标大小（仅文件名优先模式可用）">
           <input type="checkbox" id="autoResolutionCheckbox" checked /> 分辨率自动识别
         </label></div></div>
@@ -204,7 +211,7 @@
       <div class="box">
         <div class="box-head"><h3>参考</h3><button class="btn primary" id="submitConfigBtn" title="手动提交：图片分辨率 + 目标大小配置（会记录到 D1）">📨 提交配置</button></div>
         <details class="ref" open>
-        <summary>📐 已知分辨率 → 目标大小（<span id="resolutionCount">0</span> 条）</summary>
+        <summary>分辨率与目标（<span id="resolutionCount">0</span> 条）</summary>
         <div class="resolution-grid" id="resolutionGrid"></div>
       </details>
       </div>
@@ -326,7 +333,7 @@
 
     const zip = new JSZip();
 
-    const DEFAULT_FALLBACK_KB = 160; // 文件名优先模式下未识别时的默认目标
+    const DEFAULT_FALLBACK_KB = 300; // 文件名优先模式下未识别时的默认目标
 
     // ====== 剪贴板粘贴：独立的目标规则（不跟随模式开关）======
     // 原图 > 20MB：压至 20MB 以内；≤ 20MB：命中分辨率表用该值，否则 300KB。
@@ -376,7 +383,7 @@
 
     resolutionCount.textContent = RESOLUTION_TARGETS.length;
     resolutionGrid.innerHTML = RESOLUTION_TARGETS
-      .map(item => `<span class="resolution-item" data-kb="${item.kb}" data-res="${item.width}×${item.height}" title="点击设为手动目标 ${item.kb}KB"><b>${item.width}×${item.height}</b> → ${item.kb}KB</span>`)
+      .map(item => `<span class="resolution-item" data-kb="${item.kb}" data-res="${item.width}×${item.height}" title="点击设为手动目标 ${item.kb}KB"><b>${item.width}×${item.height}</b><span class="resolution-target">${item.kb}KB</span></span>`)
       .join('');
 
     // 点击参考条目：切换为手动控制并回填目标大小
@@ -958,20 +965,20 @@
     function formatKB(n){ return (n/1000).toFixed(1) + 'KB'; } // 1000 进制
     function ext(name){ return name.split('.').pop().toLowerCase(); }
     function isImageName(name){ return /\.(jpe?g|png|webp)$/i.test(name); }
-    function getCleanFileName(name){ return name.replace(/-\d+KB(?=\.[^.]+$)/i, ''); }
+    function getCleanFileName(name){ return name.replace(/-(?:\d+(?:\.\d+)?|\.\d+)\s*(?:KB|MB)(?=\.[^.]+$)/i, ''); }
     function replaceExt(name, newExt){ return name.replace(/\.[^.]+$/, '.'+newExt); }
     function getOutputFileName(origName, outExt){
       let base = removeParamCheckbox.checked ? getCleanFileName(origName) : origName;
       return replaceExt(base, outExt);
     }
     function getFilenameTargetKB(name){
-      const m = name.match(/-(\d+)KB/i);
+      const m = name.match(/(?:^|[-_\s])((?:\d+(?:\.\d+)?|\.\d+))\s*(KB|MB)(?=$|[-_\s.]|\()/i);
       if (!m) return null;
-      const kb = parseInt(m[1], 10);
+      const kb = Number(m[1]) * (m[2].toUpperCase() === 'MB' ? 1000 : 1);
       return Number.isFinite(kb) && kb > 0 ? kb : null;
     }
     function getFallbackKB(){
-      // 文件名优先：未匹配文件名参数/分辨率时固定回退 160KB
+      // 文件名优先：未匹配文件名参数/分辨率时固定回退 300KB
       // 手动控制：使用输入框中的统一目标
       if (!isManualMode()) return DEFAULT_FALLBACK_KB;
       const v = parseInt(defaultSizeInput.value, 10);
@@ -981,7 +988,7 @@
     /**
      * 计算目标大小及来源。
      * 优先级：文件名参数（仅文件名优先模式）> 分辨率识别（复选框启用时，两种模式均生效）> 模式默认值。
-     * 文件名优先模式默认 160KB；手动控制模式默认为输入框统一目标。
+     * 文件名优先模式默认 300KB；手动控制模式默认为输入框统一目标。
      */
     function resolveTarget(name, width, height){
       const fallbackKB = getFallbackKB();
@@ -1058,6 +1065,10 @@
       return notes;
     }
 
+    document.getElementById('clearLogButton').addEventListener('click', () => {
+      logBody.replaceChildren();
+    });
+
     function row({ status, filePath, width, height, orig, target, result, note, previewURL, previewName, rowEl, localOnly }){
       const empty = logBody.querySelector('.log-empty');
       if (empty) empty.remove();
@@ -1121,9 +1132,9 @@
 
       div.append(nameCell, resCell, origCell, targetCell, resultCell, noteCell);
       if (!rowEl){
-        logBody.appendChild(div);
+        logBody.prepend(div);
       }
-      logBody.scrollTop = logBody.scrollHeight;
+      if (!rowEl) logBody.scrollTop = 0;
       return div;
     }
 
