@@ -20,7 +20,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(.separator());menu.addItem(withTitle:"退出",action:#selector(quit),keyEquivalent:"q").target=self;statusItem.menu=menu
         let appMenu=NSMenu(), appItem=NSMenuItem();appMenu.addItem(appItem);let submenu=NSMenu();submenu.addItem(withTitle:"退出JPEG客户端",action:#selector(quit),keyEquivalent:"q").target=self;appItem.submenu=submenu;NSApp.mainMenu=appMenu
         window=NSWindow(contentRect:NSRect(x:0,y:0,width:650,height:520),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="JPEG 剪贴板 · v0.4.0 · 直连";window.center();window.delegate=self
+        window.title="JPEG 剪贴板 · v0.4.1 · 五端口直连";window.center();window.delegate=self
         let stack=NSStackView();stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=14;stack.translatesAutoresizingMaskIntoConstraints=false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:28),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-28),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
@@ -65,7 +65,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         p.arguments=args;p.standardOutput=output;p.standardError=output;p.standardInput=commands;input=commands
         buffer=Data();process=p;pipe=output;state.stringValue="启动中…"
         output.fileHandleForReading.readabilityHandler={[weak self,weak p] handle in let data=handle.availableData;if data.isEmpty{return};DispatchQueue.main.async{guard let self=self,self.process===p else{return};self.receive(data)}}
-        p.terminationHandler={[weak self,weak p] _ in DispatchQueue.main.async{guard let self=self,self.process===p else{return};self.process=nil;self.endpoint="";self.token="";self.state.stringValue="服务已退出，请保存并重启";self.connection.stringValue="网页未连接"}}
+        p.terminationHandler={[weak self,weak p] _ in DispatchQueue.main.async{guard let self=self,self.process===p else{return};self.process=nil;self.endpoint="";self.token="";if !self.state.stringValue.hasPrefix("启动失败") {self.state.stringValue="服务已退出（退出码\(p?.terminationStatus ?? -1)），请保存并重启"};self.connection.stringValue="网页未连接"}}
         do{try p.run()}catch{process=nil;state.stringValue="启动失败：\(error.localizedDescription)"}
     }
     func receive(_ data:Data){
@@ -73,11 +73,12 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         while let range=buffer.range(of:Data([10])) {let line=buffer.subdata(in:0..<range.lowerBound);buffer.removeSubrange(0..<range.upperBound)
             guard let object=(try? JSONSerialization.jsonObject(with:line)) as? [String:Any],let event=object["event"] as? String else {continue}
             if event=="ready" {endpoint=object["endpoint"] as? String ?? "";token=object["token"] as? String ?? "";state.stringValue="● 服务运行中 · \(endpoint)";state.textColor = .systemGreen;connection.stringValue="等待网页连接"}
+            else if event=="error" {state.stringValue="启动失败：\(object["message"] as? String ?? "未知错误")";state.textColor = .systemRed}
             else if event=="connected" {lastSeen=Date();connection.stringValue="● 网页已连接 · \(object["origin"] as? String ?? "")";connection.textColor = .systemGreen}
             else if event=="clipboard" {activity.stringValue="已复制：\(object["name"] as? String ?? "")\n\(object["bytes"] ?? 0) 字节 · \(DateFormatter.localizedString(from:Date(),dateStyle:.none,timeStyle:.medium))"}
         }
     }
-    @objc func stop(){let old=process;process=nil;old?.terminate();pipe?.fileHandleForReading.readabilityHandler=nil;pipe=nil;endpoint="";token="";lastSeen=nil;state.stringValue="服务已停止";state.textColor = .secondaryLabelColor;connection.stringValue="网页未连接"}
+    @objc func stop(){let old=process;process=nil;try? input?.fileHandleForWriting.close();input=nil;if old?.isRunning == true {old?.terminate();old?.waitUntilExit()};pipe?.fileHandleForReading.readabilityHandler=nil;pipe=nil;endpoint="";token="";lastSeen=nil;state.stringValue="服务已停止";state.textColor = .secondaryLabelColor;connection.stringValue="网页未连接"}
     @objc func openPage(){
         if (external.state == .on) != UserDefaults.standard.bool(forKey:"external") || (external.state == .on && url.stringValue != (UserDefaults.standard.string(forKey:"compressorURL") ?? "")) || (fileAccess.state == .on) != UserDefaults.standard.bool(forKey:"allowFile") {alert("授权设置已更改，请先点击保存并重启");return}
         guard !endpoint.isEmpty else {alert("服务尚未就绪，请先保存授权并启动");return}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Loopback file clipboard bridge. No image codec; Python stdlib + Swift helper."""
-import sys
+import sys, signal, errno
 from pairing import Pairing
 import argparse, base64, hashlib, json, os, re, secrets, shutil, subprocess, threading, time, webbrowser
 from pathlib import Path
@@ -30,6 +30,15 @@ def url_origin(value):
     return u.scheme+'://'+u.hostname+((':'+str(port)) if port and port != (443 if u.scheme=='https' else 80) else '')
 RAIL = 'indexv2.html'
 ALLOWED = {'/': RAIL, '/'+RAIL: RAIL, '/jpeg-clipboard.html':'jpeg-clipboard.html', '/res/jpeg-ui.mjs': 'res/jpeg-ui.mjs', '/res/jpeg-encode-worker.mjs': 'res/jpeg-encode-worker.mjs', '/res/jszip.min.js':'res/jszip.min.js', '/res/FileSaver.min.js':'res/FileSaver.min.js'}
+
+PORTS = tuple(range(48731,48736))
+def bind_server(port=48731):
+    candidates=PORTS if port==48731 else (port,)
+    for candidate in candidates:
+        try: return ThreadingHTTPServer(('127.0.0.1',candidate),Handler)
+        except OSError as e:
+            if e.errno!=errno.EADDRINUSE: raise
+    raise OSError(errno.EADDRINUSE,'五个候选端口48731–48735均被占用，请退出重复客户端')
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -135,7 +144,7 @@ class Handler(BaseHTTPRequestHandler):
                 now=time.time()
                 if now-LAST_ACTIVITY>5:
                     LAST_ACTIVITY=now;emit('connected', origin=self.headers.get('Origin'))
-                return self.respond(200,{'version':2,'clipboard':'file-url','codec':False})
+                return self.respond(200,{'service':'local-jpeg-clipboard','version':3,'clipboard':'file-url','codec':False})
             return self.respond(404,{'error':'Not found'})
         except Exception as e: return self.respond(400,{'error':str(e)})
 
@@ -149,7 +158,17 @@ if __name__=='__main__':
     os.umask(0o077)
     HELPER=Path(__file__).resolve().parent/'clipboard-helper'
     if not HELPER.is_file(): raise SystemExit('Compile helper first: ./start.command')
-    server=ThreadingHTTPServer(('127.0.0.1',args.port),Handler)
+    try: server=bind_server(args.port)
+    except OSError as e:
+        emit('error',message=str(e));raise SystemExit(1)
+    def stop_service(*_): raise SystemExit(0)
+    signal.signal(signal.SIGTERM,stop_service)
+    if args.json_events:
+        def watch_parent():
+            # GUI owns stdin: EOF means the owning UI exited, including a crash.
+            for _ in sys.stdin: pass
+            os.kill(os.getpid(),signal.SIGTERM)
+        threading.Thread(target=watch_parent,daemon=True).start()
     url=f'http://127.0.0.1:{server.server_port}/{RAIL}'
     if args.json_events: emit('ready', endpoint=f'http://127.0.0.1:{server.server_port}')
     print(f'JPEG clipboard client listening on 127.0.0.1:{server.server_port}',flush=True)

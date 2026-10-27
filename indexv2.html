@@ -1934,17 +1934,28 @@ let pairingBusy=false,connectBusy=false,retryAt=0,pairMessage='';
 const connectionDot=document.getElementById('clientDot');
 function connectionStatus(message){
  connectionDot.style.background=bridgeConnected?'#22c55e':pairingBusy?'#f59e0b':'#aaa';
- connectionDot.title=message+'\n本机服务：127.0.0.1:48731\n点击重新连接；请在客户端保存此压缩器URL。服务退出时，请先重启客户端。';
+ connectionDot.title=message+'\n当前地址：'+bridgeConfig.endpoint+'\n候选端口：48731–48735\n点击重新连接；请在客户端保存此压缩器URL。服务退出时，请先重启客户端。';
  connectionDot.setAttribute('aria-label',message);
 }
 function connectionError(e){
  if(e.name==='AbortError')return '连接超时：请检查客户端运行状态及浏览器本地网络权限';
- if(e instanceof TypeError)return '无法访问客户端：请检查服务是否启动、48731端口及浏览器本地网络权限';
+ if(e instanceof TypeError)return '无法访问客户端：请检查服务是否启动、48731–48735端口及浏览器本地网络权限';
  return e.message||'连接失败';
 }
 async function bridgeCheck(){
- try{await bridgeRequest('/api/health',{});bridgeConnected=true;pairMessage='';connectionStatus('客户端已连接');}
- catch(e){bridgeConnected=false;connectionStatus(pairingBusy?'等待客户端确认配对':pairMessage||connectionError(e));}
+ const endpoints=[bridgeConfig.endpoint,...[48731,48732,48733,48734,48735].map(p=>'http://127.0.0.1:'+p)].filter((v,i,a)=>a.indexOf(v)===i);
+ const errors=[];
+ for(const endpoint of endpoints){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),1200);
+  try{
+   const response=await fetch(endpoint+'/api/health',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller.signal});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'来源未允许');
+   if(data.service!=='local-jpeg-clipboard'||data.version<3)throw Error('端口为旧版或其他服务，请更新客户端');
+   bridgeConfig={endpoint};bridgeConnected=true;connectionStatus('客户端已连接');return;
+  }catch(e){errors.push(endpoint.split(':').pop()+': '+connectionError(e));}finally{clearTimeout(timer);}
+ }
+ bridgeConnected=false;connectionStatus('五个端口均未连接\n'+errors.join('\n'));
 }
 connectionDot.style.cursor='pointer';connectionDot.tabIndex=0;connectionDot.setAttribute('role','button');
 connectionDot.onclick=()=>autoConnect(true);
