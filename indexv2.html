@@ -1066,7 +1066,7 @@
     }
 
     document.getElementById('clearLogButton').addEventListener('click', () => {
-      logBody.replaceChildren();
+      resetLog();
     });
 
     function row({ status, filePath, width, height, orig, target, result, note, previewURL, previewName, rowEl, localOnly }){
@@ -1132,7 +1132,9 @@
 
       div.append(nameCell, resCell, origCell, targetCell, resultCell, noteCell);
       if (!rowEl){
-        logBody.prepend(div);
+        const header = logBody.querySelector('.log-row.header');
+        if (header) header.after(div);
+        else logBody.prepend(div);
       }
       if (!rowEl) logBody.scrollTop = 0;
       return div;
