@@ -5,841 +5,2107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhEAAQAIABAP8AAP///yH5BAEAAAEALAAAAAAQABAAAAIgjI+py+0PTgygTolpNvN6FF1alZBeB2bf1lnPC8fybBQAOw==" type="image/gif">
   <title>批量图片压缩器</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <script>
+    // file:// 直接打开时 origin 为 null，浏览器会拒绝 manifest.json（CORS）；仅在 HTTP(S) 下挂载
+    if (/^https?:$/.test(location.protocol)) {
+      const manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      manifestLink.href = 'manifest.json';
+      document.head.appendChild(manifestLink);
+    }
+  </script>
   <style>
-    :root {
-      --bg-light: #fff;
-      --text-light: #000;
-      --bg-dark: #121212;
-      --text-dark: #f0f0f0;
-      --primary-color: #007bff;
-      --primary-hover: #0069d9;
+
+    :root { --bg: #ffffff;
+      --text: #000000;
+      --card: #ffffff;
+      --card2: #f9f9f9;
+      --border: #cccccc;
+      --muted: #888888;
+      --accent: #007bff;
+      --accent2: #0069d9;
+      --onaccent: #ffffff;
+      --ok: #0a7a32;
+      --skip: #8a6d1a;
+      --err: #b23b3b;
+      --hoverbg: rgba(0,0,0,.06);
+      --dragbg: #e0f7ff;
+      --shadow: rgba(0,0,0,.12);
+      --panel: rgba(255,255,255,.9); }
+    html[data-theme='dark'] { --bg: #121212;
+      --text: #f0f0f0;
+      --card: #1f1f1f;
+      --card2: #2a2a2a;
+      --border: #444444;
+      --muted: #bbbbbb;
+      --accent: #007bff;
+      --accent2: #0069d9;
+      --onaccent: #ffffff;
+      --ok: #6ee7a0;
+      --skip: #d9b45c;
+      --err: #f08a8a;
+      --hoverbg: rgba(255,255,255,.16);
+      --dragbg: #2a3a4a;
+      --shadow: rgba(0,0,0,.5);
+      --panel: rgba(31,31,31,.9); }
+    html[data-theme='light'] { background: var(--bg); color: var(--text); }
+    html[data-theme='dark'] { background: var(--bg); color: var(--text); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.6 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+    button, input { font: inherit; color: inherit; }
+    code { background: var(--card2); padding: .1em .4em; border-radius: 5px; font-size: .92em; }
+    #themeToggle { background: none; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: .3em .55em; font-size: 1.05em; color: inherit; }
+
+    .btn { padding: .5em .95em; border: 1px solid var(--border); border-radius: 9px; background: transparent; cursor: pointer; transition: .15s; color: inherit; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--onaccent); }
+    .btn.primary:hover { background: var(--accent2); border-color: var(--accent2); color: var(--onaccent); }
+    .btn.warning { background: var(--err); border-color: var(--err); color: #fff; }
+    html[data-theme='dark'] .btn:not(.primary):not(.warning) { background: var(--hoverbg); color: var(--text); }
+
+    .input-group { display: inline-flex; align-items: center; gap: .45em; flex-wrap: wrap; }
+    .input-group.disabled { opacity: .45; }
+    input[type="number"] { width: 6.5em; padding: .45em .6em; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); }
+    input[type="checkbox"] { accent-color: var(--accent); width: 1.05em; height: 1.05em; }
+
+    .mode-switch { display: inline-flex; align-items: center; gap: .55em; padding: .45em .7em; border: 1px solid var(--border); border-radius: 999px; background: var(--card2); }
+    .mode-label { font-size: 13px; color: var(--muted); transition: .15s; white-space: nowrap; }
+    .mode-label.active { color: var(--accent); font-weight: 700; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .2s; cursor: pointer; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+
+    #dropZone { border: 2px dashed var(--border); border-radius: 12px; background: var(--card); padding: 1.6em 1em; text-align: center; cursor: pointer; color: var(--muted); transition: .2s; }
+    #dropZone:hover, #dropZone.dragover { border-color: var(--accent); background: var(--dragbg); color: var(--accent); }
+    #dropZone strong { color: inherit; }
+
+    details.ref summary { cursor: pointer; color: var(--accent); font-size: 13.5px; user-select: none; }
+    .resolution-grid { display: flex; flex-wrap: wrap; gap: .4em; padding-top: .6em; }
+    .resolution-item { font-size: 12px; padding: .22em .6em; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--card); cursor: pointer; transition: border-color .15s, color .15s; }
+    .resolution-item:hover { border-color: var(--accent); color: var(--accent); }
+    .resolution-item b { font-weight: 600; color: var(--text); }
+
+    .panel-title { font-weight: 700; font-size: 13px; margin: 0 0 .6em; }
+
+    .log-header { padding: .65em 1em; font-weight: 700; font-size: 13px; background: var(--card2); border-bottom: 1px solid var(--border); position: relative; z-index: 3; }
+    .log-body { overflow: auto; padding: 0 .6em .3em; min-width: 0; }
+    .log-empty { padding: 2.4em 1em; text-align: center; color: var(--muted); }
+    .log-row { display: grid; grid-template-columns: 2fr .85fr .6fr .6fr .72fr 1.9fr; gap: .55em; padding: .55em .5em; border-bottom: 1px solid var(--border); font-size: 13px; align-items: center; min-width: 680px; }
+    .log-row.header { font-weight: 700; font-size: 12px; color: var(--muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; background: var(--card); z-index: 2; }
+    .log-row:hover { background: var(--hoverbg); }
+    .file-link { color: var(--accent); text-decoration: none; cursor: zoom-in; word-break: break-all; }
+    .file-link:hover { text-decoration: underline; }
+    .resolution-hit { color: var(--ok); font-weight: 700; }
+    .badge { display: inline-block; padding: .05em .55em; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+    .badge.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+    .badge.skip { background: color-mix(in srgb, var(--skip) 16%, transparent); color: var(--skip); }
+    .badge.err { background: color-mix(in srgb, var(--err) 16%, transparent); color: var(--err); }
+    .badge.pending { background: color-mix(in srgb, var(--accent, #007bff) 18%, transparent); color: var(--accent, #007bff); }
+
+    #imgPreview { position: fixed; top: 0; left: 0; transform: translate(-9999px, -9999px); z-index: 900; pointer-events: none; }
+    #imgPreview img { width: 200px; height: 200px; object-fit: contain; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px var(--shadow); }
+
+    #toast { position: fixed; top: 1.1em; left: 50%; transform: translateX(-50%) translateY(-10px); opacity: 0; transition: all .25s; z-index: 9999; background: var(--text); color: var(--bg); padding: .6em 1.2em; border-radius: 999px; font-size: 13.5px; max-width: min(92vw, 640px); box-shadow: 0 8px 24px var(--shadow); }
+    #toast.show { opacity: 1; }
+    body.dragging #dropZone { border-color: var(--accent); background: var(--dragbg); color: var(--accent); }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 40%, rgba(0,0,0,.5)); z-index: 1000; align-items: center; justify-content: center; padding: 1em; backdrop-filter: blur(3px); }
+    .modal-overlay.show { display: flex; }
+    .modal-content { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1.3em 1.5em; width: min(420px, 94vw); max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px var(--shadow); }
+    .modal-content .input-group input { padding: .45em; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: .7em; margin-top: .4em; }
+
+    .image-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.82); z-index: 1100; align-items: center; justify-content: center; padding: 2em; }
+    .image-modal-overlay.show { display: flex; }
+    .image-modal { background: var(--card); border-radius: 14px; overflow: hidden; max-width: min(94vw, 1000px); display: flex; flex-direction: column; }
+    .image-modal .modal-bar { display: flex; align-items: center; justify-content: space-between; gap: 1em; padding: .6em .9em; border-bottom: 1px solid var(--border); }
+    .image-modal .name { font-size: 13px; word-break: break-all; }
+    .image-modal .close { border: none; background: none; font-size: 17px; cursor: pointer; color: inherit; }
+    .image-modal img { display: block; max-width: 100%; max-height: 74vh; }
+
+    .dir-help-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1200; align-items: center; justify-content: center; padding: 1em; backdrop-filter: blur(3px); }
+    .dir-help-overlay.show { display: flex; }
+    .dir-help-card { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1.3em 1.5em; width: min(560px, 94vw); max-height: 88vh; overflow-y: auto; }
+    .dir-help-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6em; }
+    .dir-help-head h3 { margin: 0; font-size: 16px; }
+    .dir-help-close { border: none; background: none; font-size: 16px; cursor: pointer; }
+    .dir-help-meta { display: flex; gap: .5em; flex-wrap: wrap; margin-bottom: .7em; }
+    .dir-help-chip { font-size: 12px; padding: .18em .7em; border-radius: 999px; background: var(--card2); }
+    .dir-help-chip.bad { background: color-mix(in srgb, var(--err) 16%, transparent); color: var(--err); }
+    .dir-help-chip.warn { background: color-mix(in srgb, var(--skip) 16%, transparent); color: var(--skip); }
+    .dir-help-summary { color: var(--muted); font-size: 13.5px; }
+    .dir-help-steps { margin: .8em 0; padding-left: 1.4em; color: var(--muted); font-size: 13px; }
+    .dir-help-steps code { background: var(--card2); padding: .1em .4em; border-radius: 5px; }
+    .dir-help-actions { display: flex; gap: .6em; flex-wrap: wrap; }
+    .dir-help-actions .btn { text-decoration: none; display: inline-block; }
+    .dir-help-foot { color: var(--muted); font-size: 12.5px; margin: .9em 0 0; }
+
+
+    .shell { display: grid; grid-template-columns: minmax(0, 1fr) 270px; min-height: 100vh; }
+    .main { padding: 1.1em; display: flex; flex-direction: column; gap: 1em; min-width: 0; min-height: 100vh; align-self: stretch; }
+    .main .hd { display: flex; align-items: center; justify-content: space-between; }
+    .main .hd h1 { margin: 0; font-size: 18px; }
+    .main #dropZone { padding: 2.6em 1em; font-size: 15px; }
+    .logwrap { flex: 1; display: flex; flex-direction: column; min-height: 320px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .logwrap .log-body { flex: 1; min-height: 0; }
+    .rail { border-left: 1px solid var(--border); background: var(--card2); padding: 1.1em .95em; display: flex; flex-direction: column; gap: 1em; }
+    .rail .box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: .85em .95em; }
+    .rail h3 { margin: 0 0 .55em; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .rail .row { display: flex; flex-wrap: wrap; gap: .5em; align-items: center; }
+    .box-head { display: flex; align-items: center; justify-content: space-between; gap: .5em; margin-bottom: .55em; }
+    .box-head h3 { margin: 0; }
+    .box-head .btn { padding: .3em .7em; font-size: 12.5px; }
+    .rail .presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+    .rail .presets .btn { min-width: 0; padding: .6em .2em; font-size: 12px; white-space: nowrap; text-align: center; }
+    .rail details.ref summary { font-size: 12px; line-height: 1.6; white-space: nowrap; }
+    .rail .resolution-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+    .rail .resolution-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-radius: 6px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+    .rail .resolution-item .resolution-target { white-space: nowrap; text-align: right; }
+    .rail .box { min-width: 0; }
+    .rail .resolution-grid { gap: 2px; padding-top: .35em; }
+    .rail .resolution-item { padding: 3px 7px; line-height: 1.45; border-color: transparent; border-radius: 4px; }
+    .rail .resolution-item:nth-child(odd) { background: var(--card2); }
+    .rail, .log-body { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    .rail::-webkit-scrollbar, .log-body::-webkit-scrollbar { width: 5px; height: 5px; }
+    .rail::-webkit-scrollbar-thumb, .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+    .rail::-webkit-scrollbar-track, .log-body::-webkit-scrollbar-track { background: transparent; }
+    @media (min-width: 901px) {
+      body { overflow: hidden; }
+      .shell { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+      .main { height: 100%; min-height: 0; overflow: hidden; }
+      .main .hd, .main #dropZone { flex-shrink: 0; }
+      .logwrap { min-height: 0; overflow: hidden; }
+      .logwrap .log-body { overflow: auto; overscroll-behavior: contain; }
+      .rail { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+      .rail .box { flex-shrink: 0; }
+    }
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; }
+      .main { height: auto; min-height: 0; }
+      .rail { border-left: none; border-top: 1px solid var(--border); }
+      .logwrap { flex: none; }
+      .logwrap .log-body { flex: none; max-height: 60vh; }
     }
 
-    html[data-theme='dark'] {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-    }
-
-    html[data-theme='light'] {
-      background-color: var(--bg-light);
-      color: var(--text-light);
-    }
-
-    body {
-      font-family: sans-serif;
-      padding: 2em;
-      max-width: 900px;
-      margin: auto;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    #dropZone {
-      border: 2px dashed #ccc;
-      padding: 2em;
-      text-align: center;
-      margin-bottom: 1em;
-      border-radius: 10px;
-      background: #f9f9f9;
-      cursor: pointer;
-      transition: background-color 0.3s, border-color 0.3s;
-    }
-
-    html[data-theme='dark'] #dropZone {
-      background: #1f1f1f;
-      border-color: #444;
-    }
-
-    #dropZone.dragover,
-    #dropZone:hover {
-      background-color: #e0f7ff;
-      border-color: var(--primary-color);
-    }
-
-    html[data-theme='dark'] #dropZone.dragover,
-    html[data-theme='dark'] #dropZone:hover {
-      background-color: #2a3a4a;
-      border-color: var(--primary-color);
-    }
-
-    .output-container {
-      margin-top: 1em;
-    }
-
-    .image-row {
-      display: flex;
-      align-items: center;
-      gap: 1em;
-      padding: 1em;
-      margin-bottom: 1em;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-
-    html[data-theme='dark'] .image-row {
-      border-color: #444;
-      background-color: #1f1f1f;
-    }
-
-    .image-col {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .image-preview {
-      max-width: 150px;
-      max-height: 120px;
-      display: block;
-      cursor: pointer;
-    }
-
-    .info-col {
-      flex: 2;
-      min-width: 0;
-    }
-
-    .file-name {
-      font-weight: bold;
-      word-break: break-all;
-      margin-bottom: 0.5em;
-    }
-
-    .size-info {
-      margin-bottom: 0.5em;
-      line-height: 1.5;
-    }
-
-    .download-link {
-      display: inline-block;
-      padding: 0.5em 1em;
-      background-color: var(--primary-color);
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.3s;
-    }
-
-    .download-link:hover {
-      background-color: var(--primary-hover);
-    }
-
-    .image-preview-enlarged {
-      max-width: 90%;
-      max-height: 90%;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      border: 3px solid #fff;
-      background: #f0f0f0;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    .image-preview-enlarged-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 999;
-    }
-
-    .input-group {
-      margin-bottom: 1em;
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-    }
-
-    .input-group label {
-      font-weight: bold;
-      white-space: nowrap;
-    }
-
-    .input-group input[type="number"] {
-      flex: 1;
-      padding: 0.5em;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 1em;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    html[data-theme='dark'] .input-group input[type="number"] {
-      background-color: #2a2a2a;
-      border-color: #444;
-      color: var(--text-dark);
-    }
-
-    .input-group input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 3px rgba(0,123,255,0.5);
-    }
-
-    #themeToggle {
-      float: right;
-      background: none;
-      border: none;
-      font-size: 1.2em;
-      cursor: pointer;
-      color: inherit;
-    }
-
-    /* 通知提示样式 */
-    .notification {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      z-index: 1000;
-      display: none;
-      max-width: 90%;
-      text-align: center;
-    }
-
-    .notification.show {
-      display: block;
-      animation: fadeInUp 0.3s;
-    }
-
-    .notification.hide {
-      animation: fadeOutDown 0.3s;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-    }
-
-    @keyframes fadeOutDown {
-      from {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
-      }
-    }
-
-    /* 安装提示样式 */
-    .pwa-install-prompt {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 1em;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-    }
-
-    .pwa-install-content {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .pwa-install-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 1em;
-      margin-top: 1em;
-    }
-
-    .pwa-install-buttons button {
-      padding: 0.5em 1em;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #installConfirm {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    #installCancel {
-      background: #666;
-      color: white;
-    }
-
-    /* 更新提示样式 */
-    .pwa-update-prompt {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--primary-color);
-      color: white;
-      padding: 10px 15px;
-      border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      z-index: 1000;
-      display: none;
-    }
-
-    .pwa-update-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #updateRefresh {
-      margin-top: 0.5em;
-      background: white;
-      color: var(--primary-color);
-      border: none;
-      padding: 0.3em 0.8em;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    #removeParamCheckbox {
-      margin-left: 1em;
-    }
   </style>
 </head>
-<body>
-  <h2>📦 图片压缩器 <button id="themeToggle">🌓</button></h2>
-  <p>请拖入包含大小参数的图片文件，如 xxx-160KB.jpg</p>
 
-  <div class="input-group" style="display: flex; align-items: center; gap: 1em;">
-    <label for="forceUseDefault" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
-      <input type="checkbox" id="forceUseDefault" />
-      手动设置
-    </label>
-  
-    <div id="defaultSizeGroup" style="display: none; display: flex; align-items: center; gap: 0.5em;">
-      <label for="defaultSizeInput">目标（KB）：</label>
-      <input type="number" id="defaultSizeInput" value="160" min="1" style="width: 6em;" />
-    </div>
-
-    <label for="removeParamCheckbox" style="display: flex; align-items: center; gap: 0.4em; white-space: nowrap;">
-      <input type="checkbox" id="removeParamCheckbox" />
-      删除文件名中的参数
-    </label>
-  </div>
-
-  <div id="dropZone">📂 点击或将图片拖拽到此区域</div>
-  <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" />
-  
-  <div class="output-container" id="output">
-    <!-- 输出将在这里动态生成 -->
-  </div>
-
-  <!-- 参数未识别提示 -->
-  <div id="paramNotification" class="notification">
-    <div id="notificationContent">未识别到文件名中的大小参数，将使用默认值 <span id="defaultSizeValue">160</span>KB 进行压缩</div>
-    <button id="closeNotification" style="margin-top: 10px; background: #555; color: white; border: none; border-radius: 3px; padding: 5px 15px; cursor: pointer;">知道了</button>
-  </div>
-
-  <!-- PWA 安装提示 -->
-  <div id="installContainer" class="pwa-install-prompt">
-    <div class="pwa-install-content">
-      <h4>安装图片压缩器</h4>
-      <p>添加到主屏幕以便离线使用</p>
-      <div class="pwa-install-buttons">
-        <button id="installCancel">稍后</button>
-        <button id="installConfirm">安装</button>
+  <div class="shell">
+    <div class="main">
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.2.0 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div id="dropZone">拖入或点击上传 图片/文件夹</div>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+      <div class="logwrap">
+        <div class="log-header" style="display:flex;align-items:center;justify-content:space-between">处理日志<button type="button" id="clearLogButton" class="btn">清空日志</button></div>
+        <div class="log-body" id="logBody"></div>
       </div>
     </div>
+    <aside class="rail">
+      <div class="box"><h3>模式 <span id="clientDot" title="客户端未连接" aria-label="客户端未连接" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#aaa;vertical-align:middle"></span></h3><div class="row"><div class="mode-switch" title="文件名优先：优先使用文件名中的 -300KB / -0.5MB 参数；手动控制：统一使用下方目标大小">
+          <span class="mode-label active" id="modeFilenameLabel">文件名优先</span>
+          <label class="switch">
+            <input type="checkbox" id="manualModeToggle" role="switch" aria-label="当前为文件名优先，点击切换为手动控制" />
+            <span class="slider"></span>
+          </label>
+          <span class="mode-label" id="modeManualLabel">手动控制</span>
+        </div></div><div class="row" style="margin-top:.55em"><div id="defaultSizeGroup" class="input-group" style="display:none">
+          <label for="defaultSizeInput">目标（KB）：</label>
+          <input type="number" id="defaultSizeInput" value="300" min="1" />
+        </div></div><div class="row" style="margin-top:.55em"><label class="input-group" id="autoResolutionGroup" style="gap:.4em" title="按图片实际分辨率匹配已知目标大小（仅文件名优先模式可用）">
+          <input type="checkbox" id="autoResolutionCheckbox" checked /> 分辨率自动识别
+        </label></div></div>
+      <div class="box"><h3>快速目标</h3><div class="row"><span class="input-group presets">
+
+          <button class="btn primary" data-preset="300">300KB</button>
+          <button class="btn primary" data-preset="500">500KB</button>
+          <button class="btn primary" data-preset="1000">1000KB</button>
+        </span></div></div>
+      <div class="box"><h3>选项</h3><div class="row"><label class="input-group"><input id="bridgeHalf" type="checkbox" /> 超过40MB宽高减半</label></div><div class="row"><label class="input-group" style="gap:.4em"><input type="checkbox" id="pngToJpgCheckbox" /> PNG优先转为高质量JPG</label></div><div class="row"><label class="input-group" style="gap:.4em"><input type="checkbox" id="removeParamCheckbox" /> 删除文件名中的参数</label></div></div>
+      <div class="box">
+        <div class="box-head"><h3>参考</h3><button class="btn primary" id="submitConfigBtn" title="手动提交：图片分辨率 + 目标大小配置（会记录到 D1）">📨 提交配置</button></div>
+        <details class="ref" open>
+        <summary>分辨率与目标（<span id="resolutionCount">0</span> 条）</summary>
+        <div class="resolution-grid" id="resolutionGrid"></div>
+      </details>
+      </div>
+    </aside>
   </div>
 
-  <!-- PWA 更新提示 -->
-  <div id="updateContainer" class="pwa-update-prompt">
-    <div class="pwa-update-content">
-      <h4>新版本可用</h4>
-      <p>有新版本可用，请刷新以获取更新</p>
-      <button id="updateRefresh">刷新</button>
+  <div id="imgPreview"><img alt=""></div>
+
+  <div class="image-modal-overlay" id="imgModal">
+    <div class="image-modal">
+      <div class="modal-bar">
+        <div class="name" id="imgModalName"></div>
+        <button class="close" id="imgModalClose" title="关闭">✕</button>
+      </div>
+      <img id="imgModalImg" alt="">
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <div id="toast"></div>
+
+  <div class="modal-overlay" id="submitModal">
+    <div class="modal-content" style="text-align:left">
+      <p style="margin-bottom:.8em"><strong>📨 提交图片压缩配置</strong></p>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subW" style="min-width:7.5em">分辨率宽 (px)</label>
+        <input type="number" id="subW" min="1" placeholder="如 1600" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subH" style="min-width:7.5em">分辨率高 (px)</label>
+        <input type="number" id="subH" min="1" placeholder="如 900" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.7em">
+        <label for="subKB" style="min-width:7.5em">目标大小 (KB)</label>
+        <input type="number" id="subKB" min="1" placeholder="如 300" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="input-group" style="margin-bottom:.9em">
+        <label for="subNote" style="min-width:7.5em">备注（可选）</label>
+        <input type="text" id="subNote" maxlength="200" placeholder="如：官网横幅" style="padding:.45em;border:1px solid var(--border);border-radius:6px;" />
+      </div>
+      <div class="modal-buttons">
+        <button id="subCancel" class="btn">取消</button>
+        <button id="subSend" class="btn primary">提交</button>
+      </div>
+      <p id="subMsg" style="margin:.8em 0 0;font-size:13px;color:var(--err);min-height:1.2em"></p>
+      <button id="subClose" style="display:none">关闭</button>
+    </div>
+  </div>
+
+  <div class="dir-help-overlay" id="dirHelpOverlay" role="dialog" aria-modal="true"
+       aria-labelledby="dirHelpTitle" aria-describedby="dirHelpSummary">
+    <div class="dir-help-card">
+      <div class="dir-help-head">
+        <h3 id="dirHelpTitle">📁 文件夹写回不可用</h3>
+        <button class="dir-help-close" id="dirHelpClose" type="button" title="关闭" aria-label="关闭目录访问指引">✕</button>
+      </div>
+      <div class="dir-help-meta">
+        <span class="dir-help-chip" id="dirHelpBrowser">正在检测浏览器…</span>
+        <span class="dir-help-chip bad" id="dirHelpStatus">目录访问：不可用</span>
+      </div>
+      <p class="dir-help-summary" id="dirHelpSummary"></p>
+      <ol class="dir-help-steps" id="dirHelpSteps"></ol>
+      <div class="dir-help-actions">
+        <button class="btn" id="dirHelpCopy" type="button">复制当前链接</button>
+        <a class="btn" id="dirHelpChrome" href="https://www.google.com/chrome/" target="_blank"
+           rel="noopener noreferrer" style="display:none">下载 Chrome</a>
+        <a class="btn" id="dirHelpEdge" href="https://www.microsoft.com/edge" target="_blank"
+           rel="noopener noreferrer" style="display:none">下载 Edge</a>
+        <button class="btn" id="dirHelpRetry" type="button" style="display:none">重新检测</button>
+        <button class="btn primary" id="dirHelpContinue" type="button">继续使用 ZIP 模式</button>
+      </div>
+      <p class="dir-help-foot" id="dirHelpFoot">继续使用 ZIP 模式时，压缩功能完全正常，只是结果会打包成 ZIP 下载，不会直接覆盖原文件夹。</p>
+    </div>
+  </div>
+
+
+  <script src="res/jszip.min.js"></script>
+  <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '1.0.6'; // 每次更新时修改版本号
+    const APP_VERSION = '5.2.0'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const output = document.getElementById('output');
+    const chooseDirBtn = document.getElementById('chooseDirBtn');
     const defaultSizeInput = document.getElementById('defaultSizeInput');
-    const forceUseDefault = document.getElementById('forceUseDefault');
+    const manualModeToggle = document.getElementById('manualModeToggle');
     const defaultSizeGroup = document.getElementById('defaultSizeGroup');
+    const autoResolutionCheckbox = document.getElementById('autoResolutionCheckbox');
+    const autoResolutionGroup = document.getElementById('autoResolutionGroup');
+    const modeFilenameLabel = document.getElementById('modeFilenameLabel');
+    const modeManualLabel = document.getElementById('modeManualLabel');
+    const resolutionGrid = document.getElementById('resolutionGrid');
+    const resolutionCount = document.getElementById('resolutionCount');
     const themeToggle = document.getElementById('themeToggle');
     const removeParamCheckbox = document.getElementById('removeParamCheckbox');
-    const installContainer = document.getElementById('installContainer');
-    const installConfirm = document.getElementById('installConfirm');
-    const installCancel = document.getElementById('installCancel');
-    const updateContainer = document.getElementById('updateContainer');
-    const updateRefresh = document.getElementById('updateRefresh');
-    const paramNotification = document.getElementById('paramNotification');
-    const defaultSizeValue = document.getElementById('defaultSizeValue');
-    const notificationContent = document.getElementById('notificationContent');
-    const closeNotification = document.getElementById('closeNotification');
+    const pngToJpgCheckbox = document.getElementById('pngToJpgCheckbox');
+    const logBody = document.getElementById('logBody');
+    const toast = document.getElementById('toast');
+    const imgPreview = document.getElementById('imgPreview');
+    const imgPreviewImg = imgPreview.querySelector('img');
+    const imgModal = document.getElementById('imgModal');
+    const imgModalImg = document.getElementById('imgModalImg');
+    const imgModalName = document.getElementById('imgModalName');
+    const imgModalClose = document.getElementById('imgModalClose');
+    const dirHelpOverlay = document.getElementById('dirHelpOverlay');
+    const dirHelpBrowser = document.getElementById('dirHelpBrowser');
+    const dirHelpStatus = document.getElementById('dirHelpStatus');
+    const dirHelpSummary = document.getElementById('dirHelpSummary');
+    const dirHelpSteps = document.getElementById('dirHelpSteps');
+    const dirHelpCopy = document.getElementById('dirHelpCopy');
+    const dirHelpChrome = document.getElementById('dirHelpChrome');
+    const dirHelpEdge = document.getElementById('dirHelpEdge');
+    const dirHelpRetry = document.getElementById('dirHelpRetry');
+    const dirHelpContinue = document.getElementById('dirHelpContinue');
+    const dirHelpClose = document.getElementById('dirHelpClose');
+    const dirHelpFoot = document.getElementById('dirHelpFoot');
+
+    let dirHelpErrorShown = false;
+    let dirHelpLastFocus = null;
+
     const zip = new JSZip();
-    let deferredPrompt = null;
-    let hasShownNotification = false;
-    let currentOverlay = null;
-    let currentEnlarged = null;
 
-    function updateDefaultSizeVisibility() {
-      defaultSizeGroup.style.display = forceUseDefault.checked ? 'flex' : 'none';
-    }
+    const DEFAULT_FALLBACK_KB = 300; // 文件名优先模式下未识别时的默认目标
 
-    forceUseDefault.addEventListener('change', updateDefaultSizeVisibility);
-    updateDefaultSizeVisibility();
+    // ====== 剪贴板粘贴：独立的目标规则（不跟随模式开关）======
+    // 原图 > 20MB：压至 20MB 以内；≤ 20MB：命中分辨率表用该值，否则 300KB。
+    const PASTE_MAX_BYTES = 20 * 1000 * 1000; // 20MB（1000 进制，与目标 KB 口径一致）
+    const PASTE_DEFAULT_KB = 300;
 
-    function getTargetSizeFromName(name) {
-      const fallback = parseInt(defaultSizeInput.value);
-      const force = forceUseDefault.checked;
-      if (force) return fallback > 0 ? fallback * 1000 : null;
+    // ====== 批量压缩记录（自动上报 Cloudflare Worker + D1）======
+    // 后端已上线：Worker compressor-records，绑定 D1，自定义域名 cpr-api.nchyn.net
+    // （workers.dev 域名国内被 DNS 污染，勿改回）。置 KV_SIMULATE = true 可临时回退本地模拟。
+    const KV_ENDPOINT = 'https://cpr-api.nchyn.net/records';
+    const KV_SIMULATE = false;  // true = 本地 localStorage 模拟；false = 上报真实接口
+    const KV_LOCAL_KEY = 'compressorRecords';
+    let sessionRecords = [];   // 本次批量处理产生的记录
+    let sessionMode = 'manual'; // 本次处理模式：folder / zip / manual / paste
+    let suppressRecording = false; // 为 true 时只写日志、不产生上报记录（粘贴场景）
 
-      // 改进后的正则表达式，匹配文件名中任意位置的 -160KB 模式
-      const match = name.match(/-(\d+)KB/i);
-      if (match) return parseInt(match[1]) * 1000;
-      
-      return fallback > 0 ? fallback * 1000 : null;
-    }
+    // ---------------- 分辨率识别规则 ----------------
+    // 已知「图片分辨率 → 目标大小」。匹配时忽略横竖方向（宽高互换视为同一分辨率）。
+    const RESOLUTION_TARGETS = [
+      { width: 1140, height: 640,  kb: 300 },
+      { width: 370,  height: 245,  kb: 100 },
+      { width: 1080, height: 1920, kb: 500 },
+      { width: 3840, height: 652,  kb: 900 },
+      { width: 3840, height: 778,  kb: 900 },
+      { width: 1242, height: 1249, kb: 160 },
+      { width: 1242, height: 1242, kb: 160 },
+      { width: 384,  height: 216,  kb: 40 },
+      { width: 5040, height: 1020, kb: 3800 },
+      { width: 5040, height: 1214, kb: 3800 },
+      { width: 4000, height: 1020, kb: 3800 },
+      { width: 4000, height: 1214, kb: 3800 },
+      { width: 1080, height: 608,  kb: 150 },
+      { width: 380, height: 254,  kb: 40 }
+    ];
 
-    function showNotification(message) {
-      notificationContent.innerHTML = message;
-      paramNotification.classList.add('show');
-      paramNotification.style.display = 'block';
-      hasShownNotification = true;
-      
-      setTimeout(() => {
-        paramNotification.classList.remove('show');
-        paramNotification.classList.add('hide');
-        setTimeout(() => {
-          paramNotification.classList.remove('hide');
-          paramNotification.style.display = 'none';
-        }, 300);
-      }, 5000);
-    }
-
-    closeNotification.addEventListener('click', () => {
-      paramNotification.classList.remove('show');
-      paramNotification.classList.add('hide');
-      setTimeout(() => {
-        paramNotification.classList.remove('hide');
-        paramNotification.style.display = 'none';
-      }, 300);
+    const RESOLUTION_INDEX = new Map();
+    RESOLUTION_TARGETS.forEach(item => {
+      RESOLUTION_INDEX.set(resolutionKey(item.width, item.height), item);
     });
 
-    function getCleanFileName(name) {
-      // 删除文件名中的 -160KB 参数
-      return name.replace(/-\d+KB/i, '');
+    function resolutionKey(width, height){ return `${Math.max(width, height)}x${Math.min(width, height)}`; }
+
+    function lookupResolutionTarget(width, height){
+      if (!width || !height) return null;
+      return RESOLUTION_INDEX.get(resolutionKey(width, height)) || null;
     }
 
-    function dataURLToBlob(dataURL) {
+    resolutionCount.textContent = RESOLUTION_TARGETS.length;
+    resolutionGrid.innerHTML = RESOLUTION_TARGETS
+      .map(item => `<span class="resolution-item" data-kb="${item.kb}" data-res="${item.width}×${item.height}" title="点击设为手动目标 ${item.kb}KB"><b>${item.width}×${item.height}</b><span class="resolution-target">${item.kb}KB</span></span>`)
+      .join('');
+
+    // 点击参考条目：切换为手动控制并回填目标大小
+    resolutionGrid.addEventListener('click', (e) => {
+      const item = e.target.closest('.resolution-item');
+      if (!item) return;
+      manualModeToggle.checked = true;
+      updateModeUI();
+      defaultSizeInput.value = item.dataset.kb;
+      showToast(`已切换为手动控制：${item.dataset.res} → 目标 ${item.dataset.kb}KB`);
+    });
+
+    // ---------------- 模式状态 ----------------
+    function isManualMode(){ return manualModeToggle.checked; }
+    function isAutoResolutionEnabled(){ return autoResolutionCheckbox.checked; }
+
+    function updateModeUI(){
+      const manual = isManualMode();
+      modeFilenameLabel.classList.toggle('active', !manual);
+      modeManualLabel.classList.toggle('active', manual);
+      manualModeToggle.setAttribute('aria-label', manual
+        ? '当前为手动控制，点击切换为文件名优先'
+        : '当前为文件名优先，点击切换为手动控制');
+      // 手动控制：显示统一目标输入；分辨率识别在两种模式下均可用（命中时优先于手动值）
+      defaultSizeGroup.style.display = manual ? 'flex' : 'none';
+      autoResolutionGroup.title = '按图片实际分辨率匹配已知目标大小（命中时优先于当前模式的目标值）';
+    }
+
+    manualModeToggle.addEventListener('change', updateModeUI);
+    updateModeUI();
+
+    // 快速目标按钮 = 切换到手动控制并填入目标
+    document.querySelectorAll('[data-preset]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        manualModeToggle.checked = true;
+        updateModeUI();
+        defaultSizeInput.value = btn.dataset.preset;
+        showToast(`已切换为手动控制，目标 ${btn.dataset.preset}KB`);
+      });
+    });
+
+    // 用于管理预览URL，避免内存泄漏
+    let currentPreviewURLs = [];
+    function resetLog() {
+      // 回收旧的 objectURL
+      currentPreviewURLs.forEach(url => URL.revokeObjectURL(url));
+      currentPreviewURLs = [];
+      dirHelpErrorShown = false;
+      // 重置日志，仅有表头（修复“表头重复在底部”的问题）+ 空态占位
+      logBody.innerHTML = `
+        <div class="log-row header">
+          <div>文件</div><div>分辨率</div><div>原大小</div><div>目标</div><div>结果</div><div>说明</div>
+        </div>
+        <div class="log-empty">暂无处理记录 — 拖入图片、点击上方区域，或按 Ctrl+V 粘贴截图</div>`;
+    }
+    resetLog();
+
+    function showToast(msg, ms = 5000){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(()=>{
+        toast.classList.remove('show');
+        toast.style.transform = 'translateX(-50%) translateY(-10px)';
+      }, ms);
+    }
+
+    // 自定义确认弹窗
+    function showCustomConfirm(message) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById('modalOverlay');
+        const textEl = document.getElementById('modalText');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        textEl.textContent = message;
+        overlay.classList.add('show');
+
+        const cleanup = () => {
+          overlay.classList.remove('show');
+          confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+          cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        };
+
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => { cleanup(); resolve(true); });
+        document.getElementById('modalCancelBtn').addEventListener('click', () => { cleanup(); resolve(false); });
+      });
+    }
+
+    // ---------------- 目录访问浏览器指引 ----------------
+    const EMBEDDED_BROWSER_NAMES = {
+      wxwork: '企业微信内置浏览器',
+      wechat: '微信内置浏览器',
+      qq: 'QQ 内置浏览器',
+      dingtalk: '钉钉内置浏览器',
+      feishu: '飞书内置浏览器',
+      alipay: '支付宝内置浏览器',
+      weibo: '微博内置浏览器',
+      douyin: '抖音内置浏览器',
+      baiduapp: '百度 App 内置浏览器',
+      toutiao: '今日头条内置浏览器',
+      xhs: '小红书内置浏览器',
+      electron: '桌面应用内置浏览器（Electron）',
+      webview: '应用内置 WebView'
+    };
+
+    function detectBrowserInfo(){
+      const ua = navigator.userAgent || '';
+      const brands = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+      const hasBrand = (...names) => brands.some(item =>
+        names.some(name => (item.brand || '').toLowerCase().includes(name))
+      );
+
+      const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/.test(ua);
+      const mobile = isIOS || isAndroid || /Mobile/.test(ua);
+
+      const embedded = /wxwork/i.test(ua) ? 'wxwork'
+        : /MicroMessenger/i.test(ua) ? 'wechat'
+        : /DingTalk/i.test(ua) ? 'dingtalk'
+        : /Lark|Feishu/i.test(ua) ? 'feishu'
+        : /AlipayClient/i.test(ua) ? 'alipay'
+        : /Weibo/i.test(ua) ? 'weibo'
+        : /aweme|BytedanceWebview/i.test(ua) ? 'douyin'
+        : /baiduboxapp/i.test(ua) ? 'baiduapp'
+        : /NewsArticle/i.test(ua) ? 'toutiao'
+        : /xhs/i.test(ua) ? 'xhs'
+        : (/\bQQ\//.test(ua) && !/QQBrowser/i.test(ua)) ? 'qq'
+        : /Electron/i.test(ua) ? 'electron'
+        : /; wv\)/i.test(ua) ? 'webview'
+        : null;
+
+      const isEdge = /Edg(?:iOS|A)?\//.test(ua) || hasBrand('microsoft edge');
+      const isOpera = /OPR\//.test(ua) || hasBrand('opera');
+      const isSamsung = /SamsungBrowser/i.test(ua);
+      const isQQBrowser = /QQBrowser/i.test(ua);
+      const isUC = /UCBrowser|UBrowser/i.test(ua);
+      const isQuark = /Quark/i.test(ua);
+      const isBaidu = /BIDUBrowser|baidubrowser|BaiduBrowser/i.test(ua);
+      const isFirefox = /Firefox\/|FxiOS\//.test(ua) || hasBrand('firefox');
+      const isChromeIOS = /CriOS\//.test(ua);
+      const isChrome = (/Chrome\/|CriOS\//.test(ua) || hasBrand('google chrome', 'chromium')) &&
+        !isEdge && !isOpera && !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu;
+      const isBrave = !!(navigator.brave && navigator.brave.isBrave);
+      const isVivaldi = /Vivaldi\//.test(ua);
+      const isSafari = !isChrome && !isChromeIOS && !isEdge && !isFirefox && !isOpera &&
+        !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu && /Safari\//.test(ua);
+
+      let brand = '未知浏览器';
+      if (EMBEDDED_BROWSER_NAMES[embedded]) brand = EMBEDDED_BROWSER_NAMES[embedded];
+      else if (isQQBrowser) brand = 'QQ 浏览器';
+      else if (isUC) brand = 'UC 浏览器';
+      else if (isQuark) brand = '夸克浏览器';
+      else if (isBaidu) brand = '百度浏览器';
+      else if (isSamsung) brand = '三星浏览器';
+      else if (isEdge) brand = 'Edge';
+      else if (isOpera) brand = 'Opera';
+      else if (isBrave) brand = 'Brave';
+      else if (isVivaldi) brand = 'Vivaldi';
+      else if (isChromeIOS) brand = 'Chrome iOS';
+      else if (isChrome) brand = 'Chrome';
+      else if (isFirefox) brand = 'Firefox';
+      else if (isSafari) brand = 'Safari';
+
+      // 内置浏览器/旧内核的版本号意义不大，只显示品牌和平台
+      let version = '';
+      if (!embedded && !isSamsung && !isQQBrowser && !isUC && !isQuark && !isBaidu){
+        const versionMatch =
+          ua.match(/Edg(?:iOS|A)?\/([\d.]+)/) ||
+          ua.match(/OPR\/([\d.]+)/) ||
+          ua.match(/FxiOS\/([\d.]+)/) ||
+          ua.match(/Firefox\/([\d.]+)/) ||
+          ua.match(/CriOS\/([\d.]+)/) ||
+          ua.match(/Chrome\/([\d.]+)/) ||
+          ua.match(/Version\/([\d.]+)/);
+        version = versionMatch ? versionMatch[1] : '';
+      }
+      const major = parseInt(version, 10) || 0;
+
+      const platform = isIOS ? 'iOS'
+        : isAndroid ? 'Android'
+        : /Windows/.test(ua) ? 'Windows'
+        : /Macintosh|Mac OS X/.test(ua) ? 'macOS'
+        : /CrOS/.test(ua) ? 'ChromeOS'
+        : /Linux/.test(ua) ? 'Linux'
+        : '未知系统';
+
+      let engine = 'unknown';
+      if (isIOS) engine = 'webkit'; // iOS 上所有浏览器都基于 WebKit
+      else if (isFirefox) engine = 'gecko';
+      else if (isSafari) engine = 'webkit';
+      else if (isEdge || isChrome || isOpera || isSamsung || isBrave || isVivaldi ||
+               isQQBrowser || isUC || isQuark || isBaidu) engine = 'chromium';
+
+      return {
+        ua, brand, version, major, platform, mobile, embedded, engine,
+        isEdge, isOpera, isSamsung, isQQBrowser, isUC, isQuark, isBaidu,
+        isFirefox, isChrome, isChromeIOS, isBrave, isVivaldi, isSafari
+      };
+    }
+
+    function getDirectoryAccessAdvice(error = null){
+      const b = detectBrowserInfo();
+      const apiAvailable = typeof window.showDirectoryPicker === 'function';
+      const isFile = location.protocol === 'file:';
+      const host = location.hostname;
+      const isLocalHost = host === 'localhost' || host.endsWith('.localhost') ||
+        /^127\./.test(host) || host === '::1' || host === '[::1]';
+      const httpInsecure = location.protocol === 'http:' && !isLocalHost;
+      const inIframe = (() => {
+        try { return window.top !== window.self; } catch (e) { return true; }
+      })();
+      const chromiumDesktop = b.engine === 'chromium' && !b.mobile;
+      const knownUnsupported = b.isSamsung || b.isQQBrowser || b.isUC || b.isQuark || b.isBaidu;
+      const errorName = error && error.name ? error.name : '';
+      const errorMessage = error && error.message ? String(error.message) : '';
+      const zipStep = '也可以直接继续使用 ZIP 模式，压缩功能不受影响。';
+
+      let reason = '';
+      let steps = [];
+      let showChrome = false;
+      let showEdge = false;
+      let showCopy = !isFile;
+      let showRetry = false;
+      let statusText = '目录访问：不可用';
+      let statusClass = 'bad';
+
+      if (b.embedded === 'electron'){
+        reason = '当前页面在桌面应用的嵌入式浏览器（Electron）中打开，通常不提供文件夹写回权限。';
+        steps = [
+          '点击「复制当前链接」，粘贴到独立的 Chrome / Edge 标签页中打开。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并在浏览器弹窗中允许访问。',
+          zipStep
+        ];
+      } else if (b.embedded){
+        reason = `当前页面在${EMBEDDED_BROWSER_NAMES[b.embedded]}中打开，内置 WebView 通常不支持文件夹写回。`;
+        steps = [
+          '点击「复制当前链接」，或在右上角「…」/「···」菜单中选择「在浏览器中打开」/「在系统浏览器中打开」。',
+          '在系统浏览器中重新打开本站，再重试文件夹写回。',
+          '手机端即使切换到系统浏览器也可能不支持，请改用电脑版 Chrome / Edge。',
+          zipStep
+        ];
+        statusText = '目录访问：不支持';
+      } else if (b.mobile){
+        reason = b.isIOS
+          ? 'iOS / iPadOS 上的浏览器都基于 WebKit，暂不支持文件夹写回。'
+          : '手机浏览器暂不支持 File System Access API 的文件夹写回。';
+        steps = [
+          '请改用电脑版 Chrome 或 Edge（Windows / macOS）打开本站。',
+          '在电脑上把文件夹拖入页面，并在浏览器弹窗中允许访问。',
+          '手机上仍可选择多张图片，结果会打包为 ZIP 下载。'
+        ];
+        statusText = '目录访问：不支持';
+      } else if (b.isFirefox){
+        reason = 'Firefox 尚未实现 File System Access API（showDirectoryPicker），无法直接写回文件夹。';
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站（Chrome / Edge 86+ 支持，105+ 更完整）。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (b.isSafari){
+        reason = 'Safari 尚未实现文件夹写回所需的 File System Access API。';
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (knownUnsupported){
+        reason = `${b.brand} 当前内核未提供文件夹写回所需的目录选择 API。`;
+        steps = [
+          '请改用桌面版 Chrome 或 Edge 打开本站。',
+          '在 Chrome / Edge 中把文件夹拖入页面，并允许浏览器访问。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      } else if (isFile){
+        reason = '页面以 file:// 直接打开，浏览器对本地目录的写权限限制较多，目录访问可能被拒绝。';
+        steps = [
+          '推荐通过 HTTPS 地址打开本站（例如线上部署地址）。',
+          '本地调试请在项目目录运行 <code>python3 -m http.server 8000</code>，然后打开 <code>http://localhost:8000/indexv2.html</code>。',
+          '在 Chrome / Edge 中重新把文件夹拖入页面，并在权限提示中允许访问。',
+          zipStep
+        ];
+        showCopy = false;
+        statusText = apiAvailable ? '目录访问：可能受限' : '目录访问：不可用';
+        statusClass = apiAvailable ? 'warn' : 'bad';
+      } else if (httpInsecure){
+        reason = '当前页面通过普通 http:// 打开，不属于安全上下文，浏览器会禁用目录访问 API。';
+        steps = [
+          '改用 https:// 地址访问本站。',
+          '本地调试请使用 <code>http://localhost</code> 或 <code>http://127.0.0.1</code>，浏览器会把它们视为安全上下文。',
+          '重新把文件夹拖入页面并重试。',
+          zipStep
+        ];
+        statusText = '目录访问：需要 HTTPS';
+        statusClass = 'warn';
+      } else if (b.isOpera && b.major && b.major < 72){
+        reason = `当前 Opera ${b.version} 版本过低，文件夹写回需要 Opera 72+。`;
+        steps = [
+          '把 Opera 升级到最新版。',
+          '升级后重新打开本站并重试。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+      } else if (chromiumDesktop && b.major && b.major < 86 && !b.isOpera){
+        reason = `当前 ${b.brand} ${b.version} 版本过低，文件夹写回需要 Chrome / Edge 86+。`;
+        steps = [
+          '把浏览器升级到最新版（105+ 支持更完整）。',
+          '升级后重新打开本站并重试。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+      } else if (chromiumDesktop && !apiAvailable){
+        reason = '浏览器没有提供文件夹选择 API，可能是版本过低、被安全策略禁用，或当前处于受限环境。';
+        steps = [
+          '确认地址栏是 <code>https://</code> 或 <code>localhost</code>，不要使用 <code>file://</code> 或普通 <code>http://</code>。',
+          '升级到最新版 Chrome / Edge（86+ 支持，105+ 更完整）。',
+          '如果使用公司或学校统一管理的浏览器，可能被企业策略禁用，请联系管理员。',
+          '关闭可能拦截文件系统权限的扩展后重试。',
+          zipStep
+        ];
+        if (inIframe) steps.unshift('当前页面可能嵌在 iframe 中，请点击「复制当前链接」在新标签页打开。');
+        showChrome = true;
+        showEdge = true;
+        showCopy = true;
+      } else if (apiAvailable){
+        reason = errorName
+          ? `浏览器提供了目录访问 API，但本次授权失败：${errorName}${errorMessage ? `（${errorMessage}）` : ''}。`
+          : '浏览器提供了目录访问 API，但当前无法完成授权。';
+        statusText = errorName ? '目录访问：授权失败' : '目录访问：需要授权';
+        statusClass = 'warn';
+        if (errorName === 'NotAllowedError'){
+          steps = [
+            '在浏览器弹出的权限提示中选择「允许」/「编辑文件」。',
+            '如果之前选择了拒绝，请刷新页面后重新把文件夹拖入页面。',
+            '确认地址栏为 HTTPS 或 localhost。',
+            '仍失败请升级浏览器，或继续使用 ZIP 模式。'
+          ];
+          showRetry = true;
+        } else if (errorName === 'SecurityError'){
+          steps = [
+            '请直接在页面中操作，不要在 iframe、预览窗口或脚本中自动触发。',
+            '确认页面是顶层标签页，并且地址为 HTTPS 或 localhost。',
+            '刷新页面后重试；仍失败请升级 Chrome / Edge。',
+            zipStep
+          ];
+          if (inIframe) steps.unshift('当前页面嵌在 iframe 中，请复制链接到独立标签页打开。');
+          showRetry = true;
+        } else {
+          steps = [
+            '请直接在页面中操作，并在浏览器弹窗中允许访问文件夹。',
+            '确认地址栏为 HTTPS 或 localhost。',
+            '升级到最新版桌面 Chrome / Edge 后重试。',
+            zipStep
+          ];
+          if (inIframe) steps.unshift('当前页面可能嵌在 iframe 中，请复制链接到独立标签页打开。');
+          showRetry = true;
+        }
+      } else {
+        reason = '当前浏览器未提供文件夹写回能力。';
+        steps = [
+          '请使用最新版桌面 Chrome 或 Edge，并通过 HTTPS 或 localhost 打开本站。',
+          zipStep
+        ];
+        showChrome = true;
+        showEdge = true;
+        statusText = '目录访问：不支持';
+      }
+
+      return {
+        b, apiAvailable, isFile, httpInsecure, inIframe,
+        reason, steps, showChrome, showEdge, showCopy, showRetry,
+        statusText, statusClass
+      };
+    }
+
+    function renderDirectoryHelp(advice){
+      const b = advice.b;
+      dirHelpBrowser.textContent = `${b.brand}${b.version ? ' ' + b.version : ''} · ${b.platform}${b.mobile ? ' · 移动端' : ''}`;
+      dirHelpStatus.textContent = advice.statusText;
+      dirHelpStatus.className = 'dir-help-chip ' + advice.statusClass;
+      dirHelpSummary.textContent = advice.reason;
+
+      dirHelpSteps.innerHTML = '';
+      advice.steps.forEach(step => {
+        const li = document.createElement('li');
+        li.innerHTML = step;
+        dirHelpSteps.appendChild(li);
+      });
+
+      dirHelpCopy.style.display = advice.showCopy ? '' : 'none';
+      dirHelpChrome.style.display = advice.showChrome ? '' : 'none';
+      dirHelpEdge.style.display = advice.showEdge ? '' : 'none';
+      dirHelpRetry.style.display = advice.showRetry ? '' : 'none';
+
+      const chromiumDesktop = b.engine === 'chromium' && !b.mobile && !b.embedded;
+      dirHelpFoot.textContent = (chromiumDesktop && !advice.isFile && !advice.httpInsecure)
+        ? '提示：Chrome / Edge 没有单独的“目录访问”开关；把文件夹拖入页面并开始写回时，浏览器会询问是否允许。继续使用 ZIP 模式时压缩功能完全正常。'
+        : '继续使用 ZIP 模式时，压缩功能完全正常，只是结果会打包成 ZIP 下载，不会直接覆盖原文件夹。';
+    }
+
+    function showDirectoryHelp({ error = null } = {}){
+      const advice = getDirectoryAccessAdvice(error);
+      renderDirectoryHelp(advice);
+      dirHelpLastFocus = document.activeElement;
+      dirHelpOverlay.classList.add('show');
+      setTimeout(() => {
+        if (!dirHelpOverlay.classList.contains('show')) return;
+        try { dirHelpContinue.focus(); } catch (e) {}
+      }, 30);
+    }
+
+    function hideDirectoryHelp(){
+      dirHelpOverlay.classList.remove('show');
+      if (dirHelpLastFocus && typeof dirHelpLastFocus.focus === 'function'){
+        try { dirHelpLastFocus.focus(); } catch (e) {}
+      }
+    }
+
+    function notifyDirectoryWriteError(err){
+      if (!err) return;
+      if (!['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(err.name)) return;
+      if (dirHelpErrorShown) return;
+      dirHelpErrorShown = true;
+      showDirectoryHelp({ error: err });
+    }
+
+    dirHelpClose.addEventListener('click', hideDirectoryHelp);
+    dirHelpContinue.addEventListener('click', hideDirectoryHelp);
+    dirHelpOverlay.addEventListener('click', e => {
+      if (e.target === dirHelpOverlay) hideDirectoryHelp();
+    });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && dirHelpOverlay.classList.contains('show')) hideDirectoryHelp();
+    });
+    dirHelpRetry.addEventListener('click', () => location.reload());
+    dirHelpCopy.addEventListener('click', async () => {
+      const text = location.href;
+      try {
+        if (!navigator.clipboard || !window.isSecureContext) throw new Error('clipboard unavailable');
+        await navigator.clipboard.writeText(text);
+        showToast('链接已复制，可粘贴到 Chrome / Edge 打开');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (err) {}
+        ta.remove();
+        showToast(ok ? '链接已复制，可粘贴到 Chrome / Edge 打开' : '复制失败，请手动复制地址栏链接');
+      }
+    });
+
+    // 不支持目录选择时，进入页面即展示按浏览器区分的指引
+    function maybeShowDirectoryHelpOnLoad(){
+      // 样式预览页不希望被目录访问指引遮挡
+      if (new URLSearchParams(location.search).get('preview') === '1') return;
+      const host = location.hostname;
+      const isLocalHost = host === 'localhost' || host.endsWith('.localhost') ||
+        /^127\./.test(host) || host === '::1' || host === '[::1]';
+      const insecureHttp = location.protocol === 'http:' && !isLocalHost;
+      if (typeof window.showDirectoryPicker !== 'function' || insecureHttp){
+        showDirectoryHelp();
+      }
+    }
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', maybeShowDirectoryHelpOnLoad, { once: true });
+    } else {
+      maybeShowDirectoryHelpOnLoad();
+    }
+
+    // ====== 批量压缩记录：收集 / 上报 / 手动提交弹窗 ======
+    function addRecord(rec){
+      if (suppressRecording) return;
+      sessionRecords.push({
+        name: rec.name,
+        width: rec.width || null,
+        height: rec.height || null,
+        targetKB: rec.targetInfo ? rec.targetInfo.kb : null,
+        targetSource: rec.targetInfo ? rec.targetInfo.source : null,
+        origSize: rec.orig == null ? null : rec.orig,
+        resultSize: rec.result == null ? null : rec.result,
+        status: rec.status || null,
+        note: rec.note || '',
+        at: new Date().toISOString(),
+        mode: sessionMode
+      });
+    }
+
+    async function flushRecords(){
+      if (!sessionRecords.length) return;
+      const payload = {
+        mode: sessionMode,
+        count: sessionRecords.length,
+        batchAt: new Date().toISOString(),
+        records: sessionRecords
+      };
+      const useKV = !KV_SIMULATE && KV_ENDPOINT;
+      const done = () => {
+        sessionRecords = [];
+      };
+      if (!useKV){
+        // localStorage 模拟：按批次追加保存
+        try {
+          const all = JSON.parse(localStorage.getItem(KV_LOCAL_KEY) || '[]');
+          all.push(payload);
+          localStorage.setItem(KV_LOCAL_KEY, JSON.stringify(all));
+        } catch(e){}
+        done();
+        return;
+      }
+      try {
+        const res = await fetch(KV_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.ok !== false){
+          done();
+        } else {
+          showToast('记录上报失败：' + ((data && data.error) || ('HTTP ' + res.status)) + '，已保留在本机');
+        }
+      } catch(err){
+        showToast('记录上报网络错误：' + err.message + '，已保留在本机');
+      }
+    }
+
+    // ---- 手动提交配置弹窗 ----
+    const submitModal = document.getElementById('submitModal');
+    function openSubmitModal(){ submitModal.classList.add('show'); }
+    function closeSubmitModal(){ submitModal.classList.remove('show'); }
+
+    function submitConfigFromDialog(){
+      const w = parseInt(document.getElementById('subW').value, 10);
+      const h = parseInt(document.getElementById('subH').value, 10);
+      const k = parseInt(document.getElementById('subKB').value, 10);
+      const note = (document.getElementById('subNote').value || '').slice(0, 200);
+      const msg = document.getElementById('subMsg');
+      if (!(w > 0 && h > 0 && k > 0)){
+        msg.textContent = '请填写正整数：分辨率宽、分辨率高、目标大小(KB)。';
+        msg.style.color = '#982222';
+        return;
+      }
+      addRecord({ name: '(手动提交)', width: w, height: h,
+        targetInfo: { kb: k, source: 'manual-submit' },
+        status: 'submitted', note });
+      closeSubmitModal();
+      flushRecords();
+      msg.textContent = '';
+    }
+
+    document.getElementById('submitConfigBtn').addEventListener('click', openSubmitModal);
+    document.getElementById('subCancel').addEventListener('click', closeSubmitModal);
+    document.getElementById('subClose').addEventListener('click', closeSubmitModal);
+    document.getElementById('subSend').addEventListener('click', submitConfigFromDialog);
+    submitModal.addEventListener('click', e => { if (e.target === submitModal) closeSubmitModal(); });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && submitModal.classList.contains('show')) closeSubmitModal();
+    });
+
+    function formatKB(n){ return (n/1000).toFixed(1) + 'KB'; } // 1000 进制
+    function ext(name){ return name.split('.').pop().toLowerCase(); }
+    function isImageName(name){ return /\.(jpe?g|png|webp)$/i.test(name); }
+    function getCleanFileName(name){ return name.replace(/-(?:\d+(?:\.\d+)?|\.\d+)\s*(?:KB|MB)(?=\.[^.]+$)/i, ''); }
+    function replaceExt(name, newExt){ return name.replace(/\.[^.]+$/, '.'+newExt); }
+    function getOutputFileName(origName, outExt){
+      let base = removeParamCheckbox.checked ? getCleanFileName(origName) : origName;
+      return replaceExt(base, outExt);
+    }
+    function getFilenameTargetKB(name){
+      if (name.includes('预览')) return 20000;
+      if (name.includes('落地页')) return 2000;
+      const m = name.match(/(?:^|[-_\s])((?:\d+(?:\.\d+)?|\.\d+))\s*(KB|MB)(?=$|[-_\s.]|\()/i);
+      if (!m) return null;
+      const kb = Number(m[1]) * (m[2].toUpperCase() === 'MB' ? 1000 : 1);
+      return Number.isFinite(kb) && kb > 0 ? kb : null;
+    }
+    function getFallbackKB(){
+      // 文件名优先：未匹配文件名参数/分辨率时固定回退 300KB
+      // 手动控制：使用输入框中的统一目标
+      if (!isManualMode()) return DEFAULT_FALLBACK_KB;
+      const v = parseInt(defaultSizeInput.value, 10);
+      return Number.isFinite(v) && v > 0 ? v : DEFAULT_FALLBACK_KB;
+    }
+
+    /**
+     * 计算目标大小及来源。
+     * 优先级：文件名参数（仅文件名优先模式）> 分辨率识别（复选框启用时，两种模式均生效）> 模式默认值。
+     * 文件名优先模式默认 300KB；手动控制模式默认为输入框统一目标。
+     */
+    function resolveTarget(name, width, height){
+      const fallbackKB = getFallbackKB();
+      const filenameKB = getFilenameTargetKB(name);
+      const resolution = lookupResolutionTarget(width, height);
+      const base = { width, height, filenameKB, resolution, fallbackKB };
+
+      if (isManualMode()){
+        if (isAutoResolutionEnabled() && resolution){
+          return { ...base, source: 'resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+        }
+        return { ...base, source: 'manual', kb: fallbackKB, bytes: fallbackKB * 1000 };
+      }
+      if (filenameKB != null){
+        return { ...base, source: 'filename', kb: filenameKB, bytes: filenameKB * 1000 };
+      }
+      if (isAutoResolutionEnabled() && resolution){
+        return { ...base, source: 'resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+      }
+      return { ...base, source: 'default', kb: fallbackKB, bytes: fallbackKB * 1000 };
+    }
+
+    /**
+     * 粘贴图片的目标大小：优先保证不超过 20MB 上限，其次按分辨率表，最后 300KB。
+     */
+    function resolvePasteTarget(name, width, height, fileSize){
+      const resolution = lookupResolutionTarget(width, height);
+      const base = { width, height, filenameKB: null, resolution, fallbackKB: PASTE_DEFAULT_KB, fileSize };
+
+      if (fileSize > PASTE_MAX_BYTES){
+        return { ...base, source: 'paste-limit', kb: PASTE_MAX_BYTES / 1000, bytes: PASTE_MAX_BYTES };
+      }
+      if (resolution){
+        return { ...base, source: 'paste-resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
+      }
+      return { ...base, source: 'paste-default', kb: PASTE_DEFAULT_KB, bytes: PASTE_DEFAULT_KB * 1000 };
+    }
+
+    // 生成“目标来源”说明，供日志标注
+    function describeTargetSource(info){
+      const notes = [];
+      const resText = `${info.width}×${info.height}`;
+
+      if (info.source === 'filename'){
+        notes.push(`目标来源：文件名参数 ${info.kb}KB`);
+        if (info.resolution){
+          notes.push(info.resolution.kb === info.kb
+            ? `分辨率 ${resText} 与规则一致（${info.resolution.kb}KB）`
+            : `注意：分辨率 ${resText} 对应 ${info.resolution.kb}KB，按文件名优先`);
+        } else if (isAutoResolutionEnabled()){
+          notes.push(`分辨率 ${resText} 未在识别表中`);
+        }
+      } else if (info.source === 'resolution'){
+        notes.push(`目标来源：分辨率识别 ${resText} → ${info.resolution.kb}KB`);
+      } else if (info.source === 'manual'){
+        notes.push(`目标来源：手动控制 ${info.kb}KB`);
+        if (info.resolution){
+          notes.push(`分辨率 ${resText} 对应 ${info.resolution.kb}KB（分辨率识别未启用，已用手动值）`);
+        }
+      } else if (info.source === 'paste-limit'){
+        notes.push(`目标来源：粘贴图片 · 原文件 ${(info.fileSize / 1e6).toFixed(1)}MB 超过 20MB 上限`);
+        notes.push('按上限压至 20MB 以内');
+      } else if (info.source === 'paste-resolution'){
+        notes.push(`目标来源：粘贴图片 · 分辨率识别 ${resText} → ${info.kb}KB`);
+      } else if (info.source === 'paste-default'){
+        notes.push(`目标来源：粘贴图片 · 默认 ${info.kb}KB（原文件 ≤ 20MB）`);
+        notes.push(`分辨率 ${resText} 未在识别表中`);
+      } else {
+        notes.push(`目标来源：默认值 ${info.kb}KB（文件名无参数）`);
+        notes.push(isAutoResolutionEnabled()
+          ? `分辨率 ${resText} 未在识别表中`
+          : '分辨率识别未启用');
+      }
+      return notes;
+    }
+
+    document.getElementById('clearLogButton').addEventListener('click', () => {
+      resetLog();
+    });
+
+    let folderLogContext=null;
+    function row({ status, filePath, width, height, orig, target, result, note, previewURL, previewName, rowEl, localOnly }){
+      const empty = logBody.querySelector('.log-empty');
+      if (empty) empty.remove();
+      const div = rowEl || document.createElement('div');
+      div.className = 'log-row';
+      div.innerHTML = '';
+
+      // 仅在非 pending 状态收集记录（每条日志 = 一条记录），批次结束时一并上报 KV
+      if (folderLogContext && status==='err') {folderLogContext.details.open=true;folderLogContext.errors++;}
+      if (status !== 'pending' && !localOnly){
+        addRecord({
+          name: previewName || filePath,
+          width, height,
+          targetInfo: { kb: target == null ? null : Math.round(target / 1000),
+                        source: (note || '').match(/目标来源：([^\s；]+)/) ? note.match(/目标来源：([^\s；]+)/)[1] : null },
+          orig, result, status, note
+        });
+      }
+
+      const nameCell = document.createElement('div');
+      if (previewURL){
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'file-link';
+        a.dataset.url = previewURL;
+        a.dataset.name = previewName || filePath;
+        a.textContent = filePath;
+        nameCell.appendChild(a);
+      } else {
+        nameCell.textContent = filePath;
+      }
+
+      const resCell = document.createElement('div');
+      if (width && height){
+        resCell.textContent = `${width}×${height}`;
+        const hit = lookupResolutionTarget(width, height);
+        if (hit){
+          resCell.classList.add('resolution-hit');
+          resCell.title = `匹配规则：${hit.width}×${hit.height} → ${hit.kb}KB`;
+        } else {
+          resCell.title = '未匹配到已知分辨率';
+        }
+      } else {
+        resCell.textContent = status === 'pending' ? '计算中...' : '—';
+      }
+
+      const origCell = document.createElement('div');
+      origCell.textContent = orig == null ? '—' : formatKB(orig);
+
+      const targetCell = document.createElement('div');
+      targetCell.textContent = target == null ? (status === 'pending' ? '计算中...' : '—') : formatKB(target);
+
+      const resultCell = document.createElement('div');
+      if (status === 'pending'){
+        resultCell.innerHTML = `<span class="badge pending">处理中 ⏳</span>`;
+      } else {
+        resultCell.innerHTML = `${result == null ? '—' : formatKB(result)} <span class="badge ${status}">${status.toUpperCase()}</span>`;
+      }
+
+      const noteCell = document.createElement('div');
+      noteCell.textContent = note || '';
+
+      div.append(nameCell, resCell, origCell, targetCell, resultCell, noteCell);
+      if (!rowEl){
+        if(folderLogContext) folderLogContext.body.prepend(div);
+        else {const header = logBody.querySelector('.log-row.header');
+        if (header) header.after(div);
+        else logBody.prepend(div);}
+      }
+      if (!rowEl) logBody.scrollTop = 0;
+      return div;
+    }
+
+    // 主线程让出机制：让浏览器有空隙刷新 UI 与渲染动画，杜绝超大计算卡死页面
+    function yieldToUI(){
+      return new Promise(resolve => {
+        if (typeof requestAnimationFrame === 'function'){
+          requestAnimationFrame(() => setTimeout(resolve, 0));
+        } else {
+          setTimeout(resolve, 0);
+        }
+      });
+    }
+
+    // data URL → Blob
+    function dataURLToBlob(dataURL){
       const [header, base64] = dataURL.split(',');
-      const mime = header.match(/:(.*?);/)[1];
+      const mime = (header.match(/:(.*?);/) || [])[1] || 'image/jpeg';
       const binary = atob(base64);
-      const array = Uint8Array.from(binary, char => char.charCodeAt(0));
+      if (!binary.length) throw new Error('浏览器无法编码该图片');
+      const array = Uint8Array.from(binary, c => c.charCodeAt(0));
       return new Blob([array], { type: mime });
     }
 
-    async function compressImageToTarget(file, targetSize) {
-      const img = new Image();
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      await new Promise(resolve => {
-        reader.onload = () => {
-          img.src = reader.result;
-          img.onload = resolve;
-        };
+    function loadImage(url){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('图片无法解码'));
+        img.src = url;
       });
+    }
 
+    function resolveOutputFormat(sourceExt, pngToJpg){
+      if (sourceExt === 'webp') return { mime: 'image/webp', outExt: 'webp' };
+      if (sourceExt === 'png' && !pngToJpg) return { mime: 'image/png', outExt: 'png' };
+      return { mime: 'image/jpeg', outExt: 'jpg' };
+    }
+
+    /**
+     * 将已解码的图片压缩到目标大小。
+     * @param {HTMLImageElement} img 已加载的图片。
+     * @param {string} sourceExt 原扩展名。
+     * @param {number} targetSize 目标字节数。
+     * @param {{pngToJpg?: boolean}} options
+     * @returns {{blob: Blob, outExt: string, quality: number|null, reached: boolean}}
+     */
+    function compressToTarget(img, sourceExt, targetSize, options = {}){
+      const { pngToJpg = false } = options;
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      let low = 0.1, high = 1.0;
-      let resultBlob = null;
+      const { mime, outExt } = resolveOutputFormat(sourceExt, pngToJpg);
 
-      for (let i = 0; i < 10; i++) {
+      // PNG 无法用质量参数压缩，只能重新编码
+      if (mime === 'image/png'){
+        const blob = dataURLToBlob(canvas.toDataURL('image/png'));
+        return { blob, outExt, quality: null, reached: blob.size <= targetSize };
+      }
+
+      // JPG / WEBP：对质量做二分搜索，始终保留“不超过目标且尽量大”的结果
+      let low = 0;
+      let high = 1;
+      let bestUnder = null;   // 小于等于目标的候选
+      let smallest = null;    // 兜底：整体最小的候选
+
+      for (let i = 0; i < 10; i++){
+        const q = (low + high) / 2;
+        const blob = dataURLToBlob(canvas.toDataURL(mime, q));
+        if (!smallest || blob.size < smallest.blob.size) smallest = { blob, q };
+        if (blob.size <= targetSize){
+          bestUnder = { blob, q };
+          if (targetSize - blob.size <= targetSize * 0.05) break;
+          low = q;
+        } else {
+          high = q;
+        }
+      }
+
+      const chosen = bestUnder || smallest;
+      return {
+        blob: chosen.blob,
+        outExt,
+        quality: chosen.q,
+        reached: chosen.blob.size <= targetSize
+      };
+    }
+
+
+    // 统计目录内图片数量
+    async function countImageFiles(dirHandle) {
+      let count = 0;
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file' && isImageName(entry.name)) {
+          count++;
+        } else if (entry.kind === 'directory') {
+          count += await countImageFiles(entry);
+        }
+      }
+      return count;
+    }
+
+    function createZipAndDownload(name){ zip.generateAsync({type:'blob'}).then(b => saveAs(b, name)); }
+
+async function processFileLike(readFile, writeBack, displayPath, opts = {}){
+      const {file, name} = await readFile();
+      if (!isImageName(name)) return;
+
+      const rowEl = opts.rowEl || null;
+      const fileExt = ext(name);
+      const pngScale = !!opts.pngScale;   // 粘贴模式：产物固定为 PNG，靠缩放达标
+      const pngToJpg = !pngScale && (pngToJpgCheckbox.checked || !!opts.forceJpeg);
+
+      // 预览（默认用原文件，若之后有压缩会替换为新blob）
+      let previewURL = URL.createObjectURL(file);
+      currentPreviewURLs.push(previewURL);
+
+      // 先解码一次，拿到真实分辨率（分辨率识别与压缩共用）
+      let img;
+      try {
+        img = await loadImage(previewURL);
+      } catch (err) {
+        row({ status: 'err', filePath: displayPath, orig: file.size, target: null, result: null,
+              note: '图片无法解码，已跳过', previewURL, previewName: name, rowEl });
+        return;
+      }
+
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      const targetInfo = opts.targetResolver
+        ? opts.targetResolver(name, width, height, file.size)
+        : resolveTarget(name, width, height);
+      const target = targetInfo.bytes;
+      const sourceNotes = describeTargetSource(targetInfo);
+      const rowBase = { filePath: displayPath, width, height, orig: file.size, target, rowEl };
+      const renamedName = getOutputFileName(name, fileExt);
+      const needsRename = removeParamCheckbox.checked && renamedName !== name;
+
+      let converted = null;
+
+      // 1) PNG 且勾选转 JPG：优先转换，即使原文件已小于目标
+      // 2) 原文件已小于目标：不再重编码，必要时只改文件名
+      // 3) 其他情况：正常压缩到目标
+      if (fileExt === 'png' && pngToJpg){
+        try {
+          converted = compressToTarget(img, fileExt, target, { pngToJpg });
+        } catch (err) {
+          row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, `压缩失败：${err.message}`].join('；') });
+          return;
+        }
+      } else if (!pngScale && file.size <= target){
+        if (needsRename){
+          try {
+            await writeBack(file, renamedName);
+          } catch (err) {
+            notifyDirectoryWriteError(err);
+            row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                  note: [...sourceNotes, `重命名失败：${err.message}`].join('；') });
+            return;
+          }
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: renamedName,
+                note: [...sourceNotes, '原始文件已小于目标，仅修改文件名'].join('；') });
+        } else {
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, '原始文件小于目标，跳过'].join('；') });
+        }
+        return;
+      }
+
+      if (!converted){
+        try {
+          converted = pngScale
+            ? await compressPngToTarget(img, target, { origSize: file.size, rowEl })
+            : compressToTarget(img, fileExt, target, { pngToJpg });
+        } catch (err) {
+          row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, `压缩失败：${err.message}`].join('；') });
+          return;
+        }
+      }
+
+      const compressed = converted.blob;
+      const outExt = converted.outExt;
+
+      // 压缩没有变小：不写回压缩结果，仅在需要时修改文件名（PNG 缩放模式下产物是目标格式，照常输出）
+      if (!compressed || (!pngScale && compressed.size >= file.size)){
+        if (needsRename){
+          try {
+            await writeBack(file, renamedName);
+          } catch (err) {
+            notifyDirectoryWriteError(err);
+            row({ ...rowBase, status: 'err', result: file.size, previewURL, previewName: name,
+                  note: [...sourceNotes, `重命名失败：${err.message}`].join('；') });
+            return;
+          }
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: renamedName,
+                note: [...sourceNotes, '压缩后未变小，仅修改文件名'].join('；') });
+        } else {
+          row({ ...rowBase, status: 'skip', result: file.size, previewURL, previewName: name,
+                note: [...sourceNotes, '压缩后未变小，已跳过'].join('；') });
+        }
+        return;
+      }
+
+      // 正常写回（压缩成功）
+      const finalName = getOutputFileName(name, outExt);
+      const resultURL = URL.createObjectURL(compressed);
+      currentPreviewURLs.push(resultURL);
+      previewURL = resultURL;
+
+      try {
+        await writeBack(compressed, finalName);
+      } catch (err) {
+        notifyDirectoryWriteError(err);
+        row({ ...rowBase, status: 'err', result: compressed.size, previewURL, previewName: finalName,
+              note: [...sourceNotes, `写回失败：${err.message}`].join('；') });
+        return;
+      }
+
+      const detailNotes = [...sourceNotes];
+      if (outExt !== fileExt) detailNotes.push(`格式 ${fileExt}→${outExt}`);
+      if (converted.quality != null) detailNotes.push(`质量 ${Math.round(converted.quality * 100)}%`);
+      if (converted.scaled) detailNotes.push(`尺寸缩放 ${width}×${height} → ${converted.width}×${converted.height}`);
+      detailNotes.push(compressed.size > target
+        ? `已减小但未达 ${targetInfo.kb}KB 目标`
+        : `压缩率 ${(100*(1 - compressed.size/file.size)).toFixed(1)}%`);
+
+      row({ ...rowBase, status: 'ok', result: compressed.size, previewURL, previewName: finalName,
+            note: detailNotes.join('；') });
+    }
+
+    // 目录模式（覆盖保存 + 可重命名/改后缀）
+    async function chooseAndProcessDirectory(handle){
+      try{
+        if (!handle){
+          if (typeof window.showDirectoryPicker !== 'function'){
+            showDirectoryHelp();
+            return;
+          }
+          try {
+            handle = await showDirectoryPicker();
+          } catch (err) {
+            if (err && err.name === 'AbortError') return; // 用户取消选择
+            showDirectoryHelp({ error: err });
+            return;
+          }
+        }
+
+        const imageCount = await countImageFiles(handle);
+        if (imageCount === 0) { showToast('文件夹中没有找到可处理的图片。'); return; }
+
+        const ok = imageCount >= 50
+          ? await showCustomConfirm(`🚨🚨🚨 注意！🚨🚨🚨\n您已提交 ${imageCount} 张图片，即将覆盖处理，是否继续？`)
+          : await showCustomConfirm(`是否批量处理此文件夹中的 ${imageCount} 张图片？\n将递归处理并覆盖保存。`);
+        if (!ok) return;
+
+        resetLog();
+        sessionMode = 'folder';
+        sessionRecords = [];
+
+        async function walk(dirHandle, prefix=''){
+          for await (const [name, entry] of dirHandle.entries()){
+            const path = prefix ? `${prefix}/${name}` : name;
+            if (entry.kind === 'file'){
+              await processFileLike(
+                async () => ({ file: await entry.getFile(), name }),
+                async (blob, suggestedName) => {
+                  const intendedName = suggestedName || (removeParamCheckbox.checked ? getCleanFileName(name) : name);
+                  if (intendedName !== name){
+                    const newHandle = await dirHandle.getFileHandle(intendedName, { create: true });
+                    const w = await newHandle.createWritable(); await w.write(blob); await w.close();
+                    try { await dirHandle.removeEntry(name); } catch(e){}
+                  } else {
+                    const w = await entry.createWritable(); await w.write(blob); await w.close();
+                  }
+                },
+                path
+              );
+            } else if (entry.kind === 'directory'){
+              await walk(entry, path);
+            }
+          }
+        }
+
+        await walk(handle);
+        await flushRecords();
+        showToast('🎉 全部处理完成（文件夹模式）');
+      }catch(e){
+        console.error(e);
+        if (e && ['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(e.name)){
+          showDirectoryHelp({ error: e });
+        } else {
+          showToast('处理出错：' + e.message);
+        }
+      }
+    }
+
+    // 文件模式（打包 ZIP 下载）
+    async function handleFilesToZip(files){
+      zip.files = {}; // 重置ZIP
+      resetLog();     // 清空上次日志（满足需求#2）
+      sessionMode = 'zip';
+      sessionRecords = [];
+      let any = false;
+      for (const file of files){
+        const displayName = file.name;
+        await processFileLike(
+          async () => ({ file, name: file.name }),
+          async (blob, suggestedName) => {
+            any = true;
+            const newName = suggestedName || (removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name);
+            const arrayBuffer = await blob.arrayBuffer();
+            zip.file(newName, arrayBuffer, {date: new Date()});
+          },
+          displayName
+        );
+      }
+      if (any){
+        const now = new Date();
+        const zipName = `compressed_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}.zip`;
+        createZipAndDownload(zipName);
+        await flushRecords();
+        showToast('🎉 全部处理完成（已生成 ZIP）');
+      } else {
+        showToast('未处理任何文件');
+      }
+    }
+
+    // ====== 剪贴板粘贴图片 ======
+    // 目标规则见 resolvePasteTarget：>20MB 压到上限内；否则按分辨率表；再否则 300KB。
+    function pasteFileName(blob, index, total){
+      const t = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      const stamp = `${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}`;
+      const type = (blob.type || '').toLowerCase();
+      const outExt = /jpe?g/.test(type) ? 'jpg' : /webp/.test(type) ? 'webp' : 'png';
+      return `粘贴图片-${stamp}${total > 1 ? '-' + (index + 1) : ''}.${outExt}`;
+    }
+
+    // ==== 按体积缩放 PNG（剪贴板只接受 PNG，只能靠减小尺寸控制体积）====
+    async function encodePngAtScale(img, scale){
+      const sw = img.naturalWidth || img.width;
+      const sh = img.naturalHeight || img.height;
+      const w = Math.max(1, Math.round(sw * scale));
+      const h = Math.max(1, Math.round(sh * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+      const blob = await new Promise((res, rej) => {
+        canvas.toBlob(b => b ? res(b) : rej(new Error('PNG 编码失败')), 'image/png');
+      });
+      // 及时清空 Canvas 像素数据以释放浏览器显存/内存
+      canvas.width = 0;
+      canvas.height = 0;
+      return { blob, width: w, height: h, scale, outExt: 'png', quality: null };
+    }
+
+    /**
+     * 智能二分搜索缩放比例，取「PNG 体积 ≤ 目标」的最大尺寸。
+     * 优化：
+     * 1. 避免对超大图片无意义地先压缩 100% 全尺寸（若原图很大，100% 极耗时且注定超标）
+     * 2. 基于面积与体积关系预估合理的初始 scale
+     * 3. 循环间隙让出主线程（yieldToUI），杜绝浏览器页面无响应
+     * 4. 逼近目标 ≤8% 容差或步长 <0.035 时提前退出，大幅降低迭代编码次数
+     * @returns {{blob, outExt:'png', width, height, scale, reached, scaled}}
+     */
+    async function compressPngToTarget(img, targetSize, options = {}){
+      const minScale = options.minScale || 0.1;
+      const origSize = options.origSize || 0;
+      const sw = img.naturalWidth || img.width;
+      const sh = img.naturalHeight || img.height;
+      const totalPixels = sw * sh;
+
+      // 若原图明显远大于目标（>1.6倍目标），或像素数极大（>220万像素）且目标要求较高，
+      // 避免花费数秒在 100% 原始尺寸上做一次注定超标的 Canvas PNG 编码
+      const mustBeOversized = (origSize > targetSize * 1.6) ||
+        (origSize === 0 && totalPixels > 2200000 && targetSize < 600000);
+
+      let full = null;
+      let smallest = null;
+      let best = null;
+      let low = minScale;
+      let high = 1.0;
+
+      if (!mustBeOversized){
+        await yieldToUI();
+        full = await encodePngAtScale(img, 1);
+        smallest = full;
+        if (full.blob.size <= targetSize){
+          return { ...full, reached: true, scaled: false };
+        }
+        high = 1.0;
+      } else {
+        // 根据面积平方比预估一个合理且留有余量的初始测试 scale
+        const estimatedScale = origSize > 0
+          ? Math.min(0.9, Math.max(minScale + 0.05, Math.sqrt(targetSize / origSize) * 1.3))
+          : Math.min(0.85, Math.max(minScale + 0.05, Math.sqrt(targetSize / (totalPixels * 1.5)) * 1.3));
+
+        await yieldToUI();
+        const firstTry = await encodePngAtScale(img, estimatedScale);
+        smallest = firstTry;
+        if (firstTry.blob.size <= targetSize){
+          best = firstTry;
+          low = estimatedScale;
+          high = Math.min(1.0, estimatedScale * 1.4);
+        } else {
+          high = estimatedScale;
+        }
+      }
+
+      // 二分查找：最多 4 次迭代，接近目标（容差 ≤ 8%）时提前终止
+      for (let i = 0; i < 4; i++){
+        if (high - low < 0.035) break;
+        if (best && (targetSize - best.blob.size) <= targetSize * 0.08) break;
+
+        await yieldToUI();
         const mid = (low + high) / 2;
-        const dataUrl = canvas.toDataURL('image/jpeg', mid);
-        const blob = dataURLToBlob(dataUrl);
-        if (blob.size <= targetSize) {
-          resultBlob = blob;
+        const cand = await encodePngAtScale(img, mid);
+        if (!smallest || cand.blob.size < smallest.blob.size) smallest = cand;
+
+        if (cand.blob.size <= targetSize){
+          best = cand;
           low = mid;
+          if (targetSize - cand.blob.size <= targetSize * 0.08) break;
         } else {
           high = mid;
         }
       }
 
-      return resultBlob;
+      if (!best){
+        await yieldToUI();
+        const lim = await encodePngAtScale(img, minScale);
+        if (!smallest || lim.blob.size < smallest.blob.size) smallest = lim;
+        if (lim.blob.size <= targetSize) best = lim;
+      }
+
+      const chosen = best || smallest;
+      return {
+        ...chosen,
+        reached: !!best,
+        scaled: chosen.width !== sw || chosen.height !== sh
+      };
     }
 
-    function createDownloadLink(blob, name) {
+    // 把任意图片 blob 转成 PNG（浏览器剪贴板仅支持写 image/png）
+    async function blobToPngBlob(blob){
+      if (/^image\/png$/i.test(blob.type)) return blob;
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = removeParamCheckbox.checked ? getCleanFileName(name) : name;
-      link.textContent = '下载图像';
-      link.className = 'download-link';
-      return link;
-    }
-
-    function createPreviewImage(src, type, originalSrc, compressedSrc) {
-      const img = document.createElement('img');
-      img.className = 'image-preview';
-      img.src = src;
-      img.dataset.previewType = type;
-      img.dataset.original = originalSrc;
-      img.dataset.compressed = compressedSrc;
-      return img;
-    }
-
-    function showEnlargedPreview(src, originalSrc, compressedSrc, type) {
-      // 移除现有的预览
-      if (currentOverlay) currentOverlay.remove();
-      if (currentEnlarged) currentEnlarged.remove();
-
-      const overlay = document.createElement('div');
-      overlay.className = 'image-preview-enlarged-overlay';
-      currentOverlay = overlay;
-
-      const enlarged = document.createElement('img');
-      enlarged.src = src;
-      enlarged.className = 'image-preview-enlarged';
-      enlarged.dataset.original = originalSrc;
-      enlarged.dataset.compressed = compressedSrc;
-      enlarged.dataset.state = type;
-      currentEnlarged = enlarged;
-
-      // 点击切换图片
-      enlarged.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const newState = enlarged.dataset.state === 'original' ? 'compressed' : 'original';
-        enlarged.src = newState === 'original' ? originalSrc : compressedSrc;
-        enlarged.dataset.state = newState;
-      });
-
-      // 点击关闭
-      overlay.addEventListener('click', () => {
-        overlay.remove();
-        enlarged.remove();
-        currentOverlay = null;
-        currentEnlarged = null;
-      });
-
-      // ESC键关闭
-      document.addEventListener('keydown', function escHandler(e) {
-        if (e.key === 'Escape') {
-          overlay.remove();
-          enlarged.remove();
-          currentOverlay = null;
-          currentEnlarged = null;
-          document.removeEventListener('keydown', escHandler);
-        }
-      });
-
-      document.body.appendChild(overlay);
-      document.body.appendChild(enlarged);
-    }
-
-    async function handleFiles(files) {
-      output.innerHTML = '';
-      zip.files = {};
-      hasShownNotification = false;
-      let anyProcessed = false;
-      let filesWithoutParam = 0;
-
-      // 检查是否有文件没有参数
-      for (const file of files) {
-        const targetSize = getTargetSizeFromName(file.name);
-        if (!targetSize || isNaN(targetSize)) {
-          filesWithoutParam++;
-        }
+      try {
+        const img = await loadImage(url);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        return await new Promise((res, rej) => {
+          canvas.toBlob(b => b ? res(b) : rej(new Error('PNG 编码失败')), 'image/png');
+        });
+      } finally {
+        URL.revokeObjectURL(url);
       }
+    }
 
-      // 如果有文件没有参数，显示通知
-      if (filesWithoutParam > 0) {
-        const defaultSize = parseInt(defaultSizeInput.value);
-        const message = filesWithoutParam === 1 
-          ? `1个文件未识别到大小参数，将使用默认值 ${defaultSize}KB 进行压缩`
-          : `${filesWithoutParam}个文件未识别到大小参数，将使用默认值 ${defaultSize}KB 进行压缩`;
-        showNotification(message);
+    async function writeImagesToClipboard(blobs){
+      if (!(navigator.clipboard && window.ClipboardItem)){
+        throw new Error('当前浏览器不支持剪贴板写入（需 Chrome / Edge）');
       }
+      const pngs = [];
+      for (const b of blobs){
+        pngs.push(await blobToPngBlob(b));
+        await yieldToUI();
+      }
+      const build = (arr) => arr.map(p => new ClipboardItem({ 'image/png': p }));
+      try {
+        await navigator.clipboard.write(build(pngs));
+        return { pngs, copied: pngs.length, fallback: false };
+      } catch (err) {
+        if (pngs.length <= 1) throw err;
+        // 多数平台一次只接受一张图片，退回第一张
+        await navigator.clipboard.write(build(pngs.slice(0, 1)));
+        return { pngs, copied: 1, fallback: true };
+      }
+    }
 
-      for (const file of files) {
-        const row = document.createElement('div');
-        row.className = 'image-row';
-        output.appendChild(row);
+    function appendRowNote(rowEl, text){
+      if (!rowEl) return;
+      const cell = rowEl.lastElementChild;
+      if (!cell) return;
+      cell.textContent = cell.textContent ? cell.textContent + '；' + text : text;
+    }
 
-        // 原始图片列
-        const originalCol = document.createElement('div');
-        originalCol.className = 'image-col';
-        row.appendChild(originalCol);
+    async function handlePastedImages(blobs){
+      if (!blobs.length) return;
+      sessionMode = 'paste';
+      sessionRecords = [];
 
-        // 压缩图片列
-        const compressedCol = document.createElement('div');
-        compressedCol.className = 'image-col';
-        row.appendChild(compressedCol);
+      const items = blobs.map((b, i) => {
+        const name = pasteFileName(b, i, blobs.length);
+        return { file: new File([b], name, { type: b.type || 'image/png' }), name };
+      });
 
-        // 信息列
-        const infoCol = document.createElement('div');
-        infoCol.className = 'info-col';
-        row.appendChild(infoCol);
-
-        // 文件名
-        const fileName = document.createElement('div');
-        fileName.className = 'file-name';
-        fileName.textContent = file.name;
-        infoCol.appendChild(fileName);
-
-        const targetSize = getTargetSizeFromName(file.name);
-        if (!targetSize || isNaN(targetSize)) {
-          const warn = document.createElement('div');
-          warn.className = 'size-info';
-          warn.textContent = '❌ 未能确定目标大小';
-          infoCol.appendChild(warn);
-          continue;
-        }
-
-        const originalSrc = URL.createObjectURL(file);
-        const originalPreview = createPreviewImage(originalSrc, 'original', originalSrc, originalSrc);
-        originalCol.appendChild(originalPreview);
-
-        if (file.size <= targetSize) {
-          // 图片小于目标大小，不压缩
-          const info = document.createElement('div');
-          info.className = 'size-info';
-          info.textContent = `原始大小: ${(file.size / 1000).toFixed(1)}KB\n小于目标，跳过压缩`;
-          infoCol.appendChild(info);
-
-          // 压缩列显示原始图片
-          const compressedPreview = createPreviewImage(originalSrc, 'compressed', originalSrc, originalSrc);
-          compressedCol.appendChild(compressedPreview);
-
-          // 下载链接
-          infoCol.appendChild(createDownloadLink(file, file.name));
-
-          const arrayBuffer = await file.arrayBuffer();
-          zip.file(
-            removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name,
-            arrayBuffer,
-            { date: new Date() }  // 设置为当前本地时间
-          );
-          continue;
-        }
-
-        // 需要压缩的图片
-        const compressed = await compressImageToTarget(file, targetSize);
-        if (compressed) {
-          anyProcessed = true;
-          const compressedSrc = URL.createObjectURL(compressed);
-
-          // 压缩后图片预览
-          const compressedPreview = createPreviewImage(compressedSrc, 'compressed', originalSrc, compressedSrc);
-          compressedCol.appendChild(compressedPreview);
-
-          // 大小信息
-          const originalSizeKB = (file.size / 1024).toFixed(1);
-          const compressedSizeKB = (compressed.size / 1024).toFixed(1);
-          const compressionRatio = ((1 - compressed.size / file.size) * 100).toFixed(1);
-          
-          const info = document.createElement('div');
-          info.className = 'size-info';
-          info.innerHTML = `原始大小: ${originalSizeKB}KB<br>
-                            压缩大小: ${compressedSizeKB}KB<br>
-                            压缩率: ${compressionRatio}%`;
-          infoCol.appendChild(info);
-
-          // 下载链接
-          infoCol.appendChild(createDownloadLink(compressed, file.name));
-
-          const arrayBuffer = await compressed.arrayBuffer();
-          zip.file(
-            removeParamCheckbox.checked ? getCleanFileName(file.name) : file.name,
-            arrayBuffer,
-            { date: new Date() }  // 设置为当前本地时间
-          );
-
-          // 添加预览点击事件
-          originalPreview.addEventListener('click', () => {
-            showEnlargedPreview(originalSrc, originalSrc, compressedSrc, 'original');
+      const outputs = [];
+      const rowEls = [];
+      // 粘贴只写日志、不产生上报记录（不入 D1）
+      suppressRecording = true;
+      try {
+        for (const item of items){
+          // 立即创建占位行，UI 即时显示处理中状态
+          const placeholderRow = row({
+            status: 'pending',
+            filePath: item.name,
+            width: null,
+            height: null,
+            orig: item.file.size,
+            target: null,
+            result: null,
+            note: '正在读取并计算压缩尺寸...',
+            previewURL: null,
+            previewName: item.name
           });
+          rowEls.push(placeholderRow);
+          await yieldToUI();
 
-          compressedPreview.addEventListener('click', () => {
-            showEnlargedPreview(compressedSrc, originalSrc, compressedSrc, 'compressed');
-          });
-        } else {
-          const fail = document.createElement('div');
-          fail.className = 'size-info';
-          fail.textContent = '❌ 压缩失败';
-          infoCol.appendChild(fail);
+          const before = outputs.length;
+          await processFileLike(
+            async () => ({ file: item.file, name: item.name }),
+            async (blob, suggestedName) => { outputs.push({ blob, name: suggestedName || item.name }); },
+            item.name,
+            {
+              targetResolver: resolvePasteTarget,
+              // 产物必须是 PNG 才能进剪贴板，体积靠缩放控制
+              pngScale: true,
+              rowEl: placeholderRow
+            }
+          );
+          // 被跳过（原图已达标 / 压缩无收益）时，仍把原图交还
+          if (outputs.length === before) outputs.push({ blob: item.file, name: item.name });
+          await yieldToUI();
         }
+      } finally {
+        suppressRecording = false;
       }
 
-      if (anyProcessed) {
-        const now = new Date();
-        const localName = now.getFullYear() + '-' +
-          String(now.getMonth() + 1).padStart(2, '0') + '-' +
-          String(now.getDate()).padStart(2, '0') + '_' +
-          String(now.getHours()).padStart(2, '0') + '-' +
-          String(now.getMinutes()).padStart(2, '0') + '-' +
-          String(now.getSeconds()).padStart(2, '0');
-        const zipName = `compressed_${localName}.zip`;
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, zipName);
+      try {
+        const { pngs, copied } = await writeImagesToClipboard(outputs.map(o => o.blob));
+        rowEls.forEach((el, i) => {
+          if (!el) return;
+          const png = pngs[i];
+          const tag = (copied < outputs.length)
+            ? '已复制到剪贴板（多张时仅第一张可粘贴）'
+            : `已复制到剪贴板 PNG ${(png.size / 1000).toFixed(1)}KB`;
+          appendRowNote(el, tag);
+        });
+        showToast(copied === outputs.length
+          ? `✅ 已复制 ${copied} 张图片到剪贴板`
+          : `已复制 ${copied} 张（共 ${outputs.length} 张；多数应用一次只能粘贴第一张）`);
+      } catch (err) {
+        rowEls.forEach(el => appendRowNote(el, `写入剪贴板失败：${err.message}`));
+        showToast('写入剪贴板失败：' + err.message + '（请先点击页面使其获得焦点，并使用 HTTPS 或 localhost 访问）');
       }
     }
 
-    // 文件拖放处理
-    dropZone.addEventListener('dragover', e => {
+    document.addEventListener('paste', async (e) => {
+      const isInput = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+      const dt = e.clipboardData;
+      if (!dt) return;
+      const blobs = [];
+      Array.from(dt.items || []).forEach(item => {
+        if (item.kind === 'file' && /^image\//i.test(item.type)){
+          const f = item.getAsFile();
+          if (f) blobs.push(f);
+        }
+      });
+      if (!blobs.length){
+        if (!isInput){
+          showToast('剪贴板中未检测到图片');
+        }
+        return;
+      }
       e.preventDefault();
-      dropZone.classList.add('dragover');
+      showToast(`📋 已捕获 ${blobs.length} 张剪贴板图片，正在处理...`);
+      await yieldToUI();
+      handlePastedImages(blobs).catch(err => showToast('粘贴处理失败：' + err.message));
     });
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('dragover');
-    });
-    dropZone.addEventListener('drop', e => {
+
+    // 拖拽交互（单文件夹或多个文件）—— 整页任意位置均可拖入
+    async function handleDrop(e){
       e.preventDefault();
+      e.stopPropagation();
       dropZone.classList.remove('dragover');
-      handleFiles(Array.from(e.dataTransfer.files));
-    });
+      document.body.classList.remove('dragging');
+
+      const items = e.dataTransfer.items;
+      const files = e.dataTransfer.files;
+
+      if(window.clientFolderDrop && items){
+        const dropped=Array.from(items);
+        const handles=dropped.map(i=>i.getAsFileSystemHandle?i.getAsFileSystemHandle().catch(()=>null):Promise.resolve(null));
+        const entries=dropped.map(i=>i.webkitGetAsEntry?.()).filter(Boolean);
+        if(entries.some(e=>e.isDirectory) && await window.clientFolderDrop(entries,handles))return;
+      }
+      // 单文件夹拖入（新API）
+      if (items && items.length === 1){
+        const item = items[0];
+        if (item.getAsFileSystemHandle){
+          try{
+            const handle = await item.getAsFileSystemHandle();
+            if (handle && handle.kind === 'directory'){
+              await chooseAndProcessDirectory(handle);
+              return;
+            }
+          }catch(err){
+            // 目录句柄获取失败时，如果确认是文件夹，给出对应的浏览器指引，再回退到 ZIP
+            const entry = item.webkitGetAsEntry && item.webkitGetAsEntry();
+            if (entry && entry.isDirectory && err &&
+                ['NotAllowedError', 'SecurityError', 'NotSupportedError'].includes(err.name)){
+              showDirectoryHelp({ error: err });
+            }
+          }
+        }
+        // 旧 webkit API（只读，转ZIP）
+        if (item.webkitGetAsEntry){
+          const entry = item.webkitGetAsEntry();
+          if (entry && entry.isDirectory){
+            showToast('检测到文件夹，但无写入权限，将读取后打包为 ZIP 下载');
+            const dirFiles = [];
+            async function readDir(dir){
+              const reader = dir.createReader();
+              await new Promise(res => reader.readEntries(async entries => {
+                for (const en of entries){
+                  if (en.isFile){
+                    await new Promise(r => en.file(f => { dirFiles.push(f); r(); }));
+                  } else if (en.isDirectory){
+                    await readDir(en);
+                  }
+                }
+                res();
+              }));
+            }
+            await readDir(entry);
+            await handleFilesToZip(dirFiles);
+            return;
+          }
+        }
+      }
+
+      // 多文件或非文件夹
+      if (files && files.length) {
+        await handleFilesToZip(Array.from(files));
+      }
+    }
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', handleDrop);
+    // 整页拖入：任意位置松手都接收；拖动经过页面时高亮拖放区
+    window.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+    window.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+    window.addEventListener('drop', handleDrop);
+
+    // 点击选择文件（ZIP 模式）
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
-      handleFiles(Array.from(fileInput.files));
+      if (fileInput.files.length) handleFilesToZip(Array.from(fileInput.files));
     });
 
-    // 主题切换逻辑
+    // 选择目录（覆盖保存模式）
+    chooseDirBtn.addEventListener('click', async () => { await chooseAndProcessDirectory(null); });
+
+    // 主题切换 & 记忆
     themeToggle.addEventListener('click', () => {
       const html = document.documentElement;
       html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', html.dataset.theme);
     });
-
-    // 初始化主题
+    const themeOverride = new URLSearchParams(location.search).get('theme');
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      document.documentElement.dataset.theme = savedTheme;
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.dataset.theme = 'dark';
-    }
+    if (themeOverride === 'light' || themeOverride === 'dark') document.documentElement.dataset.theme = themeOverride;
+    else if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
 
-    // PWA 安装提示
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      
-      // 显示自定义安装提示
-      installContainer.style.display = 'block';
-      
-      // 24小时内不再显示
-      const lastPromptTime = localStorage.getItem('lastPromptTime');
-      if (lastPromptTime && Date.now() - lastPromptTime < 24 * 60 * 60 * 1000) {
-        installContainer.style.display = 'none';
-      }
-    });
-
-    installConfirm.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        console.log('用户接受了安装提示');
-        localStorage.setItem('lastPromptTime', Date.now());
-      }
-      
-      deferredPrompt = null;
-      installContainer.style.display = 'none';
-    });
-
-    installCancel.addEventListener('click', () => {
-      installContainer.style.display = 'none';
-      localStorage.setItem('lastPromptTime', Date.now());
-    });
-
-    // 注册 Service Worker 并检查更新
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(registration => {
-        console.log('ServiceWorker 注册成功:', registration.scope);
-        
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          console.log('发现新版本 ServiceWorker');
-          
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('新版本已安装，显示更新提示');
-              updateContainer.style.display = 'block';
-            }
-          });
-        });
-        
-        // 定期检查更新
-        setInterval(() => {
-          registration.update();
-        }, 60 * 60 * 1000); // 每小时检查一次
-      }).catch(error => {
-        console.log('ServiceWorker 注册失败:', error);
-      });
-    }
-
-    updateRefresh.addEventListener('click', () => {
-      window.location.reload();
-    });
-
-    // 检查本地存储的版本
+    // 简单版本缓存清理
     const savedVersion = localStorage.getItem('appVersion');
-    if (savedVersion !== APP_VERSION) {
-      // 新版本，清除缓存
-      if ('caches' in window) {
-        caches.keys().then(cacheNames => {
-          cacheNames.forEach(cacheName => {
-            caches.delete(cacheName);
-          });
-        });
-      }
+    if (savedVersion !== APP_VERSION){
+      if ('caches' in window){ caches.keys().then(names => names.forEach(n => caches.delete(n))); }
       localStorage.setItem('appVersion', APP_VERSION);
     }
+
+    // ==== 预览交互：hover 小图 + click 大图 ====
+    function showPreviewAt(x, y, url){
+      imgPreviewImg.src = url;
+      const pad = 12;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const boxW = 200, boxH = 200;
+      let left = x + 16, top = y + 16;
+      if (left + boxW + pad > vw) left = x - boxW - 16;
+      if (top + boxH + pad > vh) top = y - boxH - 16;
+      imgPreview.style.transform = `translate(${left}px, ${top}px)`;
+    }
+    function hidePreview(){
+      imgPreview.style.transform = 'translate(-9999px, -9999px)';
+      imgPreviewImg.removeAttribute('src');
+    }
+
+    logBody.addEventListener('mousemove', (e)=>{
+      const a = e.target.closest('.file-link');
+      if (!a) return;
+      showPreviewAt(e.clientX, e.clientY, a.dataset.url);
+    });
+    logBody.addEventListener('mouseleave', hidePreview);
+    logBody.addEventListener('mouseover', (e)=>{
+      const a = e.target.closest('.file-link');
+      if (a) showPreviewAt(e.clientX, e.clientY, a.dataset.url);
+    });
+    logBody.addEventListener('mouseout', (e)=>{
+      const a = e.target.closest('.file-link');
+      if (a) hidePreview();
+    });
+    logBody.addEventListener('click', (e)=>{
+      const a = e.target.closest('.file-link');
+      if (!a) return;
+      e.preventDefault();
+      imgModalImg.src = a.dataset.url;
+      imgModalName.textContent = a.dataset.name || '';
+      imgModal.classList.add('show');
+    });
+    imgModalClose.addEventListener('click', ()=> imgModal.classList.remove('show'));
+    imgModal.addEventListener('click', (e)=>{ if (e.target === imgModal) imgModal.classList.remove('show'); });
+    window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') imgModal.classList.remove('show'); });
+
+
   </script>
-  
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VZ52ZP6XCX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-VZ52ZP6XCX');
-</script>
-
+  <!-- 统计脚本（可选） -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VZ52ZP6XCX"></script>
   <script>
-var _hmt = _hmt || [];
-(function() {
-  var hm = document.createElement("script");
-  hm.src = "https://hm.baidu.com/hm.js?ed5dc7380b880499808494b9cf6f0f48";
-  var s = document.getElementsByTagName("script")[0]; 
-  s.parentNode.insertBefore(hm, s);
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-VZ52ZP6XCX');
+  </script>
+  <script>
+    var _hmt = _hmt || [];
+    (function(){ var hm = document.createElement('script'); hm.src = 'https://hm.baidu.com/hm.js?ed5dc7380b880499808494b9cf6f0f48'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(hm, s); })();
+  </script>
+
+  <!-- 自定义确认弹窗 -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-content">
+      <p id="modalText"></p>
+      <div class="modal-buttons">
+        <button id="modalCancelBtn" class="btn primary">取消</button>
+        <button id="modalConfirmBtn" class="btn warning">继续处理</button>
+      </div>
+    </div>
+  </div>
+<script id="jpegWorkerSource" type="text/plain">
+self.onmessage=async({data:{file,options}})=>{
+ const start=performance.now();let image,canvas;
+ const stage=text=>postMessage({type:'stage',text});
+ try{
+  stage('解码图片');image=await createImageBitmap(file);
+  const origWidth=image.width,origHeight=image.height;
+  const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
+  const fixedQuality=file.size>10000000;
+  const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
+  const targetBytes=fixedQuality?20000000:Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
+  const half=options.preHalf&&file.size>40000000;
+  const width=Math.max(1,Math.floor(origWidth*(half?.5:1))),height=Math.max(1,Math.floor(origHeight*(half?.5:1)));
+  canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);image.close();image=null;
+  const decodeDrawMs=Math.round(performance.now()-start),attempts=[],maxAttempts=4;let chosen=null,low=.5,high=.99,q=fixedQuality?.98:.99;
+  for(let i=0;i<maxAttempts;i++){
+   stage(`JPEG编码 ${i+1}/${maxAttempts} · 质量参数 ${q.toFixed(3)}`);const t=performance.now();
+   const blob=await canvas.convertToBlob({type:'image/jpeg',quality:q});
+   if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
+   attempts.push({quality:q,bytes:blob.size,ms:Math.round(performance.now()-t)});
+   if(blob.size<targetBytes){if(!chosen||q>chosen.quality)chosen={blob,quality:q};low=q;if(i===0)break;}
+   else high=q;
+   q=(low+high)/2;
+  }
+  if(!chosen)throw Error(`4次编码内未达到${targetBytes/1000}KB上限；已降低质量，未自动缩小图片。`);
+  postMessage({type:'result',result:{...chosen,targetBytes,width,height,origWidth,origHeight,half,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});
+ }catch(e){postMessage({type:'error',message:e.message});}
+ finally{image?.close();if(canvas)canvas.width=canvas.height=0;}
+};
+</script>
+<script>
+(()=>{
+// Included inline in the file-openable rail variant; secrets stay in this main-thread closure.
+let bridgeConfig={endpoint:'http://127.0.0.1:48731'};
+let bridgeConnected=false,bridgePasteQueue=Promise.resolve();
+async function bridgeRequest(path,body,type='application/json'){
+ if(!bridgeConfig)throw Error('客户端未连接');
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),path==='/api/health'?3000:90000);
+ try{const response=await fetch(bridgeConfig.endpoint+path,{method:'POST',headers:{'Content-Type':type},body:type==='application/json'?JSON.stringify(body):body,signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'客户端请求失败');return data;}finally{clearTimeout(timer);}
+}
+let pairingBusy=false,connectBusy=false,retryAt=0,pairMessage='';
+const connectionDot=document.getElementById('clientDot');
+function connectionStatus(message){
+ connectionDot.style.background=bridgeConnected?'#22c55e':pairingBusy?'#f59e0b':'#aaa';
+ connectionDot.title=message+'\n当前地址：'+bridgeConfig.endpoint+'\n候选端口：48731–48735\n点击重新连接；请在客户端保存此压缩器URL。服务退出时，请先重启客户端。';
+ connectionDot.setAttribute('aria-label',message);
+}
+function connectionError(e){
+ if(e.name==='AbortError')return '连接超时：请检查客户端运行状态及浏览器本地网络权限';
+ if(e instanceof TypeError)return '无法访问客户端：请检查服务是否启动、48731–48735端口及浏览器本地网络权限';
+ return e.message||'连接失败';
+}
+async function bridgeCheck(){
+ const endpoints=[bridgeConfig.endpoint,...[48731,48732,48733,48734,48735].map(p=>'http://127.0.0.1:'+p)].filter((v,i,a)=>a.indexOf(v)===i);
+ const errors=[];
+ for(const endpoint of endpoints){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),1200);
+  try{
+   const response=await fetch(endpoint+'/api/health',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller.signal});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'来源未允许');
+   if(data.service!=='local-jpeg-clipboard'||data.version<3)throw Error('端口为旧版或其他服务，请更新客户端');
+   bridgeConfig={endpoint};bridgeConnected=true;connectionStatus('客户端已连接');return;
+  }catch(e){errors.push(endpoint.split(':').pop()+': '+connectionError(e));}finally{clearTimeout(timer);}
+ }
+ bridgeConnected=false;connectionStatus('五个端口均未连接\n'+errors.join('\n'));
+}
+connectionDot.style.cursor='pointer';connectionDot.tabIndex=0;connectionDot.setAttribute('role','button');
+connectionDot.onclick=()=>autoConnect(true);
+connectionDot.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();autoConnect(true);}};
+async function autoConnect(manual=false){
+ if(connectBusy)return;connectBusy=true;
+ try{if(manual)connectionStatus('正在检查客户端连接');await bridgeCheck();}finally{connectBusy=false;}
+}
+window.addEventListener('focus',()=>autoConnect());
+window.addEventListener('online',()=>autoConnect());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoConnect();});
+function bridgeEncode(file,onStage){return new Promise((resolve,reject)=>{
+ const source=document.getElementById('jpegWorkerSource').textContent,url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+ const worker=new Worker(url);const timer=setTimeout(()=>finish(Error('JPEG编码超时')),180000);
+ function finish(error,result){clearTimeout(timer);worker.terminate();URL.revokeObjectURL(url);error?reject(error):resolve(result);}
+ worker.onmessage=({data})=>{if(data.type==='stage')onStage(data.text);else if(data.type==='error')finish(Error(data.message));else finish(null,data.result);};
+ worker.onerror=e=>finish(Error(e.message));
+ worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:PASTE_DEFAULT_KB,background:'#ffffff'}});
+});}
+let folderBusy=false;
+window.clientFolderDrop=async(entries,handlePromises=[])=>{
+ if(folderBusy){showToast('文件夹处理中，请稍后重试');return true;}
+ await autoConnect();if(!bridgeConnected)return false;
+ if(entries.some(e=>!e.isDirectory)){showToast('请单独拖入文件夹，不要与零散文件混合拖入');return true;}
+ folderBusy=true;
+ try{
+  const capability=await bridgeRequest('/api/health',{});
+  if(!capability.archives){showToast('文件夹ZIP功能需要更新客户端至v0.5.0');return true;}
+  const handles=await Promise.all(handlePromises);
+  for(const entry of entries){
+   if(!entry.isDirectory)continue;
+   const directory=handles.find(h=>h?.kind==='directory'&&h.name===entry.name);
+   if(!directory){showToast('浏览器未提供目录写入句柄，无法覆盖源文件；请使用支持目录访问的浏览器');continue;}
+   if(!await showCustomConfirm('将压缩并覆盖文件夹“'+entry.name+'”内的图片，随后打包ZIP。此操作不可撤销，是否继续？'))continue;
+   if(await directory.requestPermission({mode:'readwrite'})!=='granted'){showToast('目录写入权限未允许，已取消');continue;}
+   const empty=logBody.querySelector('.log-empty');empty?.remove();
+   const details=document.createElement('details');details.className='folder-log';
+   const summary=document.createElement('summary');summary.className='log-row';
+   const label=document.createElement('div');label.textContent='▸ '+entry.name;summary.append(label);
+   for(let i=0;i<4;i++)summary.append(document.createElement('div'));
+   const note=document.createElement('div');note.textContent='正在处理';summary.append(note);details.append(summary);
+   const body=document.createElement('div');details.append(body);logBody.querySelector('.log-row.header')?.after(details);
+   const context={details,body,errors:0};const archive=new JSZip();let count=0,archiveId=null;
+   try{
+    const files=[];
+    async function walk(dir,prefix){
+     archive.folder(prefix);
+     const reader=dir.createReader();
+     while(true){const batch=await new Promise((resolve,reject)=>reader.readEntries(resolve,reject));if(!batch.length)break;
+      for(const child of batch){const path=prefix+'/'+child.name;if(child.isDirectory)await walk(child,path);else if(child.isFile){const file=await new Promise((resolve,reject)=>child.file(resolve,reject));files.push({file,path});}}
+     }
+    }
+    await walk(entry,entry.name);
+    async function writeSource(path,blob,suggestedName){
+     const parts=path.split('/').slice(1);const original=parts.pop();let parent=directory;
+     for(const part of parts)parent=await parent.getDirectoryHandle(part);
+     const output=suggestedName||original;
+     if(output!==original){try{await parent.getFileHandle(output);throw Error('目标文件名已存在：'+output);}catch(e){if(e.name!=='NotFoundError')throw e;}}
+     const handle=await parent.getFileHandle(output,{create:true});const writer=await handle.createWritable();
+     try{await writer.write(blob);await writer.close();}catch(e){try{await writer.abort();}catch{}throw e;}
+     if(output!==original)await parent.removeEntry(original);
+    }
+    sessionMode='folder';sessionRecords=[];
+    folderLogContext=context;
+    for(const {file,path} of files){
+     archive.file(path,file); // Preserve skipped, failed, and non-image originals.
+     if(isImageName(file.name)){
+      await processFileLike(async()=>({file,name:file.name}),async(blob,name)=>{await writeSource(path,blob,name);if(name!==file.name)archive.remove(path);archive.file(path.slice(0,path.lastIndexOf('/')+1)+name,blob);},path);
+     }
+     count++;
+    }
+    folderLogContext=null;
+    await flushRecords();
+    note.textContent='客户端打包中';
+    const transport=await archive.generateAsync({type:'blob',compression:'STORE'});
+    archiveId=(await bridgeRequest('/api/archives',transport,'application/zip')).fileId;
+    note.replaceChildren();const copy=document.createElement('button');copy.className='btn';copy.textContent='再次复制';
+    async function copyArchive(manual=false){copy.disabled=true;copy.textContent='复制中';try{const report=await bridgeRequest('/api/clipboard/file',{fileId:archiveId});if(!report.verified)throw Error('剪贴板回读失败');copy.textContent=manual?'已复制':'再次复制';copy.title='点击再次复制ZIP';return true;}catch(err){copy.textContent='再次复制';copy.title='复制失败：'+err.message;details.open=true;showToast('ZIP复制失败：'+err.message);return false;}finally{copy.disabled=false;}}
+    copy.onclick=e=>{e.preventDefault();e.stopPropagation();copyArchive(true);};note.append(copy);summary.children[4].textContent=formatKB(transport.size);const copied=await copyArchive();
+    label.textContent='▸ '+entry.name+' · '+count+'个文件'+(context.errors?' · '+context.errors+'个错误':'');
+    showToast(context.errors?'处理完成：'+entry.name+'，有'+context.errors+'个错误，请查看展开日志':'压缩完成：'+entry.name+(copied?'，ZIP已复制到剪贴板':'，ZIP已生成，自动复制失败'));
+   }catch(err){details.open=true;note.textContent='错误：'+err.message;}
+   finally{folderLogContext=null;}
+  }
+ }finally{folderBusy=false;}
+ return true;
+};
+async function bridgePaste(blobs){
+ let completed=0,failed=0;
+ for(let i=0;i<blobs.length;i++){
+  const file=blobs[i],name=file.name||`剪贴板-${Date.now()}.jpg`;
+  const entry=row({localOnly:true,status:'pending',filePath:name,orig:file.size,target:file.size>10000000?20000000:(isManualMode()?getFallbackKB()*1000:null),note:'JPEG编码中'});
+  try{
+   const r=await bridgeEncode(file,text=>{entry.lastElementChild.textContent=text;});
+   const preview=URL.createObjectURL(r.blob);
+   row({localOnly:true,rowEl:entry,status:'ok',filePath:name,width:r.width,height:r.height,orig:file.size,target:r.targetBytes,result:r.blob.size,note:`JPEG · Q${r.quality.toFixed(3)} · ${r.ms}ms${r.half?' · 宽高减半':''}`,previewURL:preview,previewName:name});
+   const cell=entry.lastElementChild,button=document.createElement('button');button.className='btn';button.textContent='再次复制';cell.append(' ',button);
+   let id=null,busy=false;
+   async function copy(manual=false){if(busy)return;busy=true;button.disabled=true;try{button.textContent='复制中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');button.textContent=manual?'已复制':'再次复制';button.title='点击再次复制文件';}catch(e){button.textContent='再次复制';button.title=e.message;showToast('复制失败：'+e.message);}finally{busy=false;button.disabled=false;}}
+   button.onclick=()=>copy(true);await copy();completed++;
+  }catch(e){failed++;row({localOnly:true,rowEl:entry,status:'err',filePath:name,orig:file.size,target:20000000,note:e.message});}
+ }
+ showToast('压缩完成：成功'+completed+'张'+(failed?'，失败'+failed+'张':'')+'；复制状态请查看说明栏');
+}
+// Capture before the classic paste handler; folder and ZIP workflows are unchanged.
+document.addEventListener('paste',e=>{
+ const dt=e.clipboardData;let blobs=Array.from(dt?.files||[]).filter(f=>f.type.startsWith('image/'));
+ if(!blobs.length)blobs=Array.from(dt?.items||[]).filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);
+ if(!blobs.length)return;e.preventDefault();e.stopImmediatePropagation();
+ showToast(`已捕获 ${blobs.length} 张图片`);
+ bridgePasteQueue=bridgePasteQueue.then(()=>bridgePaste(blobs)).catch(e=>showToast(e.message));
+},true);
+document.addEventListener('keydown',async e=>{
+ if(!e.ctrlKey||e.metaKey||e.code!=='KeyV'||e.repeat)return;e.preventDefault();
+ try{const items=await navigator.clipboard.read(),blobs=[];for(const item of items){const type=item.types.find(t=>t.startsWith('image/'));if(type)blobs.push(await item.getType(type));}if(!blobs.length)throw Error('剪贴板没有图片');bridgePasteQueue=bridgePasteQueue.then(()=>bridgePaste(blobs)).catch(e=>showToast(e.message));}catch(err){showToast(err.message);}
+},true);
+autoConnect();setInterval(autoConnect,15000);
+
 })();
 </script>
 </body>

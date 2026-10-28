@@ -9,6 +9,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/mac-clipboard" "$APP/Con
 cp "$HERE/pairing.py" "$APP/Contents/Resources/mac-clipboard/pairing.py"
 cp "$HERE/server.py" "$APP/Contents/Resources/mac-clipboard/server.py"
 cp "$ROOT/indexv2.html" "$APP/Contents/Resources/"
+for asset in icon-192.png icon-512.png manifest.json; do cp "$ROOT/$asset" "$APP/Contents/Resources/"; done
 cp "$ROOT/jpeg-clipboard.html" "$APP/Contents/Resources/"
 for asset in jszip.min.js FileSaver.min.js jpeg-ui.mjs jpeg-encode-worker.mjs; do cp "$ROOT/res/$asset" "$APP/Contents/Resources/res/"; done
 cp "$HERE/Info.plist" "$APP/Contents/Info.plist"

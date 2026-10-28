@@ -30,7 +30,7 @@ def url_origin(value):
     port=u.port
     return u.scheme+'://'+u.hostname+((':'+str(port)) if port and port != (443 if u.scheme=='https' else 80) else '')
 RAIL = 'indexv2.html'
-ALLOWED = {'/': RAIL, '/'+RAIL: RAIL, '/jpeg-clipboard.html':'jpeg-clipboard.html', '/res/jpeg-ui.mjs': 'res/jpeg-ui.mjs', '/res/jpeg-encode-worker.mjs': 'res/jpeg-encode-worker.mjs', '/res/jszip.min.js':'res/jszip.min.js', '/res/FileSaver.min.js':'res/FileSaver.min.js'}
+ALLOWED = {'/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png','/manifest.json':'manifest.json','/index.html':RAIL, '/': RAIL, '/'+RAIL: RAIL, '/jpeg-clipboard.html':'jpeg-clipboard.html', '/res/jpeg-ui.mjs': 'res/jpeg-ui.mjs', '/res/jpeg-encode-worker.mjs': 'res/jpeg-encode-worker.mjs', '/res/jszip.min.js':'res/jszip.min.js', '/res/FileSaver.min.js':'res/FileSaver.min.js'}
 
 PORTS = tuple(range(48731,48736))
 def bind_server(port=48731):
@@ -97,7 +97,8 @@ class Handler(BaseHTTPRequestHandler):
                 text=re.sub(r'<script\b[^>]*>[\s\S]*?</script>', lambda m: '' if ('googletagmanager.com' in m[0] or 'hm.baidu.com' in m[0]) else m[0], text)
             text=re.sub(r'<script\b', '<script nonce="'+self.script_nonce+'"', text)
             content=text.encode()
-        self.respond(200,content,'text/html; charset=utf-8' if path.endswith('.html') else 'text/javascript; charset=utf-8')
+        kind='image/png' if path.endswith('.png') else 'application/manifest+json' if path.endswith('.json') else 'text/html; charset=utf-8' if path.endswith('.html') else 'text/javascript; charset=utf-8'
+        self.respond(200,content,kind)
     def do_POST(self):
         self.close_connection=True
         if not self.authorized(): return self.respond(403, {'error':'来源未允许，请在客户端保存压缩器URL后重试。'})

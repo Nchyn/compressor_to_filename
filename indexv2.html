@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>压缩 · 右栏设置（原版配色）</title>
+  <title>批量图片压缩器</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <script>
     // file:// 直接打开时 origin 为 null，浏览器会拒绝 manifest.json（CORS）；仅在 HTTP(S) 下挂载
     if (/^https?:$/.test(location.protocol)) {
@@ -197,8 +199,8 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>📐 压缩区</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v0.5.1 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
-      <div id="dropZone">把 <strong>图片 / 文件夹</strong> 拖进这块主区域（整页任意位置均可拖入 · 支持 Ctrl+V 粘贴）</div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.2.0 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
         <div class="log-header" style="display:flex;align-items:center;justify-content:space-between">处理日志<button type="button" id="clearLogButton" class="btn">清空日志</button></div>
@@ -308,7 +310,7 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '0.5.1';
+    const APP_VERSION = '5.2.0'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -988,6 +990,8 @@
       return replaceExt(base, outExt);
     }
     function getFilenameTargetKB(name){
+      if (name.includes('预览')) return 20000;
+      if (name.includes('落地页')) return 2000;
       const m = name.match(/(?:^|[-_\s])((?:\d+(?:\.\d+)?|\.\d+))\s*(KB|MB)(?=$|[-_\s.]|\()/i);
       if (!m) return null;
       const kb = Number(m[1]) * (m[2].toUpperCase() === 'MB' ? 1000 : 1);

@@ -32,7 +32,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         for (title,action,key) in [("撤销","undo:","z"),("剪切","cut:","x"),("复制","copy:","c"),("粘贴","paste:","v"),("全选","selectAll:","a")] {edit.addItem(withTitle:title,action:NSSelectorFromString(action),keyEquivalent:key)}
         NSApp.mainMenu=appMenu
         window=ShortcutWindow(contentRect:NSRect(x:0,y:0,width:740,height:550),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="JPEG 剪贴板 · v0.5.1 · 文件夹ZIP";window.center();window.delegate=self
+        window.title="JPEG 剪贴板 · v5.2 · 文件夹ZIP";window.center();window.delegate=self
         let stack=NSStackView();stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=14;stack.translatesAutoresizingMaskIntoConstraints=false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:28),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-28),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
