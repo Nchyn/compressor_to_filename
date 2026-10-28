@@ -166,8 +166,26 @@
     .rail .resolution-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-radius: 6px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
     .rail .resolution-item .resolution-target { white-space: nowrap; text-align: right; }
     .rail .box { min-width: 0; }
+    .rail .resolution-grid { gap: 2px; padding-top: .35em; }
+    .rail .resolution-item { padding: 3px 7px; line-height: 1.45; border-color: transparent; border-radius: 4px; }
+    .rail .resolution-item:nth-child(odd) { background: var(--card2); }
+    .rail, .log-body { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+    .rail::-webkit-scrollbar, .log-body::-webkit-scrollbar { width: 5px; height: 5px; }
+    .rail::-webkit-scrollbar-thumb, .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+    .rail::-webkit-scrollbar-track, .log-body::-webkit-scrollbar-track { background: transparent; }
+    @media (min-width: 901px) {
+      body { overflow: hidden; }
+      .shell { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+      .main { height: 100%; min-height: 0; overflow: hidden; }
+      .main .hd, .main #dropZone { flex-shrink: 0; }
+      .logwrap { min-height: 0; overflow: hidden; }
+      .logwrap .log-body { overflow: auto; overscroll-behavior: contain; }
+      .rail { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+      .rail .box { flex-shrink: 0; }
+    }
     @media (max-width: 900px) {
       .shell { grid-template-columns: 1fr; }
+      .rail { max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; }
       .main { height: auto; min-height: 0; }
       .rail { border-left: none; border-top: 1px solid var(--border); }
       .logwrap { flex: none; }
@@ -2047,6 +2065,7 @@ window.clientFolderDrop=async(entries,handlePromises=[])=>{
     copy.onclick=async e=>{e.preventDefault();e.stopPropagation();copy.disabled=true;try{status.textContent='复制中';const report=await bridgeRequest('/api/clipboard/file',{fileId:archiveId});if(!report.verified)throw Error('剪贴板回读失败');status.textContent='已复制';}catch(err){status.textContent=err.message;details.open=true;}finally{copy.disabled=false;}};
     note.append(copy,status);summary.children[4].textContent=formatKB(transport.size);
     label.textContent='▸ '+entry.name+' · '+count+'个文件'+(context.errors?' · '+context.errors+'个错误':'');
+    showToast(context.errors?'处理完成：'+entry.name+'，有'+context.errors+'个错误，请查看展开日志':'压缩完成：'+entry.name+'，ZIP已生成，可点击复制ZIP');
    }catch(err){details.open=true;note.textContent='错误：'+err.message;}
    finally{folderLogContext=null;}
   }
@@ -2054,6 +2073,7 @@ window.clientFolderDrop=async(entries,handlePromises=[])=>{
  return true;
 };
 async function bridgePaste(blobs){
+ let completed=0,failed=0;
  for(let i=0;i<blobs.length;i++){
   const file=blobs[i],name=file.name||`剪贴板-${Date.now()}.jpg`;
   const entry=row({localOnly:true,status:'pending',filePath:name,orig:file.size,target:file.size>10000000?20000000:(isManualMode()?getFallbackKB()*1000:null),note:'JPEG编码中'});
@@ -2064,9 +2084,10 @@ async function bridgePaste(blobs){
    const cell=entry.lastElementChild,status=document.createElement('span'),button=document.createElement('button');button.className='btn';button.textContent='复制文件';cell.append(' ',button,' ',status);
    let id=null,busy=false;
    async function copy(){if(busy)return;busy=true;button.disabled=true;try{status.textContent='写入中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');status.textContent='已复制';}catch(e){status.textContent=e.message;}finally{busy=false;button.disabled=false;}}
-   button.onclick=copy;await copy();
-  }catch(e){row({localOnly:true,rowEl:entry,status:'err',filePath:name,orig:file.size,target:20000000,note:e.message});}
+   button.onclick=copy;await copy();completed++;
+  }catch(e){failed++;row({localOnly:true,rowEl:entry,status:'err',filePath:name,orig:file.size,target:20000000,note:e.message});}
  }
+ showToast('压缩完成：成功'+completed+'张'+(failed?'，失败'+failed+'张':'')+'；复制状态请查看说明栏');
 }
 // Capture before the classic paste handler; folder and ZIP workflows are unchanged.
 document.addEventListener('paste',e=>{
