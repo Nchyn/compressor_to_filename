@@ -30,7 +30,7 @@ def url_origin(value):
     port=u.port
     return u.scheme+'://'+u.hostname+((':'+str(port)) if port and port != (443 if u.scheme=='https' else 80) else '')
 RAIL = 'indexv2.html'
-ALLOWED = {'/icon-192.png':'icon-192.png','/icon-512.png':'icon-512.png','/manifest.json':'manifest.json','/index.html':RAIL, '/': RAIL, '/'+RAIL: RAIL, '/jpeg-clipboard.html':'jpeg-clipboard.html', '/res/jpeg-ui.mjs': 'res/jpeg-ui.mjs', '/res/jpeg-encode-worker.mjs': 'res/jpeg-encode-worker.mjs', '/res/jszip.min.js':'res/jszip.min.js', '/res/FileSaver.min.js':'res/FileSaver.min.js'}
+ALLOWED = {'/manifest.json':'manifest.json','/index.html':RAIL, '/': RAIL, '/'+RAIL: RAIL, '/res/jpeg-encode-worker.mjs': 'res/jpeg-encode-worker.mjs', '/res/jszip.min.js':'res/jszip.min.js', '/res/FileSaver.min.js':'res/FileSaver.min.js'}
 
 PORTS = tuple(range(48731,48736))
 def bind_server(port=48731):

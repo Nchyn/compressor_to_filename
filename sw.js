@@ -1,12 +1,10 @@
-const CACHE_NAME = 'image-compressor-v1.0.5'; // 每次更新时修改版本号
+const CACHE_NAME = 'image-compressor-v5.3.0'; // 每次更新时修改版本号
 const CACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js'
+  './res/jszip.min.js',
+  './res/FileSaver.min.js'
 ];
 
 // 安装阶段：缓存核心资源
