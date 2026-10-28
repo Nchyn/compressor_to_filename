@@ -10,3 +10,4 @@ __pycache__/
 mac-clipboard/clipboard-helper
 mac-clipboard/*.app/
 node_modules/
+windows-client/target/

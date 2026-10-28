@@ -16,6 +16,7 @@ with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
   page=response.read().decode();csp=response.headers['Content-Security-Policy']
   assert 'clientDot' in page and '<script nonce="' in page
   assert 'googletagmanager.com' not in page and 'hm.baidu.com' not in page
+  assert 'const KV_SIMULATE = true' in page and 'const KV_SIMULATE = false' not in page
   assert 'blob:' in csp
  with urllib.request.urlopen(base+'/res/jszip.min.js') as response: assert response.status==200
  assert request('/api/health')[0]==200
@@ -37,14 +38,19 @@ with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
  assert bridge.FILES[result['fileId']].read_bytes()==b'\xff\xd8\xffTEST\xff\xd9'
  import io,zipfile
  buf=io.BytesIO()
- with zipfile.ZipFile(buf,'w') as z:z.writestr('folder/sub/image.png',b'original-or-processed')
+ with zipfile.ZipFile(buf,'w',compression=zipfile.ZIP_DEFLATED) as z:
+  z.comment=b'preserve archive metadata'
+  z.writestr('folder/sub/image.png',b'original-or-processed'*100)
  code,archive=request('/api/archives',buf.getvalue(),kind='application/zip')
  assert code==201
  assert archive['name']=='folder.zip'
- with zipfile.ZipFile(bridge.FILES[archive['fileId']]) as z:assert z.read('folder/sub/image.png')==b'original-or-processed'
- bad=io.BytesIO()
- with zipfile.ZipFile(bad,'w') as z:z.writestr('../escape',b'no')
- assert request('/api/archives',bad.getvalue(),kind='application/zip')[0]==400
+ assert bridge.FILES[archive['fileId']].read_bytes()==buf.getvalue()
+ with zipfile.ZipFile(bridge.FILES[archive['fileId']]) as z:assert z.read('folder/sub/image.png')==b'original-or-processed'*100
+ for unsafe in ['../escape','/absolute','root/../escape','C:/drive','root\\bad']:
+  bad=io.BytesIO()
+  with zipfile.ZipFile(bad,'w') as z:z.writestr(unsafe,b'no')
+  assert request('/api/archives',bad.getvalue(),kind='application/zip')[0]==400,unsafe
+ assert server.daemon_threads is True
  assert request('/api/clipboard/file',json.dumps({'fileId':'unknown'}).encode())[0]==404
  server.shutdown();server.server_close();thread.join()
  print('PASS authentication, Origin, invalid JPEG, exact-byte storage, unknown clipboard ID (no clipboard write)')

@@ -3,10 +3,15 @@
 import sys, signal, errno, zipfile
 from pathlib import PurePosixPath
 from pairing import Pairing
-import argparse, base64, hashlib, json, os, re, secrets, shutil, subprocess, threading, time, webbrowser
+import argparse, base64, hashlib, json, os, re, secrets, subprocess, threading, time, webbrowser
 from pathlib import Path
 from urllib.parse import urlsplit
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+
+class ThreadingHTTPServer(ThreadingHTTPServer):
+    # GUI shutdown must not wait for stalled request bodies; partial uploads are
+    # random cache files and are never registered as completed clipboard files.
+    daemon_threads = True
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = Path.home() / 'Library' / 'Caches' / 'LocalJPEGClipboard'
@@ -94,7 +99,9 @@ class Handler(BaseHTTPRequestHandler):
             text=content.decode()
             if path == RAIL:
                 # Remove third-party analytics from this authenticated clipboard page.
-                text=re.sub(r'<script\b[^>]*>[\s\S]*?</script>', lambda m: '' if ('googletagmanager.com' in m[0] or 'hm.baidu.com' in m[0]) else m[0], text)
+                text=re.sub(r'<script\b[^>]*>[\s\S]*?</script>', lambda m: '' if any(marker in m[0] for marker in ('googletagmanager.com','hm.baidu.com','gtag(')) else m[0], text)
+                # Built-in mode keeps batch records local, like the Windows embed.
+                text=text.replace('const KV_SIMULATE = false', 'const KV_SIMULATE = true')
             text=re.sub(r'<script\b', '<script nonce="'+self.script_nonce+'"', text)
             content=text.encode()
         kind='image/png' if path.endswith('.png') else 'application/manifest+json' if path.endswith('.json') else 'text/html; charset=utf-8' if path.endswith('.html') else 'text/javascript; charset=utf-8'
@@ -110,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not 0<size<=250000000: return self.respond(413,{'error':'ZIP transport limit is 250MB'})
                 if self.headers.get('Content-Type')!='application/zip': return self.respond(415,{'error':'Expected ZIP'})
                 with LOCK:
-                    if sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())+size*2>MAX_CACHE: return self.respond(507,{'error':'Cache limit reached'})
+                    if sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())+size>MAX_CACHE: return self.respond(507,{'error':'Cache limit reached'})
                     key=secrets.token_hex(16);tmp=CACHE/(key+'.part');dest=CACHE/(key+'.zip')
                     try:
                         with tmp.open('xb') as out:
@@ -123,22 +130,19 @@ class Handler(BaseHTTPRequestHandler):
                             entries=incoming.infolist()
                             expanded=sum(i.file_size for i in entries)
                             if len(entries)>10000 or expanded>250000000: raise ValueError('ZIP expanded size/count limit')
-                            if sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())+expanded+len(entries)*1024>MAX_CACHE: raise ValueError('Cache limit reached')
                             names=set()
                             for info in entries:
                                 path=PurePosixPath(info.filename)
-                                if path.is_absolute() or '..' in path.parts or '\\' in info.filename or info.filename in names or info.flag_bits&1: raise ValueError('Unsafe ZIP entry')
+                                if not info.filename or path.is_absolute() or '..' in path.parts or '\\' in info.filename or '\x00' in info.orig_filename or (len(info.filename)>1 and info.filename[1]==':') or info.filename in names or info.flag_bits&1: raise ValueError('Unsafe ZIP entry')
                                 names.add(info.filename)
                             roots={PurePosixPath(i.filename).parts[0] for i in entries if PurePosixPath(i.filename).parts}
                             root=next(iter(roots)) if len(roots)==1 else '文件夹'
                             root=re.sub(r'[\x00-\x1f/:\\\\]', '_',root).strip('. ')[:100] or '文件夹'
                             archive_dir=CACHE/key;archive_dir.mkdir(mode=0o700)
                             dest=archive_dir/(root+'.zip')
-                            with zipfile.ZipFile(dest,'x',compression=zipfile.ZIP_STORED) as packed:
-                                for info in entries:
-                                    if info.is_dir(): packed.writestr(info.filename,b'');continue
-                                    with incoming.open(info) as source,packed.open(info.filename,'w',force_zip64=True) as target:
-                                        shutil.copyfileobj(source,target,1048576)
+                        # Like Windows: validate central-directory metadata only, then
+                        # retain the uploaded bytes (no decompression, CRC check or repack).
+                        tmp.rename(dest)
                         FILES[key]=dest
                     except Exception:
                         if dest.exists(): dest.unlink()

@@ -19,7 +19,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let url=NSTextField(string:UserDefaults.standard.string(forKey:"compressorURL") ?? "")
     let external=NSButton(radioButtonWithTitle:"自定义压缩器URL",target:nil,action:nil)
     let local=NSButton(radioButtonWithTitle:"内置压缩器",target:nil,action:nil)
-    let fileAccess=NSButton(checkboxWithTitle:"允许本地file://页面（所有不透明来源仍需令牌）",target:nil,action:nil)
+    let fileAccess=NSButton(checkboxWithTitle:"允许本地file://页面（不透明来源共享授权，请谨慎开启）",target:nil,action:nil)
     var root:URL { Bundle.main.resourceURL! }
     func applicationDidFinishLaunching(_ notification:Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -32,7 +32,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         for (title,action,key) in [("撤销","undo:","z"),("剪切","cut:","x"),("复制","copy:","c"),("粘贴","paste:","v"),("全选","selectAll:","a")] {edit.addItem(withTitle:title,action:NSSelectorFromString(action),keyEquivalent:key)}
         NSApp.mainMenu=appMenu
         window=ShortcutWindow(contentRect:NSRect(x:0,y:0,width:740,height:550),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="JPEG 剪贴板 · v5.3 · 文件夹ZIP";window.center();window.delegate=self
+        window.title="JPEG 剪贴板 · v5.4 · 文件夹ZIP";window.center();window.delegate=self
         let stack=NSStackView();stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=14;stack.translatesAutoresizingMaskIntoConstraints=false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:28),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-28),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
@@ -48,9 +48,12 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let buttons=NSStackView();buttons.spacing=10
         for (title,action) in [("保存并重启",#selector(save)),("打开压缩器",#selector(openPage)),("停止服务",#selector(stop)),("打开缓存",#selector(openCache)),("清除允许来源",#selector(revoke))] {let b=NSButton(title:title,target:self,action:action);buttons.addArrangedSubview(b);if action == #selector(openCache){clearCacheButton.target=self;clearCacheButton.action = #selector(clearCache);buttons.addArrangedSubview(clearCacheButton)}}
         stack.addArrangedSubview(buttons);stack.addArrangedSubview(activity);activity.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
-        let note=NSTextField(wrappingLabelWithString:"客户端不编解码、不上传云端。只保存网页生成的JPEG并写文件剪贴板。关闭窗口仍在菜单栏运行。")
+        let note=NSTextField(wrappingLabelWithString:"客户端不编解码、不上传云端。只保存网页生成的 JPEG / ZIP 并写文件剪贴板。关闭窗口仍在菜单栏运行。")
         note.textColor = .secondaryLabelColor;stack.addArrangedSubview(note);note.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         Timer.scheduledTimer(withTimeInterval:3,repeats:true){[weak self] _ in guard let self=self else{return};self.refreshCache();if let seen=self.lastSeen,Date().timeIntervalSince(seen)>35 {self.connection.stringValue="网页未连接（等待重新打开）"}}
+        window.contentView!.layoutSubtreeIfNeeded()
+        window.setContentSize(NSSize(width:740,height:stack.fittingSize.height+48))
+        window.center()
         refreshCache();show();start()
     }
     @objc func selectLocal(){local.state = .on;external.state = .off}
@@ -99,7 +102,7 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSWorkspace.shared.open(target)
     }
     func send(_ value:[String:Any]){if let data=try? JSONSerialization.data(withJSONObject:value){try? input?.fileHandleForWriting.write(contentsOf:data+Data([10]))}}
-    @objc func revoke(){stop();url.stringValue="";selectLocal();UserDefaults.standard.set("",forKey:"compressorURL");UserDefaults.standard.set(false,forKey:"external");start()}
+    @objc func revoke(){fileAccess.state = .off;UserDefaults.standard.set(false,forKey:"allowFile");stop();url.stringValue="";selectLocal();UserDefaults.standard.set("",forKey:"compressorURL");UserDefaults.standard.set(false,forKey:"external");start()}
     var cacheRoot:URL {FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/LocalJPEGClipboard").standardizedFileURL}
     func cacheFiles()->[URL] {
         guard let en=FileManager.default.enumerator(at:cacheRoot,includingPropertiesForKeys:[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey],options:[.skipsHiddenFiles]) else{return []}

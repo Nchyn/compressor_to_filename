@@ -8,7 +8,8 @@ self.onmessage=async({data:{file,options}})=>{
   const fixedQuality=file.size>10000000;
   const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
   const targetBytes=fixedQuality?20000000:Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
-  const half=options.preHalf&&file.size>40000000;
+  postMessage({type:'target',targetBytes,width:origWidth,height:origHeight});
+   const half=options.preHalf&&file.size>40000000;
   const width=Math.max(1,Math.floor(origWidth*(half?.5:1))),height=Math.max(1,Math.floor(origHeight*(half?.5:1)));
   canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
   if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);image.close();image=null;
@@ -19,8 +20,8 @@ self.onmessage=async({data:{file,options}})=>{
    if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
    attempts.push({quality:q,bytes:blob.size,ms:Math.round(performance.now()-t)});
    if(blob.size<targetBytes){if(!chosen||q>chosen.quality)chosen={blob,quality:q};low=q;if(i===0)break;}
-   else high=q;
-   q=(low+high)/2;
+   else {high=q;if(q===0.5)break;}
+   q=(i===0&&!chosen)?0.5:(low+high)/2;
   }
   if(!chosen)throw Error(`4次编码内未达到${targetBytes/1000}KB上限；已降低质量，未自动缩小图片。`);
   postMessage({type:'result',result:{...chosen,targetBytes,width,height,origWidth,origHeight,half,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});
