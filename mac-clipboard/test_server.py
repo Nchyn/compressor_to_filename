@@ -21,9 +21,6 @@ with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
  with urllib.request.urlopen(base+'/res/jszip.min.js') as response: assert response.status==200
  assert request('/api/health')[0]==200
  assert request('/api/health',origin='null')[0]==403
- bridge.ALLOW_FILE=True
- assert request('/api/health',origin='null')[0]==200
- bridge.ALLOW_FILE=False
  bridge.EXTRA_ORIGIN=bridge.url_origin('https://compress.example/path')
  assert request('/api/health',origin='https://compress.example')[0]==200
  assert request('/api/health',origin='https://compress.example',token=False)[0]==200

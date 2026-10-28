@@ -5,6 +5,10 @@
 ## 网页
 通过静态服务器或既有网站访问 `indexv2.html`。所有图片编解码在浏览器中完成。
 
+## 原生客户端 5.6
+
+Mac：Swift/AppKit 界面 + Rust 后台，无 Python 运行时依赖；Windows：Rust/Win32 单 EXE。两端最近复制记录统一使用十进制 KB（1KB=1000字节）。内置网页 5.6.0 的图片处理在浏览器本机完成。
+
 ## macOS客户端
 源码、构建和授权说明见 [mac-clipboard/README.md](mac-clipboard/README.md)。
 
@@ -19,7 +23,7 @@ open 'mac-clipboard/JPEG Clipboard.app'
 
 ## 验证
 ```bash
-python3 -B mac-clipboard/test_server.py
+cargo test --locked --manifest-path mac-rust-service/Cargo.toml
 ```
 
 原生App、缓存和编译产物不提交；发布安装包应通过GitHub Releases。当前未配置新增部署流程，不改动现有站点或Cloudflare后端部署。

@@ -11,3 +11,5 @@ mac-clipboard/clipboard-helper
 mac-clipboard/*.app/
 node_modules/
 windows-client/target/
+mac-rust-service/target/
+mac-clipboard/.native-build.*/

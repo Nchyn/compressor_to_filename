@@ -21,7 +21,6 @@ TOKEN = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
 FILES = {}
 EXTRA_ORIGIN = None
-ALLOW_FILE = False
 LAST_ACTIVITY = 0
 PAIRING = None
 def emit(event, **values):
@@ -51,12 +50,12 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_): pass  # no URLs, tokens, filenames, or picture data in logs
     def pairable_origin(self):
         origin=self.headers.get("Origin", "")
-        if origin=="null": return ALLOW_FILE
+        if origin=="null": return False
         try: return url_origin(origin)==origin
         except (ValueError,TypeError): return False
     def allowed_origin(self):
         origin=self.headers.get('Origin')
-        return bool(origin) and (origin==f'http://127.0.0.1:{self.server.server_port}' or origin==EXTRA_ORIGIN or (ALLOW_FILE and origin=='null'))
+        return bool(origin) and (origin==f'http://127.0.0.1:{self.server.server_port}' or origin==EXTRA_ORIGIN)
     def valid_host(self):
         return self.headers.get('Host') == f'127.0.0.1:{self.server.server_port}'
     def respond(self, code, body, kind='application/json'):
@@ -195,9 +194,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e: return self.respond(400,{'error':str(e)})
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=48731);parser.add_argument('--no-open',action='store_true');parser.add_argument('--cache-dir',type=Path);parser.add_argument('--origin');parser.add_argument('--allow-file',action='store_true');parser.add_argument('--json-events',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=48731);parser.add_argument('--no-open',action='store_true');parser.add_argument('--cache-dir',type=Path);parser.add_argument('--origin');parser.add_argument('--json-events',action='store_true');args=parser.parse_args()
     if args.origin: EXTRA_ORIGIN=url_origin(args.origin)
-    ALLOW_FILE=args.allow_file
     if args.cache_dir: CACHE=args.cache_dir.resolve()
     CACHE.mkdir(parents=True,exist_ok=True,mode=0o700);os.chmod(CACHE,0o700)
     # Keep cache files across restarts; do not remove files still referenced by clipboard.

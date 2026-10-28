@@ -4,7 +4,7 @@ use std::{collections::{HashMap, HashSet}, ffi::OsStr, fs::{self, File, OpenOpti
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
-use windows_sys::Win32::{Foundation::*, Graphics::{Gdi::*, Dwm::*}, System::{ApplicationInstallationAndServicing::*, Com::*, Registry::*, DataExchange::*, LibraryLoader::*, Memory::*}, UI::{Controls::*, Shell::*, WindowsAndMessaging::*, Input::KeyboardAndMouse::*}};
+use windows_sys::Win32::{Foundation::*, Graphics::{Gdi::*, Dwm::*}, System::{SystemInformation::*,ApplicationInstallationAndServicing::*, Com::*, Registry::*, DataExchange::*, LibraryLoader::*, Memory::*}, UI::{Controls::*, Shell::*, WindowsAndMessaging::*, Input::KeyboardAndMouse::*}};
 
 const DEFAULT_URL: &str = "https://cpr.adwetec.nchyn.net";
 const MAX_CACHE: u64 = 1_000_000_000;
@@ -283,10 +283,11 @@ fn handle(mut request: Request, port: u16, origin: &str, shared: &Shared, stop: 
             let path=body.get("fileId").and_then(Value::as_str).and_then(|id|shared.files.lock().unwrap().get(id).cloned());
             match path.filter(|p|p.is_file()) {
                 None=>reply(request,404,json!({"error":"Unknown file ID"}),cors,false),
-                Some(path)=>match shared.clipboard.copy(path) {
-                    Ok(())=>{shared.logger.log("文件已复制，剪贴板回读验证通过。");reply(request,200,json!({"verified":true,"written":true,"format":"CF_HDROP","files":1}),cors,false);},
+                Some(path)=>{let name=path.file_name().unwrap_or_default().to_string_lossy().into_owned();let bytes=fs::metadata(&path).map(|m|m.len()).unwrap_or(0);match shared.clipboard.copy(path) {
+                    Ok(())=>{let mut time:SYSTEMTIME=unsafe{zeroed()};unsafe{GetLocalTime(&mut time);}
+                        shared.logger.log(format!("COPY\t{name}\t{bytes}\t{:02}:{:02}:{:02}",time.wHour,time.wMinute,time.wSecond));reply(request,200,json!({"verified":true,"written":true,"format":"CF_HDROP","files":1}),cors,false);},
                     Err(e)=>{shared.logger.log(format!("Clipboard failed: {e}"));reply(request,400,json!({"error":e}),cors,false);}
-                }
+                }}
             }
         }
         _=>reply(request,404,json!({"error":"Not found"}),cors,false)
@@ -431,9 +432,10 @@ impl App {
         let lines:Vec<String>=self.shared.logger.queue.lock().unwrap().drain(..).collect();
         for line in lines {self.log.push_str(&line);self.log.push_str("\r\n");}
         if self.log.len()>60000 {let mut start=self.log.len()-45000;while !self.log.is_char_boundary(start){start+=1;}self.log=self.log[start..].to_owned();}
-        let recent=self.log.lines().filter(|line|!line.trim().is_empty()).rev().take(3)
-            .map(|line|{let mut text=line.chars().take(92).collect::<String>();if line.chars().count()>92{text.push('…');}text})
-            .collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\r\n");
+        let recent=self.log.lines().rev().find_map(|line|{
+            let parts=line.strip_prefix("COPY\t")?.split('\t').collect::<Vec<_>>();
+            if parts.len()!=3{return None;}Some(format!("已复制：{}\r\n{:.1} KB · {}",parts[0],parts[1].parse::<f64>().unwrap_or(0.0)/1000.0,parts[2]))
+        }).unwrap_or_else(||"尚无文件复制".to_owned());
         SetWindowTextW(self.log_edit,wide(&recent).as_ptr());
         SendMessageW(self.log_edit,0x00B1,usize::MAX,-1); // EM_SETSEL, keep log selectable
         SendMessageW(self.log_edit,0x00B7,0,0); // EM_SCROLLCARET
@@ -602,7 +604,7 @@ fn main() {
         let instance=GetModuleHandleW(null());let class=wide("JPEGClipboardWindowsNative");
         let mut wc:WNDCLASSW=zeroed();wc.lpfnWndProc=Some(wndproc);wc.hInstance=instance;wc.lpszClassName=class.as_ptr();wc.hCursor=LoadCursorW(null_mut(),IDC_ARROW);wc.hbrBackground=BACKGROUND;
         if RegisterClassW(&wc)==0 {alert(null_mut(),"Window registration failed");return;}
-        let hwnd=CreateWindowExW(0,class.as_ptr(),wide("JPEG 剪贴板 · Windows 预览版 5.4").as_ptr(),WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,px(756),px(495),null_mut(),null_mut(),instance,null());
+        let hwnd=CreateWindowExW(0,class.as_ptr(),wide("JPEG 剪贴板 · Windows 5.6").as_ptr(),WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,px(756),px(483),null_mut(),null_mut(),instance,null());
         if hwnd.is_null(){alert(null_mut(),"Cannot create main window");return;}
         apply_theme(hwnd);
         let title=control(hwnd,"STATIC","本机文件剪贴板",0,28,24,680,32,0);
@@ -621,10 +623,10 @@ fn main() {
         for (text,id,width) in [("保存并重启",SAVE,102),("打开压缩器",OPEN,102),("停止服务",STOP,80),("打开缓存",CACHE,80),("清除 0.0MB 缓存",CLEAR,136),("重置允许来源",CLEAR_ORIGIN,100)] {
             let button=control(hwnd,"BUTTON",text,WS_TABSTOP|BS_OWNERDRAW as u32,x,277,width,25,id);if id==CLEAR{clear_button=button;}if id==STOP{toggle_button=button;}x+=width+8;
         }
-        let log_edit=control(hwnd,"EDIT","",WS_TABSTOP|ES_MULTILINE as u32|ES_AUTOVSCROLL as u32|ES_READONLY as u32,28,321,680,64,LOG_ID);
+        let log_edit=control(hwnd,"EDIT","尚无文件复制",WS_TABSTOP|ES_MULTILINE as u32|ES_AUTOVSCROLL as u32|ES_READONLY as u32,28,321,680,48,LOG_ID);
         SendMessageW(log_edit,WM_SETFONT,LOG_FONT as usize,1);
-        control(hwnd,"STATIC","客户端不编解码、不上传云端。仅保存网页生成的文件并写入文件剪贴板。",0,28,401,680,22,0);
-        control(hwnd,"STATIC","关闭窗口即退出服务，缓存文件保留。",0,28,428,680,22,0);
+        control(hwnd,"STATIC","客户端不编解码、不上传云端。仅保存网页生成的 JPEG / ZIP 并写入文件剪贴板。",0,28,385,680,22,0);
+        control(hwnd,"STATIC","关闭窗口即退出服务，缓存文件保留。",0,28,412,680,22,0);
         let logger=Logger{queue:Arc::new(Mutex::new(vec![])),hwnd:hwnd as isize};
         let clipboard=match Clipboard::spawn(){Ok(v)=>v,Err(e)=>{alert(hwnd,&e);return;}};
         let shared=Arc::new(Shared{last_health:AtomicU64::new(0),cache,files:Mutex::new(HashMap::new()),cache_lock:Mutex::new(()),clipboard,logger});
