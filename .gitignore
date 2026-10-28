@@ -9,3 +9,4 @@ __pycache__/
 .wrangler/
 mac-clipboard/clipboard-helper
 mac-clipboard/*.app/
+node_modules/
