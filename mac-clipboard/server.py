@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Loopback file clipboard bridge. No image codec; Python stdlib + Swift helper."""
-import sys, signal, errno
+import sys, signal, errno, zipfile
+from pathlib import PurePosixPath
 from pairing import Pairing
 import argparse, base64, hashlib, json, os, re, secrets, shutil, subprocess, threading, time, webbrowser
 from pathlib import Path
@@ -104,12 +105,52 @@ class Handler(BaseHTTPRequestHandler):
             size=int(self.headers.get('Content-Length','-1'))
             if self.headers.get('Transfer-Encoding') or size<0: return self.respond(411,{'error':'Content-Length required'})
             self.connection.settimeout(60)
+            if self.path == '/api/archives':
+                if not 0<size<=250000000: return self.respond(413,{'error':'ZIP transport limit is 250MB'})
+                if self.headers.get('Content-Type')!='application/zip': return self.respond(415,{'error':'Expected ZIP'})
+                with LOCK:
+                    if sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())+size*2>MAX_CACHE: return self.respond(507,{'error':'Cache limit reached'})
+                    key=secrets.token_hex(16);tmp=CACHE/(key+'.part');dest=CACHE/(key+'.zip')
+                    try:
+                        with tmp.open('xb') as out:
+                            remaining=size
+                            while remaining:
+                                chunk=self.rfile.read(min(1048576,remaining))
+                                if not chunk: raise ValueError('Incomplete ZIP')
+                                out.write(chunk);remaining-=len(chunk)
+                        with zipfile.ZipFile(tmp) as incoming:
+                            entries=incoming.infolist()
+                            expanded=sum(i.file_size for i in entries)
+                            if len(entries)>10000 or expanded>250000000: raise ValueError('ZIP expanded size/count limit')
+                            if sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())+expanded+len(entries)*1024>MAX_CACHE: raise ValueError('Cache limit reached')
+                            names=set()
+                            for info in entries:
+                                path=PurePosixPath(info.filename)
+                                if path.is_absolute() or '..' in path.parts or '\\' in info.filename or info.filename in names or info.flag_bits&1: raise ValueError('Unsafe ZIP entry')
+                                names.add(info.filename)
+                            roots={PurePosixPath(i.filename).parts[0] for i in entries if PurePosixPath(i.filename).parts}
+                            root=next(iter(roots)) if len(roots)==1 else '文件夹'
+                            root=re.sub(r'[\x00-\x1f/:\\\\]', '_',root).strip('. ')[:100] or '文件夹'
+                            archive_dir=CACHE/key;archive_dir.mkdir(mode=0o700)
+                            dest=archive_dir/(root+'.zip')
+                            with zipfile.ZipFile(dest,'x',compression=zipfile.ZIP_STORED) as packed:
+                                for info in entries:
+                                    if info.is_dir(): packed.writestr(info.filename,b'');continue
+                                    with incoming.open(info) as source,packed.open(info.filename,'w',force_zip64=True) as target:
+                                        shutil.copyfileobj(source,target,1048576)
+                        FILES[key]=dest
+                    except Exception:
+                        if dest.exists(): dest.unlink()
+                        raise
+                    finally:
+                        if tmp.exists(): tmp.unlink()
+                return self.respond(201,{'fileId':key,'bytes':dest.stat().st_size,'name':dest.name})
             if self.path == '/api/files':
                 if not 4 <= size < MAX_FILE: return self.respond(413,{'error':'JPEG must be smaller than 20,000,000 bytes'})
                 if self.headers.get('Content-Type','').split(';')[0]!='image/jpeg': return self.respond(415,{'error':'Expected image/jpeg'})
                 # Serializes uploads and cache accounting. No arbitrary client paths or file names.
                 with LOCK:
-                    used=sum(p.stat().st_size for p in CACHE.glob('*') if p.is_file())
+                    used=sum(p.stat().st_size for p in CACHE.rglob('*') if p.is_file())
                     if used+size>MAX_CACHE: return self.respond(507,{'error':'Cache limit reached; clear old files manually after pasting'})
                     key=secrets.token_hex(16);tmp=CACHE/(key+'.part');dest=CACHE/(key+'.jpg')
                     digest=hashlib.sha256();first=b'';tail=b''
@@ -144,7 +185,7 @@ class Handler(BaseHTTPRequestHandler):
                 now=time.time()
                 if now-LAST_ACTIVITY>5:
                     LAST_ACTIVITY=now;emit('connected', origin=self.headers.get('Origin'))
-                return self.respond(200,{'service':'local-jpeg-clipboard','version':3,'clipboard':'file-url','codec':False})
+                return self.respond(200,{'service':'local-jpeg-clipboard','version':4,'archives':True,'clipboard':'file-url','codec':False})
             return self.respond(404,{'error':'Not found'})
         except Exception as e: return self.respond(400,{'error':str(e)})
 

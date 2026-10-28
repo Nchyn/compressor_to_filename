@@ -1,8 +1,18 @@
 import Cocoa
 
+final class ShortcutWindow: NSWindow {
+    override func performKeyEquivalent(with event:NSEvent)->Bool {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .control,
+           let action=["c":"copy:","v":"paste:","x":"cut:","a":"selectAll:"][event.charactersIgnoringModifiers?.lowercased() ?? ""] {
+            return NSApp.sendAction(NSSelectorFromString(action),to:nil,from:self)
+        }
+        return super.performKeyEquivalent(with:event)
+    }
+}
 final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window:NSWindow!, statusItem:NSStatusItem!, process:Process?, pipe:Pipe?, input:Pipe?
     var endpoint="", token="", buffer=Data(), lastSeen:Date?
+    let clearCacheButton=NSButton(title:"清除0.0MB缓存",target:nil,action:nil)
     let state=NSTextField(labelWithString:"服务未启动")
     let connection=NSTextField(labelWithString:"网页未连接")
     let activity=NSTextField(wrappingLabelWithString:"尚无文件复制")
@@ -18,9 +28,11 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let menu=NSMenu();menu.addItem(withTitle:"打开控制台",action:#selector(show),keyEquivalent:"").target=self
         menu.addItem(withTitle:"打开压缩器",action:#selector(openPage),keyEquivalent:"").target=self
         menu.addItem(.separator());menu.addItem(withTitle:"退出",action:#selector(quit),keyEquivalent:"q").target=self;statusItem.menu=menu
-        let appMenu=NSMenu(), appItem=NSMenuItem();appMenu.addItem(appItem);let submenu=NSMenu();submenu.addItem(withTitle:"退出JPEG客户端",action:#selector(quit),keyEquivalent:"q").target=self;appItem.submenu=submenu;NSApp.mainMenu=appMenu
-        window=NSWindow(contentRect:NSRect(x:0,y:0,width:650,height:520),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title="JPEG 剪贴板 · v0.4.1 · 五端口直连";window.center();window.delegate=self
+        let appMenu=NSMenu(), appItem=NSMenuItem();appMenu.addItem(appItem);let submenu=NSMenu();submenu.addItem(withTitle:"退出JPEG客户端",action:#selector(quit),keyEquivalent:"q").target=self;appItem.submenu=submenu;let editItem=NSMenuItem();appMenu.addItem(editItem);let edit=NSMenu(title:"编辑");editItem.submenu=edit
+        for (title,action,key) in [("撤销","undo:","z"),("剪切","cut:","x"),("复制","copy:","c"),("粘贴","paste:","v"),("全选","selectAll:","a")] {edit.addItem(withTitle:title,action:NSSelectorFromString(action),keyEquivalent:key)}
+        NSApp.mainMenu=appMenu
+        window=ShortcutWindow(contentRect:NSRect(x:0,y:0,width:740,height:550),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
+        window.title="JPEG 剪贴板 · v0.5.0 · 文件夹ZIP";window.center();window.delegate=self
         let stack=NSStackView();stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=14;stack.translatesAutoresizingMaskIntoConstraints=false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:28),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-28),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
@@ -34,12 +46,12 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let help=NSTextField(wrappingLabelWithString:"保存压缩器URL后直接连接，无令牌或配对弹窗。仅允许该URL的来源（协议＋主机＋端口），不限制路径。请只填写可信网站。")
         help.textColor = .secondaryLabelColor;help.font = .systemFont(ofSize:12);stack.addArrangedSubview(help);help.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         let buttons=NSStackView();buttons.spacing=10
-        for (title,action) in [("保存并重启",#selector(save)),("打开压缩器",#selector(openPage)),("停止服务",#selector(stop)),("打开缓存",#selector(openCache)),("清除允许来源",#selector(revoke))] {let b=NSButton(title:title,target:self,action:action);buttons.addArrangedSubview(b)}
+        for (title,action) in [("保存并重启",#selector(save)),("打开压缩器",#selector(openPage)),("停止服务",#selector(stop)),("打开缓存",#selector(openCache)),("清除允许来源",#selector(revoke))] {let b=NSButton(title:title,target:self,action:action);buttons.addArrangedSubview(b);if action == #selector(openCache){clearCacheButton.target=self;clearCacheButton.action = #selector(clearCache);buttons.addArrangedSubview(clearCacheButton)}}
         stack.addArrangedSubview(buttons);stack.addArrangedSubview(activity);activity.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
         let note=NSTextField(wrappingLabelWithString:"客户端不编解码、不上传云端。只保存网页生成的JPEG并写文件剪贴板。关闭窗口仍在菜单栏运行。")
         note.textColor = .secondaryLabelColor;stack.addArrangedSubview(note);note.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive=true
-        Timer.scheduledTimer(withTimeInterval:3,repeats:true){[weak self] _ in guard let self=self else{return};if let seen=self.lastSeen,Date().timeIntervalSince(seen)>35 {self.connection.stringValue="网页未连接（等待重新打开）"}}
-        show();start()
+        Timer.scheduledTimer(withTimeInterval:3,repeats:true){[weak self] _ in guard let self=self else{return};self.refreshCache();if let seen=self.lastSeen,Date().timeIntervalSince(seen)>35 {self.connection.stringValue="网页未连接（等待重新打开）"}}
+        refreshCache();show();start()
     }
     @objc func selectLocal(){local.state = .on;external.state = .off}
     @objc func selectExternal(){local.state = .off;external.state = .on}
@@ -88,6 +100,30 @@ final class ClientApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func send(_ value:[String:Any]){if let data=try? JSONSerialization.data(withJSONObject:value){try? input?.fileHandleForWriting.write(contentsOf:data+Data([10]))}}
     @objc func revoke(){stop();url.stringValue="";selectLocal();UserDefaults.standard.set("",forKey:"compressorURL");UserDefaults.standard.set(false,forKey:"external");start()}
+    var cacheRoot:URL {FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/LocalJPEGClipboard").standardizedFileURL}
+    func cacheFiles()->[URL] {
+        guard let en=FileManager.default.enumerator(at:cacheRoot,includingPropertiesForKeys:[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey],options:[.skipsHiddenFiles]) else{return []}
+        return en.compactMap { value in
+            guard let u=value as? URL,let r=try? u.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey]),r.isRegularFile==true,r.isSymbolicLink != true,["jpg","zip","part"].contains(u.pathExtension) else{return nil};return u
+        }
+    }
+    func protectedFiles()->Set<URL> {
+        Set((NSPasteboard.general.readObjects(forClasses:[NSURL.self],options:[.urlReadingFileURLsOnly:true]) as? [URL] ?? []).map{$0.standardizedFileURL})
+    }
+    func refreshCache(){
+        let protected=protectedFiles();let bytes=cacheFiles().filter{!protected.contains($0.standardizedFileURL)}.reduce(Int64(0)){sum,u in sum+Int64((try? u.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0)}
+        clearCacheButton.title=String(format:"清除%.1fMB缓存",Double(bytes)/1000000)
+    }
+    @objc func clearCache(){
+        let a=NSAlert();a.messageText="清理本机缓存？";a.informativeText="删除生成的JPEG、ZIP及临时文件；保留当前剪贴板引用的文件。旧日志中的复制按钮可能失效。";a.addButton(withTitle:"清理");a.addButton(withTitle:"取消");guard a.runModal()==NSApplication.ModalResponse.alertFirstButtonReturn else{return}
+        let running=process != nil;stop();let protected=protectedFiles();var failures=0
+        for u in cacheFiles() where !protected.contains(u.standardizedFileURL) {
+            // Only enumerated regular generated files strictly inside the verified cache root.
+            guard u.standardizedFileURL.path.hasPrefix(cacheRoot.path+"/") else{continue}
+            do{try FileManager.default.removeItem(at:u)}catch{failures+=1}
+        }
+        if running{start()};refreshCache();if failures>0{alert("部分缓存未能删除：\(failures)个")}
+    }
     @objc func openCache(){let folder=FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/LocalJPEGClipboard");try? FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true);NSWorkspace.shared.open(folder)}
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
     @objc func quit(){stop();NSApp.terminate(nil)}

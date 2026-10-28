@@ -35,6 +35,16 @@ with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as directory:
  code,result=request('/api/files',b'\xff\xd8\xffTEST\xff\xd9',kind='image/jpeg')
  assert code==201
  assert bridge.FILES[result['fileId']].read_bytes()==b'\xff\xd8\xffTEST\xff\xd9'
+ import io,zipfile
+ buf=io.BytesIO()
+ with zipfile.ZipFile(buf,'w') as z:z.writestr('folder/sub/image.png',b'original-or-processed')
+ code,archive=request('/api/archives',buf.getvalue(),kind='application/zip')
+ assert code==201
+ assert archive['name']=='folder.zip'
+ with zipfile.ZipFile(bridge.FILES[archive['fileId']]) as z:assert z.read('folder/sub/image.png')==b'original-or-processed'
+ bad=io.BytesIO()
+ with zipfile.ZipFile(bad,'w') as z:z.writestr('../escape',b'no')
+ assert request('/api/archives',bad.getvalue(),kind='application/zip')[0]==400
  assert request('/api/clipboard/file',json.dumps({'fileId':'unknown'}).encode())[0]==404
  server.shutdown();server.server_close();thread.join()
  print('PASS authentication, Origin, invalid JPEG, exact-byte storage, unknown clipboard ID (no clipboard write)')

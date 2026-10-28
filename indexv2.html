@@ -146,7 +146,7 @@
 
 
     .shell { display: grid; grid-template-columns: minmax(0, 1fr) 270px; min-height: 100vh; }
-    .main { padding: 1.1em; display: flex; flex-direction: column; gap: 1em; min-width: 0; height: calc(100vh - 2.2em); }
+    .main { padding: 1.1em; display: flex; flex-direction: column; gap: 1em; min-width: 0; min-height: 100vh; align-self: stretch; }
     .main .hd { display: flex; align-items: center; justify-content: space-between; }
     .main .hd h1 { margin: 0; font-size: 18px; }
     .main #dropZone { padding: 2.6em 1em; font-size: 15px; }
@@ -168,7 +168,7 @@
     .rail .box { min-width: 0; }
     @media (max-width: 900px) {
       .shell { grid-template-columns: 1fr; }
-      .main { height: auto; }
+      .main { height: auto; min-height: 0; }
       .rail { border-left: none; border-top: 1px solid var(--border); }
       .logwrap { flex: none; }
       .logwrap .log-body { flex: none; max-height: 60vh; }
@@ -179,7 +179,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>📐 压缩区</h1><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>📐 压缩区</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v0.5.0 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">把 <strong>图片 / 文件夹</strong> 拖进这块主区域（整页任意位置均可拖入 · 支持 Ctrl+V 粘贴）</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -898,8 +898,6 @@
       };
       const useKV = !KV_SIMULATE && KV_ENDPOINT;
       const done = () => {
-        showToast('已记录 ' + payload.count + ' 条处理记录' +
-          (useKV ? '（已上报 KV）' : '（本地模拟存储，部署 KV 接口后自动上报）'));
         sessionRecords = [];
       };
       if (!useKV){
@@ -1069,6 +1067,7 @@
       resetLog();
     });
 
+    let folderLogContext=null;
     function row({ status, filePath, width, height, orig, target, result, note, previewURL, previewName, rowEl, localOnly }){
       const empty = logBody.querySelector('.log-empty');
       if (empty) empty.remove();
@@ -1077,6 +1076,7 @@
       div.innerHTML = '';
 
       // 仅在非 pending 状态收集记录（每条日志 = 一条记录），批次结束时一并上报 KV
+      if (folderLogContext && status==='err') {folderLogContext.details.open=true;folderLogContext.errors++;}
       if (status !== 'pending' && !localOnly){
         addRecord({
           name: previewName || filePath,
@@ -1132,9 +1132,10 @@
 
       div.append(nameCell, resCell, origCell, targetCell, resultCell, noteCell);
       if (!rowEl){
-        const header = logBody.querySelector('.log-row.header');
+        if(folderLogContext) folderLogContext.body.prepend(div);
+        else {const header = logBody.querySelector('.log-row.header');
         if (header) header.after(div);
-        else logBody.prepend(div);
+        else logBody.prepend(div);}
       }
       if (!rowEl) logBody.scrollTop = 0;
       return div;
@@ -1732,12 +1733,19 @@ async function processFileLike(readFile, writeBack, displayPath, opts = {}){
     // 拖拽交互（单文件夹或多个文件）—— 整页任意位置均可拖入
     async function handleDrop(e){
       e.preventDefault();
+      e.stopPropagation();
       dropZone.classList.remove('dragover');
       document.body.classList.remove('dragging');
 
       const items = e.dataTransfer.items;
       const files = e.dataTransfer.files;
 
+      if(window.clientFolderDrop && items){
+        const dropped=Array.from(items);
+        const handles=dropped.map(i=>i.getAsFileSystemHandle?i.getAsFileSystemHandle().catch(()=>null):Promise.resolve(null));
+        const entries=dropped.map(i=>i.webkitGetAsEntry?.()).filter(Boolean);
+        if(entries.some(e=>e.isDirectory) && await window.clientFolderDrop(entries,handles))return;
+      }
       // 单文件夹拖入（新API）
       if (items && items.length === 1){
         const item = items[0];
@@ -1977,6 +1985,74 @@ function bridgeEncode(file,onStage){return new Promise((resolve,reject)=>{
  worker.onerror=e=>finish(Error(e.message));
  worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:PASTE_DEFAULT_KB,background:'#ffffff'}});
 });}
+let folderBusy=false;
+window.clientFolderDrop=async(entries,handlePromises=[])=>{
+ if(folderBusy){showToast('文件夹处理中，请稍后重试');return true;}
+ await autoConnect();if(!bridgeConnected)return false;
+ if(entries.some(e=>!e.isDirectory)){showToast('请单独拖入文件夹，不要与零散文件混合拖入');return true;}
+ folderBusy=true;
+ try{
+  const capability=await bridgeRequest('/api/health',{});
+  if(!capability.archives){showToast('文件夹ZIP功能需要更新客户端至v0.5.0');return true;}
+  const handles=await Promise.all(handlePromises);
+  for(const entry of entries){
+   if(!entry.isDirectory)continue;
+   const directory=handles.find(h=>h?.kind==='directory'&&h.name===entry.name);
+   if(!directory){showToast('浏览器未提供目录写入句柄，无法覆盖源文件；请使用支持目录访问的浏览器');continue;}
+   if(!await showCustomConfirm('将压缩并覆盖文件夹“'+entry.name+'”内的图片，随后打包ZIP。此操作不可撤销，是否继续？'))continue;
+   if(await directory.requestPermission({mode:'readwrite'})!=='granted'){showToast('目录写入权限未允许，已取消');continue;}
+   const empty=logBody.querySelector('.log-empty');empty?.remove();
+   const details=document.createElement('details');details.className='folder-log';
+   const summary=document.createElement('summary');summary.className='log-row';
+   const label=document.createElement('div');label.textContent='▸ '+entry.name;summary.append(label);
+   for(let i=0;i<4;i++)summary.append(document.createElement('div'));
+   const note=document.createElement('div');note.textContent='正在处理';summary.append(note);details.append(summary);
+   const body=document.createElement('div');details.append(body);logBody.querySelector('.log-row.header')?.after(details);
+   const context={details,body,errors:0};const archive=new JSZip();let count=0,archiveId=null;
+   const status=document.createElement('span');
+   try{
+    const files=[];
+    async function walk(dir,prefix){
+     archive.folder(prefix);
+     const reader=dir.createReader();
+     while(true){const batch=await new Promise((resolve,reject)=>reader.readEntries(resolve,reject));if(!batch.length)break;
+      for(const child of batch){const path=prefix+'/'+child.name;if(child.isDirectory)await walk(child,path);else if(child.isFile){const file=await new Promise((resolve,reject)=>child.file(resolve,reject));files.push({file,path});}}
+     }
+    }
+    await walk(entry,entry.name);
+    async function writeSource(path,blob,suggestedName){
+     const parts=path.split('/').slice(1);const original=parts.pop();let parent=directory;
+     for(const part of parts)parent=await parent.getDirectoryHandle(part);
+     const output=suggestedName||original;
+     if(output!==original){try{await parent.getFileHandle(output);throw Error('目标文件名已存在：'+output);}catch(e){if(e.name!=='NotFoundError')throw e;}}
+     const handle=await parent.getFileHandle(output,{create:true});const writer=await handle.createWritable();
+     try{await writer.write(blob);await writer.close();}catch(e){try{await writer.abort();}catch{}throw e;}
+     if(output!==original)await parent.removeEntry(original);
+    }
+    sessionMode='folder';sessionRecords=[];
+    folderLogContext=context;
+    for(const {file,path} of files){
+     archive.file(path,file); // Preserve skipped, failed, and non-image originals.
+     if(isImageName(file.name)){
+      await processFileLike(async()=>({file,name:file.name}),async(blob,name)=>{await writeSource(path,blob,name);if(name!==file.name)archive.remove(path);archive.file(path.slice(0,path.lastIndexOf('/')+1)+name,blob);},path);
+     }
+     count++;
+    }
+    folderLogContext=null;
+    await flushRecords();
+    note.textContent='客户端打包中';
+    const transport=await archive.generateAsync({type:'blob',compression:'STORE'});
+    archiveId=(await bridgeRequest('/api/archives',transport,'application/zip')).fileId;
+    note.replaceChildren();const copy=document.createElement('button');copy.className='btn';copy.textContent='复制ZIP';
+    copy.onclick=async e=>{e.preventDefault();e.stopPropagation();copy.disabled=true;try{status.textContent='复制中';const report=await bridgeRequest('/api/clipboard/file',{fileId:archiveId});if(!report.verified)throw Error('剪贴板回读失败');status.textContent='已复制';}catch(err){status.textContent=err.message;details.open=true;}finally{copy.disabled=false;}};
+    note.append(copy,status);summary.children[4].textContent=formatKB(transport.size);
+    label.textContent='▸ '+entry.name+' · '+count+'个文件'+(context.errors?' · '+context.errors+'个错误':'');
+   }catch(err){details.open=true;note.textContent='错误：'+err.message;}
+   finally{folderLogContext=null;}
+  }
+ }finally{folderBusy=false;}
+ return true;
+};
 async function bridgePaste(blobs){
  for(let i=0;i<blobs.length;i++){
   const file=blobs[i],name=file.name||`剪贴板-${Date.now()}.jpg`;
