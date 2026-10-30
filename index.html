@@ -198,7 +198,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.0 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.1 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -214,7 +214,10 @@
             <span class="slider"></span>
           </label>
           <span class="mode-label" id="modeManualLabel">手动控制</span>
-        </div></div><div class="row" style="margin-top:.55em"><div id="defaultSizeGroup" class="input-group" style="display:none">
+        </div></div><div class="row" style="margin-top:.55em"><div id="filenameFallbackGroup" class="input-group" title="未命中文件名参数或已启用的分辨率规则时使用">
+          <label for="filenameFallbackInput">兜底（KB）：</label>
+          <input type="number" id="filenameFallbackInput" value="300" min="1" step="1" />
+        </div><div id="defaultSizeGroup" class="input-group" style="display:none">
           <label for="defaultSizeInput">目标（KB）：</label>
           <input type="number" id="defaultSizeInput" value="300" min="1" />
         </div></div><div class="row" style="margin-top:.55em"><label class="input-group" id="autoResolutionGroup" style="gap:.4em" title="按图片实际分辨率匹配已知目标大小（仅文件名优先模式可用）">
@@ -309,12 +312,14 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '5.6.0'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+    const APP_VERSION = '5.6.1'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const chooseDirBtn = document.getElementById('chooseDirBtn');
     const defaultSizeInput = document.getElementById('defaultSizeInput');
+    const filenameFallbackInput = document.getElementById('filenameFallbackInput');
+    const filenameFallbackGroup = document.getElementById('filenameFallbackGroup');
     const manualModeToggle = document.getElementById('manualModeToggle');
     const defaultSizeGroup = document.getElementById('defaultSizeGroup');
     const autoResolutionCheckbox = document.getElementById('autoResolutionCheckbox');
@@ -428,6 +433,7 @@
         : '当前为文件名优先，点击切换为手动控制');
       // 手动控制：显示统一目标输入；分辨率识别在两种模式下均可用（命中时优先于手动值）
       defaultSizeGroup.style.display = manual ? 'flex' : 'none';
+      filenameFallbackGroup.style.display = manual ? 'none' : 'flex';
       autoResolutionGroup.title = '按图片实际分辨率匹配已知目标大小（命中时优先于当前模式的目标值）';
     }
 
@@ -997,17 +1003,15 @@
       return Number.isFinite(kb) && kb > 0 ? kb : null;
     }
     function getFallbackKB(){
-      // 文件名优先：未匹配文件名参数/分辨率时固定回退 300KB
-      // 手动控制：使用输入框中的统一目标
-      if (!isManualMode()) return DEFAULT_FALLBACK_KB;
-      const v = parseInt(defaultSizeInput.value, 10);
+      // 两种模式保留独立输入；无效或空值回退 300KB。
+      const v = parseInt((isManualMode() ? defaultSizeInput : filenameFallbackInput).value, 10);
       return Number.isFinite(v) && v > 0 ? v : DEFAULT_FALLBACK_KB;
     }
 
     /**
      * 计算目标大小及来源。
      * 优先级：文件名参数（仅文件名优先模式）> 分辨率识别（复选框启用时，两种模式均生效）> 模式默认值。
-     * 文件名优先模式默认 300KB；手动控制模式默认为输入框统一目标。
+     * 文件名优先使用兜底输入；手动控制使用统一目标输入。
      */
     function resolveTarget(name, width, height){
       const fallbackKB = getFallbackKB();
@@ -1035,7 +1039,7 @@
      */
     function resolvePasteTarget(name, width, height, fileSize){
       const resolution = lookupResolutionTarget(width, height);
-      const base = { width, height, filenameKB: null, resolution, fallbackKB: PASTE_DEFAULT_KB, fileSize };
+      const base = { width, height, filenameKB: null, resolution, fallbackKB: getFallbackKB(), fileSize };
 
       if (fileSize > PASTE_MAX_BYTES){
         return { ...base, source: 'paste-limit', kb: PASTE_MAX_BYTES / 1000, bytes: PASTE_MAX_BYTES };
@@ -1043,7 +1047,7 @@
       if (resolution){
         return { ...base, source: 'paste-resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
       }
-      return { ...base, source: 'paste-default', kb: PASTE_DEFAULT_KB, bytes: PASTE_DEFAULT_KB * 1000 };
+      return { ...base, source: 'paste-default', kb: getFallbackKB(), bytes: getFallbackKB() * 1000 };
     }
 
     // 生成“目标来源”说明，供日志标注
@@ -2005,7 +2009,7 @@ function bridgeEncode(file,onStage,onTarget=()=>{}){return new Promise((resolve,
  function finish(error,result){clearTimeout(timer);worker.terminate();URL.revokeObjectURL(url);error?reject(error):resolve(result);}
  worker.onmessage=({data})=>{if(data.type==='target')onTarget(data);else if(data.type==='stage')onStage(data.text);else if(data.type==='error')finish(Error(data.message));else finish(null,data.result);};
  worker.onerror=e=>finish(Error(e.message));
- worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:PASTE_DEFAULT_KB,background:'#ffffff'}});
+ worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:getFallbackKB(),background:'#ffffff'}});
 });}
 let folderBusy=false;
 window.clientFolderDrop=async(entries,handlePromises=[])=>{
