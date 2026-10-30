@@ -198,7 +198,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.1 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.2 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -312,7 +312,7 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '5.6.1'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+    const APP_VERSION = '5.6.2'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -1295,6 +1295,19 @@ async function processFileLike(readFile, writeBack, displayPath, opts = {}){
 
       const width = img.naturalWidth || img.width;
       const height = img.naturalHeight || img.height;
+      // 大于20MB：两种模式均只执行一次Q0.9 JPEG编码，不走目标解析或缩放。
+      if(file.size>20000000){
+        try{
+          const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+          const ctx=canvas.getContext('2d');if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);ctx.drawImage(img,0,0,width,height);
+          const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('JPEG编码失败')),'image/jpeg',0.9));
+          const finalName=getOutputFileName(name,'jpg');await writeBack(blob,finalName);
+          const resultURL=URL.createObjectURL(blob);currentPreviewURLs.push(resultURL);
+          row({status:'ok',filePath:displayPath,width,height,orig:file.size,target:null,result:blob.size,rowEl,previewURL:resultURL,previewName:finalName,note:'原图大于20MB · JPEG Q0.900单次编码 · 未执行目标搜索或缩放'});
+        }catch(err){row({status:'err',filePath:displayPath,width,height,orig:file.size,target:null,result:null,rowEl,previewURL,previewName:name,note:'Q0.9单次编码失败：'+err.message});}
+        return;
+      }
+
       const targetInfo = opts.targetResolver
         ? opts.targetResolver(name, width, height, file.size)
         : resolveTarget(name, width, height);
@@ -1931,6 +1944,19 @@ self.onmessage=async({data:{file,options}})=>{
  try{
   stage('解码图片');image=await createImageBitmap(file);
   const origWidth=image.width,origHeight=image.height;
+   if(file.size>20000000){
+    const width=origWidth,height=origHeight,targetBytes=20000000;
+    postMessage({type:'target',targetBytes,width,height});
+    canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);image.close();image=null;
+    const decodeDrawMs=Math.round(performance.now()-start);stage('大于20MB · JPEG单次编码 · Q0.900');const t=performance.now();
+    const blob=await canvas.convertToBlob({type:'image/jpeg',quality:0.9});
+    if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
+    if(blob.size>=targetBytes)throw Error('Q0.9单次编码后仍达到20MB，无法复制至客户端；未继续降质量或缩图。');
+    const attempts=[{quality:0.9,bytes:blob.size,ms:Math.round(performance.now()-t)}];
+    postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half:false,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});return;
+   }
+
   const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
   const fixedQuality=file.size>10000000;
   const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);

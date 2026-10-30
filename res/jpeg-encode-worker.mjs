@@ -4,6 +4,19 @@ self.onmessage=async({data:{file,options}})=>{
  try{
   stage('解码图片');image=await createImageBitmap(file);
   const origWidth=image.width,origHeight=image.height;
+   if(file.size>20000000){
+    const width=origWidth,height=origHeight,targetBytes=20000000;
+    postMessage({type:'target',targetBytes,width,height});
+    canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);image.close();image=null;
+    const decodeDrawMs=Math.round(performance.now()-start);stage('大于20MB · JPEG单次编码 · Q0.900');const t=performance.now();
+    const blob=await canvas.convertToBlob({type:'image/jpeg',quality:0.9});
+    if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
+    if(blob.size>=targetBytes)throw Error('Q0.9单次编码后仍达到20MB，无法复制至客户端；未继续降质量或缩图。');
+    const attempts=[{quality:0.9,bytes:blob.size,ms:Math.round(performance.now()-t)}];
+    postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half:false,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});return;
+   }
+
   const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
   const fixedQuality=file.size>10000000;
   const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
