@@ -5,19 +5,23 @@ self.onmessage=async({data:{file,options}})=>{
   stage('解码图片');image=await createImageBitmap(file);
   const origWidth=image.width,origHeight=image.height;
    if(file.size>20000000){
-    const width=origWidth,height=origHeight,targetBytes=20000000;
+    let width=origWidth,height=origHeight,half=false;const targetBytes=20000000,attempts=[];
     postMessage({type:'target',targetBytes,width,height});
-    canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
-    if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);image.close();image=null;
-    const decodeDrawMs=Math.round(performance.now()-start);stage('大于20MB · JPEG单次编码 · Q0.900');const t=performance.now();
-    const blob=await canvas.convertToBlob({type:'image/jpeg',quality:0.9});
-    if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
-    if(blob.size>=targetBytes)throw Error('Q0.9单次编码后仍达到20MB，无法复制至客户端；未继续降质量或缩图。');
-    const attempts=[{quality:0.9,bytes:blob.size,ms:Math.round(performance.now()-t)}];
-    postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half:false,decodeDrawMs,attempts,ms:Math.round(performance.now()-start)}});return;
+    async function encode(){
+     canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
+     if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);
+     stage(half?'仍达到20MB · 原图宽高减半 · Q0.900':'大于20MB · 原尺寸编码 · Q0.900');const t=performance.now();
+     const blob=await canvas.convertToBlob({type:'image/jpeg',quality:0.9});if(blob.type!=='image/jpeg')throw Error('浏览器未生成JPEG');
+     attempts.push({quality:0.9,bytes:blob.size,width,height,ms:Math.round(performance.now()-t)});return blob;
+    }
+    let blob=await encode();
+    if(blob.size>=targetBytes){half=true;width=Math.max(1,Math.floor(origWidth/2));height=Math.max(1,Math.floor(origHeight/2));canvas.width=canvas.height=0;blob=await encode();}
+    image.close();image=null;
+    if(blob.size>=targetBytes)throw Error('原图宽高减半并以Q0.9编码后仍达到20MB，无法复制至客户端；未继续缩小。');
+    postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half,decodeDrawMs:0,attempts,ms:Math.round(performance.now()-start)}});return;
    }
 
-  const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
+   const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
   const fixedQuality=file.size>10000000;
   const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
   const targetBytes=fixedQuality?20000000:Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
