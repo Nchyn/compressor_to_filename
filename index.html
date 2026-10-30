@@ -198,7 +198,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.3 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.4 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -312,7 +312,7 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '5.6.3'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+    const APP_VERSION = '5.6.4'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -994,14 +994,15 @@
       let base = removeParamCheckbox.checked ? getCleanFileName(origName) : origName;
       return replaceExt(base, outExt);
     }
-    function getFilenameTargetKB(name){
-      if (name.includes('预览')) return 20000;
-      if (name.includes('落地页')) return 2000;
+    function getFilenameTargetMatch(name){
+      if (name.includes('预览')) return { kb: 20000, kind: 'keyword', matched: '预览' };
+      if (name.includes('落地页')) return { kb: 2000, kind: 'keyword', matched: '落地页' };
       const m = name.match(/(?:^|[-_\s])((?:\d+(?:\.\d+)?|\.\d+))\s*(KB|MB)(?=$|[-_\s.]|\()/i);
       if (!m) return null;
       const kb = Number(m[1]) * (m[2].toUpperCase() === 'MB' ? 1000 : 1);
-      return Number.isFinite(kb) && kb > 0 ? kb : null;
+      return Number.isFinite(kb) && kb > 0 ? { kb, kind: 'parameter', matched: m[1] + m[2] } : null;
     }
+    function getFilenameTargetKB(name){ return getFilenameTargetMatch(name)?.kb ?? null; }
     function getFallbackKB(){
       // 两种模式保留独立输入；无效或空值回退 300KB。
       const v = parseInt((isManualMode() ? defaultSizeInput : filenameFallbackInput).value, 10);
@@ -1015,9 +1016,10 @@
      */
     function resolveTarget(name, width, height){
       const fallbackKB = getFallbackKB();
-      const filenameKB = getFilenameTargetKB(name);
+      const filenameMatch = getFilenameTargetMatch(name);
+      const filenameKB = filenameMatch?.kb ?? null;
       const resolution = lookupResolutionTarget(width, height);
-      const base = { width, height, filenameKB, resolution, fallbackKB };
+      const base = { width, height, filenameKB, filenameMatch, resolution, fallbackKB };
 
       if (isManualMode()){
         if (isAutoResolutionEnabled() && resolution){
@@ -1056,7 +1058,10 @@
       const resText = `${info.width}×${info.height}`;
 
       if (info.source === 'filename'){
-        notes.push(`目标来源：文件名参数 ${info.kb}KB`);
+        const match = info.filenameMatch;
+        notes.push(match
+          ? `目标来源：文件名${match.kind === 'keyword' ? '关键词' : '参数'}“${match.matched}” → ${info.kb}KB`
+          : `目标来源：文件名规则 → ${info.kb}KB`);
         if (info.resolution){
           notes.push(info.resolution.kb === info.kb
             ? `分辨率 ${resText} 与规则一致（${info.resolution.kb}KB）`
@@ -1080,7 +1085,7 @@
         notes.push(`目标来源：粘贴图片 · 默认 ${info.kb}KB（原文件 ≤ 20MB）`);
         notes.push(`分辨率 ${resText} 未在识别表中`);
       } else {
-        notes.push(`目标来源：默认值 ${info.kb}KB（文件名无参数）`);
+        notes.push(`目标来源：兜底输入 ${info.kb}KB（文件名未命中关键词或数值参数）`);
         notes.push(isAutoResolutionEnabled()
           ? `分辨率 ${resText} 未在识别表中`
           : '分辨率识别未启用');
