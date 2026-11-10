@@ -198,7 +198,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.5 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.6 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -312,7 +312,7 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '5.6.5'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+    const APP_VERSION = '5.6.6'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -2123,12 +2123,20 @@ async function bridgePaste(blobs){
    const preview=URL.createObjectURL(r.blob);
    row({localOnly:true,rowEl:entry,status:'ok',filePath:name,width:r.width,height:r.height,orig:file.size,target:r.targetBytes,result:r.blob.size,note:`JPEG · Q${r.quality.toFixed(3)} · ${r.ms}ms${r.half?' · 宽高减半':''}`,previewURL:preview,previewName:name});
    const cell=entry.lastElementChild,button=document.createElement('button');button.className='btn';button.textContent='再次复制';cell.append(' ',button);
-   let id=null,busy=false;
-   async function copy(manual=false){if(busy)return;busy=true;button.disabled=true;try{button.textContent='复制中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');button.textContent=manual?'已复制':'再次复制';button.title='点击再次复制文件';}catch(e){button.textContent='再次复制';button.title=e.message;showToast('复制失败：'+e.message);}finally{busy=false;button.disabled=false;}}
-   button.onclick=()=>copy(true);await copy();completed++;
+   let id=null,busy=false,downloadMode=false;
+    const downloadName=getOutputFileName(name,'jpg');
+    function offerDownload(reason){downloadMode=true;button.textContent='下载图片';button.title=reason+'；点击下载压缩后的JPG';}
+    async function copy(manual=false){if(busy)return;busy=true;button.disabled=true;try{
+     button.textContent='连接客户端';await autoConnect();
+     if(!bridgeConnected){offerDownload('未检测到运行中的客户端，无法复制文件');return;}
+     button.textContent='复制中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;
+     const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');
+     button.textContent=manual?'已复制':'再次复制';button.title='点击再次复制文件';
+    }catch(e){offerDownload('复制失败：'+e.message);showToast('复制失败，可点击“下载图片”保存压缩结果');}finally{busy=false;button.disabled=false;}}
+    button.onclick=()=>{if(downloadMode){saveAs(r.blob,downloadName);}else{copy(true);}};await copy();completed++;
   }catch(e){failed++;row({localOnly:true,rowEl:entry,status:'err',filePath:name,width:Number(entry.dataset.width)||undefined,height:Number(entry.dataset.height)||undefined,orig:file.size,target:Number(entry.dataset.targetBytes)||(file.size>20000000?20000000:(isManualMode()?getFallbackKB()*1000:null)),note:e.message});}
  }
- showToast('压缩完成：成功'+completed+'张'+(failed?'，失败'+failed+'张':'')+'；复制状态请查看说明栏');
+ showToast('压缩完成：成功'+completed+'张'+(failed?'，失败'+failed+'张':'')+'；复制或下载请查看说明栏');
 }
 // Capture before the classic paste handler; folder and ZIP workflows are unchanged.
 document.addEventListener('paste',e=>{
