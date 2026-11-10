@@ -21,16 +21,15 @@ self.onmessage=async({data:{file,options}})=>{
     postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half,decodeDrawMs:0,attempts,ms:Math.round(performance.now()-start)}});return;
    }
 
-   const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
-  const fixedQuality=file.size>10000000;
-  const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
-  const targetBytes=fixedQuality?20000000:Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
-  postMessage({type:'target',targetBytes,width:origWidth,height:origHeight});
+   const target=options.autoResolution?options.targets?.find(t=>(t.width===origWidth&&t.height===origHeight)||(t.width===origHeight&&t.height===origWidth)):null;
+   const requestedKB=options.manualMode?(target?.kb||options.manualKB):(target?.kb||options.defaultKB||300);
+   const targetBytes=Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
+   postMessage({type:'target',targetBytes,width:origWidth,height:origHeight});
    const half=options.preHalf&&file.size>40000000;
   const width=Math.max(1,Math.floor(origWidth*(half?.5:1))),height=Math.max(1,Math.floor(origHeight*(half?.5:1)));
   canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
   if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);image.close();image=null;
-  const decodeDrawMs=Math.round(performance.now()-start),attempts=[],maxAttempts=4;let chosen=null,low=.5,high=.99,q=fixedQuality?.98:.99;
+  const decodeDrawMs=Math.round(performance.now()-start),attempts=[],maxAttempts=4;let chosen=null,low=.5,high=.99,q=.99;
   for(let i=0;i<maxAttempts;i++){
    stage(`JPEG编码 ${i+1}/${maxAttempts} · 质量参数 ${q.toFixed(3)}`);const t=performance.now();
    const blob=await canvas.convertToBlob({type:'image/jpeg',quality:q});

@@ -198,7 +198,7 @@
 
   <div class="shell">
     <div class="main">
-      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.4 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
+      <div class="hd"><h1>批量图片压缩器</h1><small style="margin-left:auto;margin-right:1em;font-size:11px;color:var(--muted);text-align:right">v5.6.5 Copyright © 2026 @Nchyn</small><span style="display:flex;gap:.5em"><button class="btn primary" id="chooseDirBtn" style="display:none;">选择文件夹并压缩</button><button id="themeToggle" title="深浅色切换">🌓</button></span></div>
       <div id="dropZone">拖入或点击上传 图片/文件夹</div>
       <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
       <div class="logwrap">
@@ -312,7 +312,7 @@
   <script src="res/jszip.min.js"></script>
   <script src="res/FileSaver.min.js"></script>
   <script>
-    const APP_VERSION = '5.6.4'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
+    const APP_VERSION = '5.6.5'; // 网页更新递增第三位；客户端更新递增第二位，第三位归零。
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -1046,7 +1046,7 @@
       if (fileSize > PASTE_MAX_BYTES){
         return { ...base, source: 'paste-limit', kb: PASTE_MAX_BYTES / 1000, bytes: PASTE_MAX_BYTES };
       }
-      if (resolution){
+      if (isAutoResolutionEnabled() && resolution){
         return { ...base, source: 'paste-resolution', kb: resolution.kb, bytes: resolution.kb * 1000 };
       }
       return { ...base, source: 'paste-default', kb: getFallbackKB(), bytes: getFallbackKB() * 1000 };
@@ -1966,16 +1966,15 @@ self.onmessage=async({data:{file,options}})=>{
     postMessage({type:'result',result:{blob,quality:0.9,targetBytes,width,height,origWidth,origHeight,half,decodeDrawMs:0,attempts,ms:Math.round(performance.now()-start)}});return;
    }
 
-   const target=options.targets?.find(t=>t.width===origWidth&&t.height===origHeight);
-  const fixedQuality=file.size>10000000;
-  const requestedKB=options.manualMode?options.manualKB:(target?.kb||options.defaultKB||20000);
-  const targetBytes=fixedQuality?20000000:Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
-  postMessage({type:'target',targetBytes,width:origWidth,height:origHeight});
+   const target=options.autoResolution?options.targets?.find(t=>(t.width===origWidth&&t.height===origHeight)||(t.width===origHeight&&t.height===origWidth)):null;
+   const requestedKB=options.manualMode?(target?.kb||options.manualKB):(target?.kb||options.defaultKB||300);
+   const targetBytes=Math.min(20000000,Math.max(1000,(Number(requestedKB)||300)*1000));
+   postMessage({type:'target',targetBytes,width:origWidth,height:origHeight});
    const half=options.preHalf&&file.size>40000000;
   const width=Math.max(1,Math.floor(origWidth*(half?.5:1))),height=Math.max(1,Math.floor(origHeight*(half?.5:1)));
   canvas=new OffscreenCanvas(width,height);const ctx=canvas.getContext('2d');
   if(!ctx)throw Error('无法创建Canvas');ctx.fillStyle=options.background||'#ffffff';ctx.fillRect(0,0,width,height);ctx.imageSmoothingQuality='high';ctx.drawImage(image,0,0,width,height);image.close();image=null;
-  const decodeDrawMs=Math.round(performance.now()-start),attempts=[],maxAttempts=4;let chosen=null,low=.5,high=.99,q=fixedQuality?.98:.99;
+  const decodeDrawMs=Math.round(performance.now()-start),attempts=[],maxAttempts=4;let chosen=null,low=.5,high=.99,q=.99;
   for(let i=0;i<maxAttempts;i++){
    stage(`JPEG编码 ${i+1}/${maxAttempts} · 质量参数 ${q.toFixed(3)}`);const t=performance.now();
    const blob=await canvas.convertToBlob({type:'image/jpeg',quality:q});
@@ -2044,7 +2043,7 @@ function bridgeEncode(file,onStage,onTarget=()=>{}){return new Promise((resolve,
  function finish(error,result){clearTimeout(timer);worker.terminate();URL.revokeObjectURL(url);error?reject(error):resolve(result);}
  worker.onmessage=({data})=>{if(data.type==='target')onTarget(data);else if(data.type==='stage')onStage(data.text);else if(data.type==='error')finish(Error(data.message));else finish(null,data.result);};
  worker.onerror=e=>finish(Error(e.message));
- worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:getFallbackKB(),background:'#ffffff'}});
+ worker.postMessage({file,options:{preHalf:document.getElementById('bridgeHalf').checked,manualMode:isManualMode(),autoResolution:isAutoResolutionEnabled(),manualKB:getFallbackKB(),targets:RESOLUTION_TARGETS,defaultKB:getFallbackKB(),background:'#ffffff'}});
 });}
 let folderBusy=false;
 window.clientFolderDrop=async(entries,handlePromises=[])=>{
@@ -2118,7 +2117,7 @@ async function bridgePaste(blobs){
  let completed=0,failed=0;
  for(let i=0;i<blobs.length;i++){
   const file=blobs[i],name=file.name||`剪贴板-${Date.now()}.jpg`;
-  const entry=row({localOnly:true,status:'pending',filePath:name,orig:file.size,target:file.size>10000000?20000000:(isManualMode()?getFallbackKB()*1000:null),note:'JPEG编码中'});
+  const entry=row({localOnly:true,status:'pending',filePath:name,orig:file.size,target:file.size>20000000?20000000:(isManualMode()?getFallbackKB()*1000:null),note:'JPEG编码中'});
   try{
    const r=await bridgeEncode(file,text=>{entry.lastElementChild.textContent=text;},info=>{entry.dataset.targetBytes=info.targetBytes;entry.dataset.width=info.width;entry.dataset.height=info.height;row({localOnly:true,rowEl:entry,status:'pending',filePath:name,width:info.width,height:info.height,orig:file.size,target:info.targetBytes,note:'JPEG编码中'});});
    const preview=URL.createObjectURL(r.blob);
@@ -2127,7 +2126,7 @@ async function bridgePaste(blobs){
    let id=null,busy=false;
    async function copy(manual=false){if(busy)return;busy=true;button.disabled=true;try{button.textContent='复制中';if(!id)id=(await bridgeRequest('/api/files',r.blob,'image/jpeg')).fileId;const report=await bridgeRequest('/api/clipboard/file',{fileId:id});if(!report.verified)throw Error('未通过回读校验');button.textContent=manual?'已复制':'再次复制';button.title='点击再次复制文件';}catch(e){button.textContent='再次复制';button.title=e.message;showToast('复制失败：'+e.message);}finally{busy=false;button.disabled=false;}}
    button.onclick=()=>copy(true);await copy();completed++;
-  }catch(e){failed++;row({localOnly:true,rowEl:entry,status:'err',filePath:name,width:Number(entry.dataset.width)||undefined,height:Number(entry.dataset.height)||undefined,orig:file.size,target:Number(entry.dataset.targetBytes)||(file.size>10000000?20000000:(isManualMode()?getFallbackKB()*1000:null)),note:e.message});}
+  }catch(e){failed++;row({localOnly:true,rowEl:entry,status:'err',filePath:name,width:Number(entry.dataset.width)||undefined,height:Number(entry.dataset.height)||undefined,orig:file.size,target:Number(entry.dataset.targetBytes)||(file.size>20000000?20000000:(isManualMode()?getFallbackKB()*1000:null)),note:e.message});}
  }
  showToast('压缩完成：成功'+completed+'张'+(failed?'，失败'+failed+'张':'')+'；复制状态请查看说明栏');
 }
