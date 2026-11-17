@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>素材信息卡片生成器</title>
+<style>
+:root {
+  --bg: #0b0f15;
+  --fg: #e8eef7;
+  --muted: #91a0b6;
+  --card: #121825;
+  --accent: #49a6ff;
+  --accent2: #39d98a;
+  --warn: #f5a623;
+  --shadow: 0 8px 30px rgba(0,0,0,.25);
+  --btn-radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #0b0f15, #0f1420);
+  color: var(--fg);
+  font: 15px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+.container { max-width: 1500px; margin: 30px auto; padding: 0 20px; }
+
+header { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; }
+h1 { font-size: 22px; margin: 0; font-weight: 750; letter-spacing: .2px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+.btn {
+  appearance: none; border: 0; border-radius: var(--btn-radius);
+  padding: 9px 16px; background: var(--accent); color: #001;
+  cursor: pointer; font-weight: 700; font-size: 13px;
+  box-shadow: var(--shadow); transition: .2s; white-space: nowrap;
+}
+.btn:hover { background: #3885c8; transform: translateY(-1px); }
+.btn.secondary { background: #1d2738; color: var(--fg); }
+.btn.secondary:hover { background: #263348; }
+.btn.green { background: var(--accent2); color: #001; }
+.btn.small { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn.small.active { background: var(--accent); color: #001; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+textarea {
+  width: 100%;
+  border: 1px solid #22304a; border-radius: 8px; background: #0f1726;
+  color: var(--fg); padding: 10px 12px; outline: none; font-size: 12px; font-family: monospace;
+  min-height: 80px; resize: vertical;
+}
+
+select {
+  appearance: none; border: 1px solid #22304a; border-radius: 6px; background: #0f1726;
+  color: var(--fg); padding: 7px 28px 7px 10px; outline: none; font-size: 12px;
+  cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2391a0b6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+
+.col-map { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 10px 0; }
+.col-map .cm { display: inline-flex; align-items: center; gap: 6px; }
+.col-map label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.col-map select { width: 120px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 10px 0; }
+.toolbar-left { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.toolbar-right { display: flex; gap: 8px; align-items: center; }
+
+.switch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.switch input { accent-color: var(--accent); }
+
+/* Grid - 最多5列 */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
+@media (min-width: 1400px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+
+/* Card */
+.card {
+  background: var(--card); border: 1px solid #1b2436; border-radius: var(--btn-radius);
+  overflow: hidden; box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
+  position: relative; cursor: pointer;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.card-badge {
+  position: absolute; top: 6px; right: 6px; padding: 2px 8px; border-radius: 8px;
+  font-size: 10px; font-weight: 700; z-index: 2;
+}
+.card-badge.video { background: #f5a623; color: #001; }
+.card-badge.image { background: var(--accent2); color: #001; }
+
+/* 16:9 thumbnail container */
+.thumb-wrap {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  background: #0a0f18; display: flex; align-items: center; justify-content: center;
+}
+.thumb-wrap img, .thumb-wrap video {
+  width: 100%; height: 100%; object-fit: contain; display: block;
+}
+
+/* 多图并排展示 */
+.thumb-strip { display: flex; gap: 2px; width: 100%; height: 100%; padding: 4px; }
+.thumb-strip .thumb-cell { flex: 1 1 0; min-width: 0; }
+.thumb-strip img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.thumb-empty {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px; padding: 8px; text-align: center; word-break: break-all;
+  width: 100%; height: 100%;
+}
+.modal-strip { display: flex; gap: 8px; width: 100%; height: 100%; max-height: 65vh; padding: 12px; }
+.modal-strip .modal-strip-cell { flex: 1 1 0; min-width: 0; }
+.modal-strip img { width: 100%; height: 100%; max-height: 65vh; object-fit: contain; display: block; }
+
+.body { padding: 10px 12px 12px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.stat { background: #0f1726; border: 1px solid #212c45; border-radius: 4px; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; }
+.stat .v-top { display: flex; justify-content: space-between; align-items: baseline; }
+.stat .v-label { font-size: 11px; color: var(--muted); }
+.stat .v-raw { font-size: 12px; color: var(--muted); font-weight: 400; }
+.stat .v-main { font-size: 16px; font-weight: 700; line-height: 1.4; }
+.id { font-size: 11px; color: var(--muted); margin-top: 8px; word-break: break-all; }
+
+.empty { border: 1px dashed #2b3a57; border-radius: 16px; padding: 20px; text-align: center; color: var(--muted); }
+.loading-more { text-align: center; padding: 16px; color: var(--muted); font-size: 12px; }
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--accent2); color: #001; padding: 10px 24px; border-radius: 20px;
+  font-weight: 700; font-size: 14px; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* ==================== 文件拖拽载入 ==================== */
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: 2px dashed #2b3a57; border-radius: 12px; background: #0d1422;
+  padding: 14px 16px; margin: 0 0 10px; cursor: pointer; text-align: center;
+  transition: border-color .2s, background .2s;
+}
+.dropzone:hover { border-color: #35507a; background: #101a2c; }
+.dropzone.dragover, body.dragging .dropzone { border-color: var(--accent); background: rgba(73,166,255,.08); }
+.dropzone .dz-main { font-size: 13px; font-weight: 700; }
+.dropzone .dz-sub { font-size: 11px; color: var(--muted); }
+.file-bar {
+  display: flex; gap: 10px; align-items: center; justify-content: space-between;
+  margin: 0 0 10px; font-size: 12px; color: var(--muted);
+  background: #0f1726; border: 1px solid #22304a; border-radius: 8px; padding: 6px 10px;
+}
+.file-bar .file-name { color: var(--fg); font-weight: 600; word-break: break-all; }
+.drag-overlay {
+  position: fixed; inset: 0; z-index: 9997; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(6,10,18,.72); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  font-size: 20px; font-weight: 800; color: var(--fg); pointer-events: none;
+}
+body.dragging { cursor: copy; }
+body.dragging .drag-overlay { display: flex; }
+
+/* ==================== Modal (全屏蒙板大卡片) ==================== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
+  z-index: 9998; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.modal-overlay.open { display: flex; }
+.modal-content {
+  max-width: 90vw; max-height: 90vh; width: 100%; display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid #1b2a42; border-radius: 16px;
+  overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 12px; right: 14px; background: rgba(0,0,0,.5); border: 0;
+  color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 18px;
+  cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.modal-close:hover { background: rgba(255,255,255,.15); }
+.modal-media {
+  width: 100%; max-height: 65vh; display: flex; align-items: center; justify-content: center;
+  background: #000; overflow: hidden;
+}
+.modal-media img, .modal-media video {
+  width: 100%; height: 100%; max-height: 65vh; object-fit: contain;
+}
+.modal-body {
+  padding: 16px 20px; overflow-y: auto;
+}
+.modal-body .row { margin-top: 4px; }
+.modal-body .id { margin-top: 6px; }
+
+@media (max-width: 600px) {
+  .container { padding: 0 10px; margin: 16px auto; }
+  .grid { grid-template-columns: 1fr; }
+  .col-map select { width: 100px; }
+  .modal-content { max-width: 98vw; max-height: 98vh; border-radius: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>素材信息卡片生成器</h1>
+    <div class="header-actions">
+      <button class="btn green small" id="exportCSVBtn" disabled>导出 CSV</button>
+    </div>
+  </header>
+
+  <div class="hint">拖入 <strong>CSV / TSV</strong> 文件，或直接粘贴数据，自动解析并生成卡片。表头可以不在第一行（会自动跳过「数据生成时间」等前言）。支持 <strong>图片URL</strong> 和 <strong>视频URL</strong>（.mp4/.webm/.mov 等）。</div>
+
+  <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="拖入或选择 CSV 文件">
+    <div class="dz-main">把 CSV / TSV 文件拖到这里</div>
+    <div class="dz-sub">或点击选择文件 · 兼容 Excel 导出的 GBK 编码 · 多个同表头文件自动合并</div>
+    <input type="file" id="fileInput" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" multiple hidden>
+  </div>
+
+  <div class="file-bar" id="fileBar" style="display:none">
+    <span class="file-name" id="fileBarText"></span>
+    <button class="btn secondary small" id="fileClear" type="button">清空</button>
+  </div>
+
+  <textarea id="dataInput" placeholder="在此粘贴数据，每行一条&#10;示例：&#10;图片URL	图片ID	展现	点击	消费	点击率&#10;https://...jpg	123	1000	50	100.5	5.0%">图片URL	图片ID	展现	点击	消费	点击率
+https://feed-image.baidu.com/0/pic/-692297455_897656349_1620457166.jpg	12658019099	90299	2943	4353.63	3.26%
+https://feed-image.baidu.com/0/pic/-734365233_870685342_2040281049.jpg	12658019098	43735	2058	2608.83	4.71%
+https://feed-image.baidu.com/0/pic/-225443608_-1984532699_-1613327581.jpg	12658019100	56383	1637	2419.93	2.90%
+https://nadvideo2.baidu.com/21dd1cbacdc7d3407ed51193646d9239_720_1280.mp4	视频素材001	50000	3200	5000.00	6.40%</textarea>
+
+  <div class="col-map">
+    <span class="cm"><label for="s_url">素材URL列:</label><select id="s_url"><option value="-1">-- 自动检测 --</option></select></span>
+    <span class="cm"><label for="s_id">素材ID列:</label><select id="s_id"><option value="-1">-- 自动检测 --</option></select></span>
+    <span class="cm"><label for="s_imp">展现列:</label><select id="s_imp"><option value="-1">-- 自动检测 --</option></select></span>
+    <span class="cm"><label for="s_clk">点击列:</label><select id="s_clk"><option value="-1">-- 自动检测 --</option></select></span>
+    <span class="cm"><label for="s_cost">消费列:</label><select id="s_cost"><option value="-1">-- 自动检测 --</option></select></span>
+    <span class="cm"><label for="s_ctr">点击率列:</label><select id="s_ctr"><option value="-1">-- 自动检测 --</option></select></span>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn" id="parseBtn">解析并生成卡片</button>
+      <span class="switch" style="margin-left:4px">排序：</span>
+      <button class="btn secondary small sort-btn active" data-sort="cost" id="sortCost">消费 ↓</button>
+      <button class="btn secondary small sort-btn" data-sort="imp" id="sortImp">展现 ↓</button>
+      <button class="btn secondary small sort-btn" data-sort="ctr" id="sortCtr">点击率 ↓</button>
+      <span id="summaryInfo" style="font-size:13px;color:var(--muted);margin-left:4px"></span>
+    </div>
+    <div class="toolbar-right">
+      <label class="switch" id="filterImpWrap" style="display:none"><input type="checkbox" id="filterImp"> 仅显示展现&gt;1000</label>
+      <label class="switch" title="同一素材的多天数据合并求和，点击率按合计重算"><input type="checkbox" id="aggToggle" checked> 按素材聚合</label>
+      <label class="switch"><input type="checkbox" id="openNewTab" checked> 新标签页打开</label>
+    </div>
+  </div>
+
+  <div id="grid" class="grid" aria-live="polite"></div>
+  <div id="loadingMore" class="loading-more" style="display:none">加载更多…</div>
+  <div id="empty" class="empty" style="display:none">未检测到有效数据，请粘贴数据后点击"解析并生成卡片"。</div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<div id="dragOverlay" class="drag-overlay">松开以载入 CSV 文件</div>
+
+<!-- ==================== 全屏预览 Modal ==================== -->
+<div id="modal" class="modal-overlay">
+  <div class="modal-content">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <div class="modal-media" id="modalMedia"></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const q = (s, p) => (p || document).querySelector(s);
+const qa = (s, p) => [...(p || document).querySelectorAll(s)];
+
+// ========== Config ==========
+const PAGE_SIZE = 20;
+
+// ========== Utils ==========
+// ===== PARSER:BEGIN =====
+// 纯函数区（不依赖 DOM），可被 node 脚本截取做单测。
+const MAX_HEADER_SCAN = 60;   // 表头只在前 60 行内寻找
+
+// 单元格清洗：去 BOM / 全角空格 / 首尾空白，还原 Excel 的 ="123" 文本前缀
+function cleanCell(v) {
+  let s = String(v == null ? '' : v).replace(/^\uFEFF/, '');
+  s = s.replace(/^[\s\u3000]+|[\s\u3000]+$/g, '');
+  if (s.length > 2 && s[0] === '=' && s[1] === '"' && s[s.length - 1] === '"') {
+    s = s.slice(2, -1).replace(/""/g, '"');
+  }
+  return s;
+}
+
+// 全文解析：支持引号包裹、引号内换行、"" 转义；引号仅在字段开头生效
+function parseDelimited(text, delimiter) {
+  const d = delimiter || '\t';
+  let src = String(text == null ? '' : text);
+  if (src.charCodeAt(0) === 0xFEFF) src = src.slice(1);
+  const rows = [];
+  let row = [], cell = '', inQ = false, cellStart = true;
+  const pushCell = () => { row.push(cell); cell = ''; cellStart = true; };
+  const pushRow = () => { pushCell(); rows.push(row); row = []; };
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (src[i + 1] === '"') { cell += '"'; i++; } else { inQ = false; }
+      } else cell += ch;
+      continue;
+    }
+    if (ch === '"' && cellStart) { inQ = true; cellStart = false; continue; }
+    if (ch === d) { pushCell(); continue; }
+    if (ch === '\r') continue;
+    if (ch === '\n') { pushRow(); continue; }
+    cell += ch; cellStart = false;
+  }
+  if (cell !== '' || row.length) pushRow();
+  return rows.map(r => r.map(cleanCell));
+}
+
+// 分隔符判定：统计前 20 个非空行中「引号外」的 Tab / 逗号出现次数，取多者
+function detectDelimiter(text) {
+  const lines = String(text).split(/\r?\n/).filter(l => l.trim()).slice(0, 20);
+  let tab = 0, comma = 0;
+  for (const line of lines) {
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (inQ) continue;
+      if (ch === '\t') tab++;
+      else if (ch === ',') comma++;
+    }
+  }
+  if (tab === 0 && comma === 0) return '\t';
+  return tab >= comma ? '\t' : ',';
+}
+
+const HEADER_KEYWORDS = ['日期', '时间', 'url', '链接', '计划', '方案', '账户', '账号', 'id',
+  '名称', '类型', '素材', '创意', '展现', '曝光', '展示', '点击', '消费', '花费', '消耗',
+  '金额', 'ctr', '点击率', '价格', '千次', '激活', '留存', '转化', '注册', '下单', '收益',
+  'roi', '出价', '预算', '状态', '操作'];
+
+// 表头行打分：命中关键词越多越像表头；含冒号、日期首格、单列行会被扣分
+function scoreHeaderRow(cells) {
+  if (!Array.isArray(cells) || cells.length < 2) return { score: -99, hits: 0 };
+  let score = 0, hits = 0, nonEmpty = 0;
+  for (const raw of cells) {
+    const c = cleanCell(raw);
+    if (!c) continue;
+    nonEmpty++;
+    // 「时间范围：20261001至20261031」这类前言行
+    if (/[:：]\s*\S/.test(c) && !/^https?:/i.test(c)) { score -= 2; continue; }
+    const low = c.toLowerCase();
+    if (HEADER_KEYWORDS.some(k => low.includes(k))) { score += 1; hits++; }
+  }
+  if (nonEmpty < 2) return { score: -99, hits };
+  if (cells.length >= 5) score += 2;
+  if (cells.length >= 10) score += 1;
+  if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(cleanCell(cells[0]))) score -= 4;
+  if (/^(合计|总计|汇总|小计)/.test(cleanCell(cells[0]))) score -= 4;
+  return { score, hits };
+}
+
+const PREAMBLE_RE = /^(数据生成|导出|报表|报告|统计时间|时间范围|统计条件|数据条件|筛选|条件)/;
+
+// 判断单元格是否像「数据」：URL / 日期 / 数字 / 时间。用于回退判定时排除数据行
+function isDataLikeCell(c) {
+  const s = cleanCell(c);
+  if (!s) return false;
+  return /^https?:\/\//i.test(s)
+      || /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(s)
+      || /^[-+]?\d[\d,.]*\s*%?$/.test(s)
+      || /^\d{1,2}:\d{2}(:\d{2})?$/.test(s);
+}
+
+function detectHeaderIndex(rows) {
+  const limit = Math.min(rows.length, MAX_HEADER_SCAN);
+  let best = -1, bestScore = 0;
+  for (let i = 0; i < limit; i++) {
+    const { score, hits } = scoreHeaderRow(rows[i]);
+    if (hits >= 2 && score > bestScore) { best = i; bestScore = score; }
+  }
+  if (best >= 0 && bestScore >= 3) return best;
+  // 回退：第一行「≥2 个非空单元格、不像前言、且多数单元格不是数据」的行
+  for (let i = 0; i < limit; i++) {
+    const cells = rows[i];
+    const nonEmpty = cells.filter(c => cleanCell(c)).length;
+    if (nonEmpty < 2) continue;
+    if (PREAMBLE_RE.test(cleanCell(cells[0]))) continue;
+    const dataLike = cells.filter(isDataLikeCell).length;
+    if (dataLike > Math.floor(nonEmpty / 2)) continue;
+    return i;
+  }
+  return -1;
+}
+
+// 表头去重 / 去尾部空列；空列名补「列N」
+function dedupeHeader(cells) {
+  const out = [];
+  const seen = new Map();
+  let lastNonEmpty = -1;
+  cells.forEach((c, i) => { if (cleanCell(c)) lastNonEmpty = i; });
+  for (let i = 0; i <= lastNonEmpty; i++) {
+    let name = cleanCell(cells[i]) || '列' + (i + 1);
+    const n = (seen.get(name) || 0) + 1;
+    seen.set(name, n);
+    if (n > 1) name = name + '(' + n + ')';
+    out.push(name);
+  }
+  return out;
+}
+
+const SUMMARY_RE = /^(合计|总计|汇总|小计|备注|说明|总消耗|总花费|平均)/;
+
+function isSummaryRow(cells) {
+  const first = cells.find(c => c) || '';
+  return SUMMARY_RE.test(first);
+}
+
+// 反向序列化（多文件合并时重建一份规范 CSV）
+function toDelimited(header, rows, delimiter) {
+  const d = delimiter || '\t';
+  const esc = v => {
+    const s = String(v == null ? '' : v);
+    return (s.includes(d) || s.includes('"') || /[\r\n]/.test(s))
+      ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [header.map(esc).join(d)];
+  for (const r of rows) lines.push(r.map(esc).join(d));
+  return lines.join('\n');
+}
+
+// 数值清洗：去货币符 / 千分位 / 百分号 / 空格 / 全角数字；不可解析 → 0
+function toNum(v) {
+  if (v == null || v === '') return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  let s = String(v).trim();
+  if (!s) return 0;
+  s = s.replace(/[\s\u3000]/g, '')
+       .replace(/[￥¥$€,]/g, '')
+       .replace(/%$/, '')
+       .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+       .replace(/[．]/g, '.')
+       .replace(/[－—]/g, '-');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseTabular(text) {
+  const src = String(text == null ? '' : text);
+  if (!src.replace(/\uFEFF/g, '').trim()) {
+    return { header: [], rows: [], delimiter: '\t', headerIndex: -1, error: 'empty' };
+  }
+  const delimiter = detectDelimiter(src);
+  const rawRows = parseDelimited(src, delimiter);
+  const headerIndex = detectHeaderIndex(rawRows);
+  if (headerIndex < 0) {
+    return { header: [], rows: [], delimiter, headerIndex: -1, error: 'no-header' };
+  }
+  const header = dedupeHeader(rawRows[headerIndex]);
+  if (header.length < 2) {
+    return { header, rows: [], delimiter, headerIndex, error: 'no-header' };
+  }
+  const rows = [];
+  for (let i = headerIndex + 1; i < rawRows.length; i++) {
+    const cells = rawRows[i].map(cleanCell);
+    if (cells.every(c => !c)) continue;      // 空行
+    if (isSummaryRow(cells)) continue;       // 合计 / 总计 行
+    while (cells.length < header.length) cells.push('');
+    rows.push(cells.slice(0, header.length));
+  }
+  return { header, rows, delimiter, headerIndex, error: rows.length ? null : 'no-rows' };
+}
+
+// 浮点去噪：四舍五入到指定小数位。0.1 + 0.2 → 0.30000000000000004 这类误差在
+// 聚合累加时会被放大成 58,119.26000000001，展示与导出前统一收敛。
+function roundTo(n, digits) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return 0;
+  const f = Math.pow(10, digits);
+  const sign = x < 0 ? -1 : 1;
+  return sign * Math.round((Math.abs(x) + Number.EPSILON) * f) / f;
+}
+function round2(n) { return roundTo(n, 2); }
+
+function normUrlKey(u) {
+  return String(u || '').split(';')[0].trim().split('?')[0].split('#')[0];
+}
+
+// 按素材聚合：同「图片ID / URL」的多天数据合并求和，点击率按合计重算
+function aggregateByAsset(items) {
+  const map = new Map();
+  for (const it of items) {
+    const key = (it.id || '').trim() || normUrlKey(it.url);
+    if (!key) continue;
+    let cur = map.get(key);
+    if (!cur) {
+      cur = { url: it.url, id: it.id, _idLabel: it._idLabel, imp: 0, clk: 0, cost: 0, ctr: '', _rows: 0 };
+      map.set(key, cur);
+    }
+    // 每步收敛到 6 位，既消除累加误差，又不丢失源数据的小数精度
+    cur.imp = roundTo(cur.imp + toNum(it.imp), 6);
+    cur.clk = roundTo(cur.clk + toNum(it.clk), 6);
+    cur.cost = roundTo(cur.cost + toNum(it.cost), 6);
+    cur._rows++;
+    if (!cur.url && it.url) cur.url = it.url;
+  }
+  const out = [];
+  for (const cur of map.values()) {
+    cur.ctr = cur.imp > 0 ? (cur.clk / cur.imp * 100).toFixed(2) + '%' : '';
+    out.push(cur);
+  }
+  return out;
+}
+// ===== PARSER:END =====
+
+function numFormat(n) {
+  if (n == null || n === '') return '';
+  const x = Number(String(n).replace(/,/g, ''));
+  if (Number.isNaN(x)) return String(n);
+  return x.toLocaleString();
+}
+
+// 数字展示：返回 { main, raw }，第一行统一显示原始数字（右对齐）；≥10万显示 X.X万，小数部分缩小字号
+function numDisplay(n) {
+  if (n == null || n === '') return null;
+  const s = String(n).trim();
+  if (!s || s === '-' || s === '—' || s === '/') return null;
+  // 清洗后必须仍是纯数字才能展示，避免把文本列误显示成 0
+  const probe = s.replace(/[￥¥$€,\s\u3000%]/g, '')
+                 .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+  if (!/^-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(probe)) return null;
+  const x = toNum(s);
+  const orig = x.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  if (x >= 100000) {
+    const val = (x / 10000).toFixed(1);
+    const parts = val.split('.');
+    return { main: parts[0] + '.<span style="font-size:0.75em">' + parts[1] + '</span>万', raw: orig };
+  }
+  // 小于10万，如果有小数也缩小字号。主显示与右上角原始值统一用 2 位小数的结果，
+  // 避免浮点累加产生的 58,119.26000000001 被 String(x) 原样打印出来。
+  const [intStr, decStr] = orig.split('.');
+  if (decStr) {
+    return { main: intStr + '.<span style="font-size:0.75em">' + decStr + '</span>', raw: orig };
+  }
+  return { main: orig, raw: orig };
+}
+
+function showToast(msg) {
+  const t = q('#toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// 将数字字符串中小数点后的数字缩小字号
+function shrinkDecimal(s) {
+  if (!s) return s;
+  return s.replace(/(\d+)\.(\d+)/g, '$1.<span style="font-size:0.75em">$2</span>');
+}
+
+function isVideoUrl(url) {
+  return /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v)(\?|$)/i.test(url) ||
+         /video/i.test(url);
+}
+
+// 将素材URL列按“;”拆分为多张素材的URL数组
+function splitUrls(s) {
+  return (s || '').split(';').map(u => u.trim()).filter(Boolean);
+}
+// 空URL/加载失败时的占位（显示“无URL”或URL原文）
+function makePlaceholder(text) {
+  const el = document.createElement('div');
+  el.className = 'thumb-empty';
+  el.textContent = text || '无URL';
+  return el;
+}
+// 单张图片（加载失败时兜底为显示URL原文）
+function makeImg(u) {
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.alt = '素材';
+  img.src = u;
+  img.onerror = () => { img.replaceWith(makePlaceholder(u || '无URL')); };
+  return img;
+}
+// 构建缩略图内容：支持 无URL / 单视频 / 单图 / 多图并排
+function buildThumb(urls) {
+  const frag = document.createDocumentFragment();
+  if (!urls.length) { frag.appendChild(makePlaceholder('无URL')); return frag; }
+  if (urls.length === 1) {
+    const u = urls[0];
+    if (isVideoUrl(u)) {
+      const vid = document.createElement('video');
+      vid.src = u; vid.muted = true; vid.loop = true; vid.playsInline = true;
+      vid.preload = 'metadata';
+      vid.addEventListener('mouseenter', () => { vid.currentTime = 0; vid.play().catch(() => {}); });
+      vid.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
+      vid.onerror = () => { vid.replaceWith(makePlaceholder(u || '无URL')); };
+      frag.appendChild(vid);
+    } else {
+      frag.appendChild(makeImg(u));
+    }
+    return frag;
+  }
+  const strip = document.createElement('div');
+  strip.className = 'thumb-strip';
+  for (const u of urls) {
+    const cell = document.createElement('div');
+    cell.className = 'thumb-cell';
+    cell.appendChild(makeImg(u));
+    strip.appendChild(cell);
+  }
+  frag.appendChild(strip);
+  return frag;
+}
+
+// ========== Column detection ==========
+// ===== COLMAP:BEGIN =====
+const COL_DETECT = {
+  url: [/素材\s*url|图片\s*url|视频\s*url|素材链接|图片链接|图片地址|图片预览|素材地址|url|image[_\s]?url|video[_\s]?url/i, /https?:\/\//],
+  id: [/素材\s*id|图片\s*id|素材id|创意id|创意\s*id|image[_\s]?id|video[_\s]?id|图片名称|视频名称|图片主题|视频主题|图片标题|视频标题|素材名称|素材主题/i],
+  imp: [/展现|曝光|impressions?|展示/i],
+  clk: [/点击|clicks?|点击量/i],
+  cost: [/消费|花费|消耗|cost|金额/i],
+  ctr: [/点击率|ctr/i],
+};
+function detectCol(header, patterns) {
+  for (const p of patterns) {
+    const idx = header.findIndex(h => p.test(h));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+function autoDetectColumns(header) {
+  return {
+    url: detectCol(header, COL_DETECT.url),
+    id: detectCol(header, COL_DETECT.id),
+    imp: detectCol(header, COL_DETECT.imp),
+    clk: detectCol(header, COL_DETECT.clk),
+    cost: detectCol(header, COL_DETECT.cost),
+    ctr: detectCol(header, COL_DETECT.ctr),
+  };
+}
+function extractRow(cols, colIdx) {
+  if (colIdx === -1) return '';
+  return (cols[colIdx] || '').trim();
+}
+// ===== COLMAP:END =====
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+function populateSelect(sel, header, autoIdx, preserve) {
+  const prev = sel.value; // 重建前读取当前选择
+  sel.innerHTML = '<option value="-1">-- 自动检测 --</option>';
+  header.forEach((h, i) => {
+    sel.innerHTML += `<option value="${i}" ${i === autoIdx ? 'selected' : ''}>${escHtml(h) || '(空)'}</option>`;
+  });
+  // 仅在「同一份表头重新解析」时保留用户手动选择的列；表头变了（粘贴了新数据）则回到自动检测，
+  // 避免把旧的列下标套用到新的表头上造成错配。
+  if (preserve && prev && prev !== '-1' && header[parseInt(prev, 10)] !== undefined) {
+    sel.value = prev;
+  }
+}
+
+// ========== State ==========
+let parsed = null;
+let allData = [];       // all parsed items
+let renderedCount = 0;  // how many rendered so far
+let isLoadingMore = false;
+let currentSort = 'cost'; // 'cost' | 'imp' | 'ctr'
+let lastHeaderSig = null; // 上次解析用的表头签名，用于判断是否保留用户手动选择的列
+let lastSourceRows = 0;   // 聚合前的行数，用于汇总文案
+let lastParseError = null;
+let aggregate = true;     // 按素材聚合（同一素材多天数据求和）
+
+// 聚合开关记忆（file:// 下 localStorage 可能抛错，忽略即可）
+try {
+  const saved = localStorage.getItem('order.aggregate');
+  if (saved === '0') aggregate = false;
+  else if (saved === '1') aggregate = true;
+} catch (e) {}
+
+// ========== Parse & Build Data ==========
+function parseAndBuild() {
+  const text = q('#dataInput').value;
+  parsed = parseTabular(text);
+  lastParseError = parsed.error || null;
+  if (!parsed || parsed.header.length === 0) { allData = []; lastSourceRows = 0; return; }
+
+  // Refresh column mapping selects
+  const detect = autoDetectColumns(parsed.header);
+  // 表头与上次一致时保留用户手动选择的列；表头变化（粘贴了新数据）则重新自动检测
+  const headerSig = parsed.header.join('\u0001');
+  const preserve = headerSig === lastHeaderSig;
+  lastHeaderSig = headerSig;
+  populateSelect(q('#s_url'), parsed.header, detect.url, preserve);
+  populateSelect(q('#s_id'), parsed.header, detect.id, preserve);
+  populateSelect(q('#s_imp'), parsed.header, detect.imp, preserve);
+  populateSelect(q('#s_clk'), parsed.header, detect.clk, preserve);
+  populateSelect(q('#s_cost'), parsed.header, detect.cost, preserve);
+  populateSelect(q('#s_ctr'), parsed.header, detect.ctr, preserve);
+
+  const toIdx = s => { const v = q(s).value; return v === '-1' ? -1 : parseInt(v, 10); };
+  const mapping = {
+    url: toIdx('#s_url'), id: toIdx('#s_id'), imp: toIdx('#s_imp'),
+    clk: toIdx('#s_clk'), cost: toIdx('#s_cost'), ctr: toIdx('#s_ctr'),
+  };
+  const map = {};
+  for (const k of Object.keys(mapping)) {
+    map[k] = mapping[k] >= 0 ? mapping[k] : (detect[k] !== undefined ? detect[k] : -1);
+  }
+
+  // 一列都没匹配上：提示用户手动指定，避免出现「静默空白页」
+  if (map.url < 0 && map.id < 0 && map.imp < 0 && map.clk < 0 && map.cost < 0) {
+    allData = []; lastSourceRows = 0; lastParseError = 'no-columns';
+    return;
+  }
+
+  // 素材ID 展示标签：若匹配到的列是「名称/主题/标题」类列（如 图片名称、图片主题），
+  // 则用该列名作为标签展示；否则保持「素材ID」
+  const idHeader = map.id >= 0 ? (parsed.header[map.id] || '') : '';
+  const idLabel = /名称|主题|标题/i.test(idHeader) ? (idHeader || '素材ID') : '素材ID';
+
+  const result = [];
+  for (const cols of parsed.rows) {
+    const item = {};
+    for (const k of Object.keys(map)) item[k] = extractRow(cols, map[k]);
+    item._idLabel = idLabel;
+    const url = item.url || '';
+    if (url && !item.id && !item.imp && !item.clk && !item.cost && !item.ctr) {
+      // only URL, keep it
+    } else if (!url && !item.id) continue;
+    result.push(item);
+
+    // 自动计算点击率：若未匹配到点击率列，或点击率为空/为“-”，且有点击和展现数据时自动计算
+    if ((!item.ctr || item.ctr === '-' || map.ctr < 0) && item.clk && item.imp) {
+      const clkNum = toNum(item.clk);
+      const impNum = toNum(item.imp);
+      if (impNum > 0) item.ctr = ((clkNum / impNum) * 100).toFixed(2) + '%';
+    }
+  }
+
+  lastSourceRows = result.length;
+  // 按素材聚合（可在工具栏关闭）
+  allData = (aggregate && result.length) ? aggregateByAsset(result) : result;
+
+  // 按当前排序字段降序排列
+  allData.sort((a, b) => toNum(b[currentSort]) - toNum(a[currentSort]));
+
+  applyFilter();
+  updateFilterVisibility();
+}
+
+function applyFilter() {
+  if (!q('#filterImp') || !q('#filterImp').checked) return;
+  allData = allData.filter(d => toNum(d.imp) > 1000);
+}
+
+// ========== Render (lazy) ==========
+function renderSlice(start, end) {
+  const grid = q('#grid');
+  const empty = q('#empty');
+  const loadingMore = q('#loadingMore');
+
+  const toRender = allData.slice(start, end);
+  if (toRender.length === 0) return;
+
+  const frag = document.createDocumentFragment();
+  for (const item of toRender) {
+    const card = createCard(item);
+    frag.appendChild(card);
+  }
+  grid.appendChild(frag);
+  renderedCount = end;
+
+  // Update summary
+  const shown = Math.min(renderedCount, allData.length);
+  if (aggregate && lastSourceRows > allData.length) {
+    q('#summaryInfo').textContent = `共 ${allData.length} 个素材（由 ${lastSourceRows} 行聚合），已显示 ${shown} 个`;
+  } else {
+    q('#summaryInfo').textContent = `共 ${allData.length} 条，已显示 ${shown} 条`;
+  }
+
+  // Show/hide empty
+  if (allData.length === 0) {
+    empty.style.display = 'block';
+    loadingMore.style.display = 'none';
+  } else {
+    empty.style.display = 'none';
+    loadingMore.style.display = renderedCount < allData.length ? 'block' : 'none';
+  }
+}
+
+function createCard(item) {
+  const card = document.createElement('article');
+  card.className = 'card';
+
+  const url = item.url || '';
+  const urlList = splitUrls(url);
+  const isVid = urlList.length === 1 && isVideoUrl(urlList[0]);
+
+  // Badge
+  const badge = document.createElement('span');
+  badge.className = 'card-badge ' + (isVid ? 'video' : 'image');
+  badge.textContent = isVid ? '视频' : (urlList.length ? '图片' : '无URL');
+  card.appendChild(badge);
+
+  // 16:9 thumbnail (支持单视频/单图/多图并排/无URL)
+  const wrap = document.createElement('div');
+  wrap.className = 'thumb-wrap';
+  wrap.appendChild(buildThumb(urlList));
+  card.appendChild(wrap);
+
+  // Body info
+  const body = document.createElement('div');
+  body.className = 'body';
+
+  const ctrVal = item.ctr || '';
+  const ctrDisp = shrinkDecimal(String(ctrVal).includes('%') ? ctrVal : (ctrVal ? ctrVal + '%' : ''));
+
+  function statHtml(label, val) {
+    if (!val) return `<div class="stat"><div class="v-top"><span class="v-label">${label}</span></div><span class="v-main"></span></div>`;
+    return `<div class="stat"><div class="v-top"><span class="v-label">${label}</span><span class="v-raw">${val.raw}</span></div><span class="v-main">${val.main}</span></div>`;
+  }
+
+  body.innerHTML = `
+    <div class="row">
+      ${statHtml('展现', numDisplay(item.imp))}
+      ${statHtml('点击', numDisplay(item.clk))}
+    </div>
+    <div class="row">
+      ${statHtml('消费', numDisplay(item.cost))}
+      <div class="stat"><div class="v-top"><span class="v-label">点击率</span></div><span class="v-main">${ctrDisp}</span></div>
+    </div>
+    <div class="id">${item.id ? `${item._idLabel || '素材ID'}：${item.id}` : ''}</div>`;
+
+  card.appendChild(body);
+
+  // Click to open modal preview
+  card.addEventListener('click', () => openModal(item));
+
+  return card;
+}
+
+function emptyMessageText() {
+  switch (lastParseError) {
+    case 'empty':
+      return '还没有数据：拖入 CSV 文件，或粘贴数据后点击「解析并生成卡片」。';
+    case 'no-header':
+      return '未识别到表头行（已检查前 60 行）。请确认文件包含「日期 / 图片URL / 展现 / 点击 / 消费」等列名。';
+    case 'no-rows':
+      return '已找到表头，但表头下没有可用的数据行（可能全是合计行或空行）。';
+    case 'no-columns':
+      return '已识别表头，但未能匹配到素材URL / ID 或任何指标列，请在上方「列映射」里手动指定。';
+    default:
+      return '未检测到有效数据，请拖入 CSV 文件或粘贴数据后点击「解析并生成卡片」。';
+  }
+}
+
+function doRender() {
+  renderedCount = 0;
+  q('#grid').innerHTML = '';
+  if (allData.length === 0) {
+    q('#empty').textContent = emptyMessageText();
+    q('#empty').style.display = 'block';
+    q('#loadingMore').style.display = 'none';
+    q('#summaryInfo').textContent = '';
+    q('#exportCSVBtn').disabled = true;
+    return;
+  }
+  q('#empty').style.display = 'none';
+  renderSlice(0, Math.min(PAGE_SIZE, allData.length));
+  q('#exportCSVBtn').disabled = false;
+}
+
+// ========== Scroll lazy load ==========
+const scrollObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting && renderedCount < allData.length && !isLoadingMore) {
+      isLoadingMore = true;
+      const nextEnd = Math.min(renderedCount + PAGE_SIZE, allData.length);
+      renderSlice(renderedCount, nextEnd);
+      isLoadingMore = false;
+      // Re-observe in case loadingMore re-appears
+      if (renderedCount < allData.length) {
+        scrollObserver.unobserve(entry.target);
+        scrollObserver.observe(q('#loadingMore'));
+      }
+    }
+  }
+}, { rootMargin: '200px' });
+
+// ========== Modal (全屏蒙板大卡片) ==========
+function openModal(item) {
+  const overlay = q('#modal');
+  const media = q('#modalMedia');
+  const body = q('#modalBody');
+
+  const url = item.url || '';
+  const urlList = splitUrls(url);
+  const isVid = urlList.length === 1 && isVideoUrl(urlList[0]);
+
+  // Media (支持 无URL / 单视频 / 单图 / 多图并排)
+  media.innerHTML = '';
+  if (urlList.length === 0) {
+    media.appendChild(makePlaceholder('无URL'));
+  } else if (isVid) {
+    const vid = document.createElement('video');
+    vid.src = urlList[0]; vid.controls = true; vid.autoplay = true;
+    vid.style.width = '100%'; vid.style.height = '100%'; vid.style.maxHeight = '65vh';
+    vid.style.objectFit = 'contain';
+    media.appendChild(vid);
+  } else if (urlList.length === 1) {
+    const img = makeImg(urlList[0]);
+    img.style.width = '100%'; img.style.height = '100%'; img.style.maxHeight = '65vh';
+    img.style.objectFit = 'contain';
+    media.appendChild(img);
+  } else {
+    const strip = document.createElement('div');
+    strip.className = 'modal-strip';
+    for (const u of urlList) {
+      const cell = document.createElement('div');
+      cell.className = 'modal-strip-cell';
+      const img = makeImg(u);
+      img.style.width = '100%'; img.style.height = '100%'; img.style.maxHeight = '65vh';
+      img.style.objectFit = 'contain';
+      cell.appendChild(img);
+      strip.appendChild(cell);
+    }
+    media.appendChild(strip);
+  }
+
+  // Info body — 一行四列
+  const ctrVal = item.ctr || '';
+  const ctrDisp = shrinkDecimal(String(ctrVal).includes('%') ? ctrVal : (ctrVal ? ctrVal + '%' : ''));
+  const impD = numDisplay(item.imp);
+  const clkD = numDisplay(item.clk);
+  const costD = numDisplay(item.cost);
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <div class="stat"><span class="label">展现</span><span class="v-main">${impD ? impD.main : ''}</span><span class="v-raw" style="display:block;margin-top:2px">${impD ? impD.raw : ''}</span></div>
+      <div class="stat"><span class="label">点击</span><span class="v-main">${clkD ? clkD.main : ''}</span><span class="v-raw" style="display:block;margin-top:2px">${clkD ? clkD.raw : ''}</span></div>
+      <div class="stat"><span class="label">消费</span><span class="v-main">${costD ? costD.main : ''}</span><span class="v-raw" style="display:block;margin-top:2px">${costD ? costD.raw : ''}</span></div>
+      <div class="stat"><span class="label">点击率</span><span class="v-main">${ctrDisp}</span></div>
+    </div>
+    <div class="id">${item.id ? `${item._idLabel || '素材ID'}：${item.id}` : `${url ? url : ''}`}</div>
+  `;
+
+  overlay.classList.add('open');
+}
+
+function closeModal() {
+  q('#modal').classList.remove('open');
+  q('#modalMedia').innerHTML = '';
+  q('#modalBody').innerHTML = '';
+}
+
+q('#modalClose').addEventListener('click', closeModal);
+q('#modal').addEventListener('click', (e) => { if (e.target === q('#modal')) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// ========== Event Listeners ==========
+q('#parseBtn').addEventListener('click', () => {
+  parseAndBuild();
+  doRender();
+});
+
+// Re-parse when column mapping changes
+qa('.col-map select').forEach(sel => {
+  sel.addEventListener('change', () => {
+    if (parsed) { parseAndBuild(); doRender(); }
+  });
+});
+
+// 展现过滤复选框
+q('#filterImp').addEventListener('change', () => {
+  if (parsed) { parseAndBuild(); doRender(); }
+});
+
+// 按素材聚合开关
+const aggToggle = q('#aggToggle');
+if (aggToggle) {
+  aggToggle.checked = aggregate;
+  aggToggle.addEventListener('change', () => {
+    aggregate = aggToggle.checked;
+    try { localStorage.setItem('order.aggregate', aggregate ? '1' : '0'); } catch (e) {}
+    if (parsed) { parseAndBuild(); doRender(); }
+  });
+}
+
+// ========== Sort buttons ==========
+function updateFilterVisibility() {
+  const wrap = q('#filterImpWrap');
+  const cb = q('#filterImp');
+  const show = currentSort === 'ctr' && allData.length > 50;
+  if (show && wrap.style.display === 'none') {
+    // 首次显示时默认勾选
+    wrap.style.display = '';
+    cb.checked = true;
+  } else if (show) {
+    wrap.style.display = '';
+    // 不覆盖用户手动操作的状态
+  } else {
+    wrap.style.display = 'none';
+    cb.checked = false;
+  }
+}
+
+qa('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.sort;
+    if (field === currentSort) return;
+    currentSort = field;
+    qa('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // Update arrow hints
+    q('#sortCost').textContent = currentSort === 'cost' ? '消费 ↓' : '消费';
+    q('#sortImp').textContent = currentSort === 'imp' ? '展现 ↓' : '展现';
+    q('#sortCtr').textContent = currentSort === 'ctr' ? '点击率 ↓' : '点击率';
+    if (allData.length) { parseAndBuild(); doRender(); }
+  });
+});
+
+// ========== Export CSV ==========
+q('#exportCSVBtn').addEventListener('click', () => {
+  if (allData.length === 0) { alert('没有数据可导出'); return; }
+  const header = '素材URL,素材ID,展现,点击,消费,点击率';
+  // 导出前同样收敛到 2 位小数并统一加引号，避免浮点尾数或千分位逗号把列挤乱
+  const numOut = v => {
+    if (v == null || v === '' || v === '-' || v === '—') return '';
+    const s = String(v).trim();
+    return /^[￥¥$€,\s\u3000%0-9.+\-eE]+$/.test(s) ? String(round2(toNum(s))) : s;
+  };
+  const rows = allData.map(d => {
+    const url = (d.url || '').replace(/"/g, '""');
+    const id = (d.id || '').replace(/"/g, '""');
+    return `"${url}","${id}","${numOut(d.imp)}","${numOut(d.clk)}","${numOut(d.cost)}","${d.ctr || ''}"`;
+  });
+  const csv = header + '\n' + rows.join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cards_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  showToast('导出成功');
+});
+
+// ========== File loading (drag & drop) ==========
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ACCEPT_EXT = /\.(csv|tsv|txt)$/i;
+let loadedFiles = [];
+let lastEncoding = '';
+let dragDepth = 0;
+
+// 编码自适应：BOM → UTF-8 严格校验 → 回退 GB18030（Excel 中文导出的默认编码）
+function decodeBytes(buf) {
+  const bytes = new Uint8Array(buf);
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return { text: new TextDecoder('utf-8').decode(bytes.subarray(3)), encoding: 'UTF-8' };
+  }
+  try {
+    return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'UTF-8' };
+  } catch (e) {}
+  try {
+    return { text: new TextDecoder('gb18030').decode(bytes), encoding: 'GB18030' };
+  } catch (e) {}
+  return { text: new TextDecoder('utf-8').decode(bytes), encoding: 'UTF-8' };
+}
+
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(decodeBytes(fr.result));
+    fr.onerror = () => reject(fr.error || new Error('读取失败'));
+    fr.readAsArrayBuffer(file);
+  });
+}
+
+function renderFileBar() {
+  const bar = q('#fileBar');
+  const txt = q('#fileBarText');
+  if (!bar || !txt) return;
+  if (!loadedFiles.length) { bar.style.display = 'none'; return; }
+  const rows = parsed && parsed.rows ? parsed.rows.length : 0;
+  const names = loadedFiles.length > 3
+    ? loadedFiles.slice(0, 3).join('、') + ` 等 ${loadedFiles.length} 个`
+    : loadedFiles.join('、');
+  txt.textContent = `已载入 ${names} · ${rows.toLocaleString()} 行 · ${lastEncoding || 'UTF-8'}`;
+  bar.style.display = 'flex';
+}
+
+async function handleFiles(fileList) {
+  const all = Array.from(fileList || []);
+  if (!all.length) return;
+
+  const accepted = [];
+  const rejected = [];
+  for (const f of all) {
+    if (!ACCEPT_EXT.test(f.name)) { rejected.push(`${f.name}（仅支持 .csv/.tsv/.txt）`); continue; }
+    if (f.size > MAX_FILE_BYTES) { rejected.push(`${f.name}（超过 10MB）`); continue; }
+    accepted.push(f);
+  }
+  if (rejected.length) showToast('已跳过：' + rejected.join('；'));
+  if (!accepted.length) return;
+
+  const packs = [];
+  for (const f of accepted) {
+    try {
+      const { text, encoding } = await readFileText(f);
+      packs.push({ name: f.name, text, encoding, result: parseTabular(text) });
+    } catch (e) {
+      rejected.push(`${f.name}（读取失败）`);
+    }
+  }
+  if (!packs.length) { showToast('文件读取失败'); return; }
+
+  const usable = packs.filter(p => p.result.header.length > 0);
+  if (!usable.length) {
+    // 无法识别表头时仍把原文放进编辑框，由页面给出明确的失败原因
+    loadedFiles = [packs[0].name];
+    lastEncoding = packs[0].encoding;
+    q('#dataInput').value = packs[0].text;
+    parseAndBuild();
+    doRender();
+    renderFileBar();
+    return;
+  }
+
+  let merged = usable[0];
+  let mergedNames = [usable[0].name];
+  if (usable.length > 1) {
+    const sig = usable[0].result.header.join('\u0001');
+    const sameHeader = usable.every(p => p.result.header.join('\u0001') === sig);
+    if (sameHeader) {
+      const rows = [];
+      for (const p of usable) rows.push(...p.result.rows);
+      merged = {
+        name: usable[0].name,
+        text: toDelimited(usable[0].result.header, rows, usable[0].result.delimiter),
+        encoding: usable[0].encoding,
+        result: { ...usable[0].result, rows },
+      };
+      mergedNames = usable.map(p => p.name);
+    } else {
+      showToast('表头不一致，仅载入第一个文件');
+    }
+  }
+
+  loadedFiles = mergedNames;
+  lastEncoding = merged.encoding;
+  q('#dataInput').value = merged.text;
+  parseAndBuild();
+  doRender();
+  renderFileBar();
+  const rows = parsed && parsed.rows ? parsed.rows.length : 0;
+  showToast(`已载入 ${rows.toLocaleString()} 行`);
+}
+
+function hasFilePayload(e) {
+  const dt = e.dataTransfer;
+  if (!dt) return false;
+  if (dt.types) return Array.from(dt.types).indexOf('Files') !== -1;
+  return !!(dt.files && dt.files.length);
+}
+
+const dropzone = q('#dropzone');
+const fileInput = q('#fileInput');
+if (dropzone && fileInput) {
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener('change', () => {
+    handleFiles(fileInput.files);
+    fileInput.value = ''; // 允许重复选择同一个文件
+  });
+}
+
+const clearBtn = q('#fileClear');
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    loadedFiles = [];
+    lastEncoding = '';
+    q('#dataInput').value = '';
+    q('#fileBar').style.display = 'none';
+    parseAndBuild();
+    doRender();
+  });
+}
+
+// 整页拖拽：拖入时显示遮罩，落点任意位置都能载入
+document.addEventListener('dragenter', e => {
+  if (!hasFilePayload(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  document.body.classList.add('dragging');
+});
+document.addEventListener('dragover', e => {
+  if (!hasFilePayload(e)) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+});
+document.addEventListener('dragleave', e => {
+  if (!hasFilePayload(e)) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) document.body.classList.remove('dragging');
+});
+document.addEventListener('drop', e => {
+  if (!hasFilePayload(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('dragging');
+  handleFiles(e.dataTransfer.files);
+});
+window.addEventListener('dragend', () => { dragDepth = 0; document.body.classList.remove('dragging'); });
+// 兜底：阻止浏览器把文件当页面打开
+window.addEventListener('dragover', e => { if (hasFilePayload(e)) e.preventDefault(); });
+window.addEventListener('drop', e => { if (hasFilePayload(e)) e.preventDefault(); });
+
+// ========== Init ==========
+window.addEventListener('DOMContentLoaded', () => {
+  parseAndBuild();
+  doRender();
+  // Observe loadingMore for infinite scroll
+  const loadingEl = q('#loadingMore');
+  if (loadingEl) scrollObserver.observe(loadingEl);
+});
+</script>
+</body>
+</html>
