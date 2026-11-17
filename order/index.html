@@ -1048,7 +1048,7 @@ q('#exportCSVBtn').addEventListener('click', () => {
 });
 
 // ========== File loading (drag & drop) ==========
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const ACCEPT_EXT = /\.(csv|tsv|txt)$/i;
 let loadedFiles = [];
 let lastEncoding = '';
@@ -1099,7 +1099,7 @@ async function handleFiles(fileList) {
   const rejected = [];
   for (const f of all) {
     if (!ACCEPT_EXT.test(f.name)) { rejected.push(`${f.name}（仅支持 .csv/.tsv/.txt）`); continue; }
-    if (f.size > MAX_FILE_BYTES) { rejected.push(`${f.name}（超过 10MB）`); continue; }
+    if (f.size > MAX_FILE_BYTES) { rejected.push(`${f.name}（超过 15MB）`); continue; }
     accepted.push(f);
   }
   if (rejected.length) showToast('已跳过：' + rejected.join('；'));
